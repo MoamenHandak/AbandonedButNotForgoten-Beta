@@ -35,11 +35,17 @@ import { getCraftStory, getStoryUiCopy, useActiveLanguage } from '../data/craftS
 import MissionBriefingDialog from './MissionBriefingDialog';
 import StatusBadge from './StatusBadge';
 import ShowroomStoryPanel from './ShowroomStoryPanel';
+import { createOrbitLayer } from '../scene/orbitLayer';
 import '../styles/spacecraft.css';
 
 const MoreEquipmentModal = lazy(() => import('./MoreEquipmentModal'));
 const SourcesModal = lazy(() => import('./SourcesModal'));
 
+/* ==========================================================================
+   SPACECRAFT CONFIGURATION & CALIBRATED HOTSPOTS
+   Staged deep-space models preserved in public/models/ without UI modification:
+   pioneer10-opt.glb, dawn-opt.glb, near-opt.glb, kepler-opt.glb, llcd-opt.glb
+   ========================================================================== */
 export const VEHICLES_DATA = [
   {
     id: 'lunar-rover',
@@ -74,7 +80,136 @@ export const VEHICLES_DATA = [
       { label: 'POWER', value: 'Ag-Zn Bat' },
       { label: 'STATUS', value: 'Preserved' }
     ],
+    hotspots: [
+      { id: 'lrv-tv', label: 'Color TV Camera', position: [0.68, 1.15, 0.40], offset: { x: 80, y: -50 } },
+      { id: 'lrv-hga', label: 'High-Gain Umbrella Dish', position: [0.99, 1.55, 0.14], offset: { x: 85, y: -65 } },
+      { id: 'lrv-wheel', label: 'Woven Wire Wheels', position: [0.29, 0.38, 0.75], offset: { x: -85, y: -35 } },
+      { id: 'lrv-battery', label: '36V Dual Ag-Zn Battery', position: [0.12, 0.75, 0.35], offset: { x: 85, y: 40 } }
+    ],
     vistaAnchor: [0, 1.75, 0]
+  },
+  {
+    id: 'apollo-lunar-module',
+    name: 'LUNAR MODULE',
+    codename: 'LM-10 // FALCON',
+    role: 'APOLLO CREWED LUNAR LANDER',
+    destination: 'moon',
+    planet: 'THE MOON',
+    sector: 'SECTOR 01 // HADLEY RILLE',
+    modelSrc: '/models/lunar_module-opt.glb',
+    alt: 'Detailed 3D model of Apollo Lunar Module standing on the Moon',
+    scale: 1.0,
+    position: [-18.0, 0, 10.0],
+    rotation: [0, 0.45, 0],
+    focusCamPos: [-15.2, 2.2, 13.8],
+    focusLookAt: [-18.0, 1.8, 10.0],
+    contactShadowRadius: 3.8,
+    agency: 'NASA / Grumman Aerospace',
+    launchDate: 'July 26, 1971',
+    landingSite: 'Hadley-Apennine, Moon (July 30, 1971)',
+    distanceTraveled: 'Descent Stage Launch Platform',
+    operationalTime: '66 Hours, 55 Minutes Surface Stay',
+    status: 'Descent Stage Remains on the Lunar Surface',
+    tagline: 'Descent stages remained at the six Apollo landing sites.',
+    description:
+      'Descent stages remained at the six Apollo landing sites and served as launch platforms for the ascent stage. Note: While this historic 3D model depicts the integrated spacecraft configuration, only the descent stage remained on the Moon after lunar liftoff.',
+    lastTelemetry:
+      'Descent stages remained at the six Apollo landing sites and served as launch platforms for the ascent stage.',
+    stats: [
+      { label: 'LANDING', value: '30 Jul 1971' },
+      { label: 'STAY TIME', value: '66.9 Hours' },
+      { label: 'MASS (DRY)', value: '2,034 kg' },
+      { label: 'STATUS', value: 'Permanent Site' }
+    ],
+    hotspots: [
+      { id: 'lm-descent', label: 'Descent Stage & Engine', position: [-18.0, 0.85, 10.0], offset: { x: -85, y: 40 } },
+      { id: 'lm-footpad', label: 'Landing Gear & Lunar Footpad', position: [-15.8, 0.35, 12.2], offset: { x: 85, y: 45 } },
+      { id: 'lm-mesa', label: 'Modular Equipment Stowage (MESA)', position: [-18.8, 1.65, 8.8], offset: { x: -85, y: -35 } },
+      { id: 'lm-antenna', label: 'S-Band Steerable Antenna', position: [-17.3, 3.85, 11.2], offset: { x: 85, y: -55 } }
+    ],
+    vistaAnchor: [-18.0, 2.5, 10.0]
+  },
+  {
+    id: 'lro-orbiter',
+    isOrbiter: true,
+    name: 'LRO',
+    codename: 'LRO // LUNAR ORBIT',
+    role: 'LUNAR RECONNAISSANCE ORBITER',
+    destination: 'moon',
+    planet: 'THE MOON',
+    sector: 'LUNAR ORBIT // POLAR RECON',
+    modelSrc: '/models/lro-opt.glb',
+    alt: '3D model of Lunar Reconnaissance Orbiter circling the Moon',
+    scale: 0.8,
+    position: [0, 5.0, 0],
+    rotation: [0.1, 0.4, 0],
+    focusCamPos: [2.8, 5.8, 3.2],
+    focusLookAt: [0, 5.0, 0],
+    contactShadowRadius: 0,
+    agency: 'NASA / Goddard',
+    launchDate: 'June 18, 2009',
+    landingSite: 'Lunar Polar Mapping Orbit',
+    distanceTraveled: 'Polar Orbit Reconnaissance',
+    operationalTime: 'Over 15 Years in Orbit',
+    status: 'Active Lunar Orbital Mapper',
+    tagline: 'Mapping the Moon in unprecedented meter-scale detail.',
+    description:
+      'Launched on June 18, 2009, LRO entered lunar polar orbit to map the surface, identify landing sites and water ice deposits, and photograph Apollo landing sites.',
+    lastTelemetry:
+      'Continuing high-resolution surface mapping and laser altimetry from polar orbit.',
+    stats: [
+      { label: 'ORBIT', value: 'Polar Lunar' },
+      { label: 'ACTIVE', value: '15+ Years' },
+      { label: 'INSTRUMENTS', value: 'LROC, LOLA' },
+      { label: 'STATUS', value: 'Operational' }
+    ],
+    hotspots: [
+      { id: 'lro-hga', label: 'High-Gain Antenna (HGA)', position: [0.55, 5.55, 0.25], offset: { x: 85, y: -45 } },
+      { id: 'lro-cam', label: 'LROC Narrow Angle Camera', position: [-0.45, 4.95, -0.20], offset: { x: -85, y: -35 } },
+      { id: 'lro-solar', label: 'Solar Array Wing', position: [-0.95, 5.15, 0.45], offset: { x: 85, y: 35 } }
+    ],
+    vistaAnchor: [0, 6.0, 0]
+  },
+  {
+    id: 'ladee-orbiter',
+    isOrbiter: true,
+    name: 'LADEE',
+    codename: 'LADEE // EXOSPHERE',
+    role: 'LUNAR DUST & ATMOSPHERE EXPLORER',
+    destination: 'moon',
+    planet: 'THE MOON',
+    sector: 'LUNAR EQUATORIAL ORBIT // RETIRED',
+    modelSrc: '/models/ladee-opt.glb',
+    alt: '3D model of LADEE lunar atmosphere probe',
+    scale: 0.85,
+    position: [0, 5.0, 0],
+    rotation: [0.15, 0.5, 0],
+    focusCamPos: [2.5, 5.6, 3.0],
+    focusLookAt: [0, 5.0, 0],
+    contactShadowRadius: 0,
+    agency: 'NASA / Ames',
+    launchDate: 'September 7, 2013',
+    landingSite: 'Lunar Surface (Impact Apr 18, 2014)',
+    distanceTraveled: 'Low Lunar Equatorial Orbit',
+    operationalTime: '7 Months Active (Impacted Apr 18, 2014)',
+    status: 'Intentional Lunar Far-Side Impact',
+    tagline: 'Unveiling the mystery of glowing lunar sunrise dust.',
+    description:
+      'LADEE investigated the Moon’s extremely tenuous atmosphere and floating dust grains, demonstrating high-speed lunar optical laser communications (LLCD).',
+    lastTelemetry:
+      'Mission concluded with a planned, intentional impact on the lunar far side on April 18, 2014.',
+    stats: [
+      { label: 'LAUNCH', value: '7 Sep 2013' },
+      { label: 'IMPACT', value: '18 Apr 2014' },
+      { label: 'OPTICAL COMM', value: '622 Mbps' },
+      { label: 'STATUS', value: 'Decommissioned' }
+    ],
+    hotspots: [
+      { id: 'ladee-laser', label: 'LLCD Optical Laser Terminal', position: [0.40, 5.40, 0.20], offset: { x: 85, y: -40 } },
+      { id: 'ladee-dust', label: 'Lunar Dust Experiment (LDEX)', position: [-0.35, 4.80, -0.30], offset: { x: -85, y: 35 } },
+      { id: 'ladee-cells', label: 'Body Solar Array Panels', position: [-0.45, 5.25, 0.35], offset: { x: -85, y: -30 } }
+    ],
+    vistaAnchor: [0, 6.0, 0]
   },
   {
     id: 'mer-opportunity',
@@ -108,6 +243,12 @@ export const VEHICLES_DATA = [
       { label: 'ACTUAL LIFE', value: '5,111 Sols' },
       { label: 'MARATHON', value: '45.16 km' },
       { label: 'PHOTOS', value: '217,594' }
+    ],
+    hotspots: [
+      { id: 'oppy-pancam', label: 'Pancam/Navcam Mast', position: [-0.04, 1.55, 0.34], offset: { x: 80, y: -50 } },
+      { id: 'oppy-solar', label: 'Solar Array Wings', position: [0.92, 1.10, -0.29], offset: { x: 85, y: -25 } },
+      { id: 'oppy-arm', label: '5-Joint Arm & RAT', position: [-0.04, 0.50, 0.75], offset: { x: -85, y: 35 } },
+      { id: 'oppy-wheels', label: 'Rocker-Bogie Mobility', position: [0.98, 0.35, -0.11], offset: { x: 85, y: 45 } }
     ],
     vistaAnchor: [0, 1.6, 0]
   },
@@ -144,6 +285,12 @@ export const VEHICLES_DATA = [
       { label: 'AIR TIME', value: '128.8 min' },
       { label: 'ALTITUDE', value: '24.0 m' }
     ],
+    hotspots: [
+      { id: 'ing-solar', label: 'Top Solar Array', position: [-14.00, 0.80, -7.00], offset: { x: 85, y: -55 } },
+      { id: 'ing-rotor-upper', label: 'Upper Rotor Blade', position: [-13.75, 0.66, -6.85], offset: { x: -85, y: -35 } },
+      { id: 'ing-rotor-lower', label: 'Lower Rotor Blade', position: [-14.25, 0.54, -7.15], offset: { x: 85, y: -20 } },
+      { id: 'ing-camera', label: 'Nav Eye & Horizon Cam', position: [-13.95, 0.34, -6.90], offset: { x: -85, y: 40 } }
+    ],
     vistaAnchor: [-14.0, 0.84, -7.0]
   },
   {
@@ -179,42 +326,218 @@ export const VEHICLES_DATA = [
       { label: 'POWER', value: 'Dual RTGs' },
       { label: 'SOIL DATA', value: 'Analyzed' }
     ],
+    hotspots: [
+      { id: 'viking-hga', label: 'High-Gain S-Band Dish', position: [16.05, 1.27, -8.25], offset: { x: 85, y: -55 } },
+      { id: 'viking-camera', label: 'Surface Facsimile Cameras', position: [15.95, 1.17, -7.85], offset: { x: -85, y: -45 } },
+      { id: 'viking-arm', label: 'Soil Sampler Boom & Scoop', position: [16.55, 0.37, -7.65], offset: { x: 85, y: 35 } },
+      { id: 'viking-rtg', label: 'SNAP-19 RTG Power', position: [15.55, 0.67, -8.15], offset: { x: -85, y: 30 } }
+    ],
     vistaAnchor: [16.0, 1.96, -8.0]
   },
   {
-    id: 'deep-space-probe',
-    name: 'DEEP SPACE EXPLORER',
-    codename: 'VOYAGER & PIONEER // VOID',
-    role: 'INTERSTELLAR PROBE ARRAY',
-    destination: 'deepspace',
-    planet: 'DEEP SPACE',
-    sector: 'SECTOR 03 // INTERSTELLAR HELIOPAUSE',
-    modelSrc: null,
-    alt: 'Deep space interstellar probes entering cosmic space',
+    id: 'insight-lander',
+    name: 'INSIGHT LANDER',
+    codename: 'INSIGHT // MARS',
+    role: 'GEOPHYSICAL SURFACE OBSERVATORY',
+    destination: 'mars',
+    planet: 'MARS',
+    sector: 'SECTOR 02 // ELYSIUM PLANITIA',
+    modelSrc: '/models/insight-opt.glb',
+    alt: 'Detailed 3D model of InSight Mars lander on Martian plain',
     scale: 1.0,
-    position: [0, 0, 0],
-    rotation: [0, 0, 0],
-    focusCamPos: [0, 1.5, 6.0],
-    focusLookAt: [0, 0, 0],
-    contactShadowRadius: 0,
-    agency: 'NASA / JPL',
-    launchDate: '1972 - 1977 - 2006',
-    landingSite: 'Interstellar Space / Kuiper Belt',
-    distanceTraveled: '24+ Billion km',
-    operationalTime: 'Over 45 Years and Counting',
-    status: 'Sailing into Interstellar Space',
-    tagline: 'Humanity\'s farthest messengers in the silent cosmic deep.',
+    position: [0.0, 0, -22.0],
+    rotation: [0, -0.6, 0],
+    focusCamPos: [2.2, 1.35, -20.2],
+    focusLookAt: [0.0, 0.65, -22.0],
+    contactShadowRadius: 2.6,
+    agency: 'NASA / CNES / DLR / JPL',
+    launchDate: 'May 5, 2018',
+    landingSite: 'Elysium Planitia, Mars',
+    distanceTraveled: 'Stationary Geophysical Station',
+    operationalTime: 'Landed 26 Nov 2018 – Retired 21 Dec 2022',
+    status: 'Retired 21 Dec 2022 on Mars',
+    tagline: 'InSight landed 26 Nov 2018 on Mars.',
     description:
-      'Venturing beyond the boundary where the solar wind gives way to interstellar space, deep-space probes like Pioneer 10, Voyager 1 & 2, and New Horizons represent humanity\'s farthest ambassadors. Equipped with nuclear RTGs and high-gain antenna dishes, they drift perpetually into the galaxy.',
+      'InSight landed 26 Nov 2018 on Mars, used a seismometer plus heat and geodesy instruments, dust on the solar panels reduced power, NASA declared it retired 21 Dec 2022 (last contact 15 Dec 2022).',
     lastTelemetry:
-      '"Continuing cosmic ray and magnetic field measurements from beyond our solar system."',
+      'Dust on the solar panels reduced power. NASA declared it retired 21 Dec 2022 (last contact 15 Dec 2022).',
     stats: [
-      { label: 'DISTANCE', value: '24+ Bn km' },
-      { label: 'STATUS', value: 'Active/Silent' },
-      { label: 'POWER', value: 'Nuclear RTG' },
-      { label: 'HORIZON', value: 'Interstellar' }
+      { label: 'LANDED', value: '26 Nov 2018' },
+      { label: 'RETIRED', value: '21 Dec 2022' },
+      { label: 'LAST CONTACT', value: '15 Dec 2022' },
+      { label: 'STATUS', value: 'Retired' }
     ],
-    vistaAnchor: [0, 1.5, 0]
+    hotspots: [
+      { id: 'insight-solar', label: 'UltraFlex Solar Array', position: [-2.1, 0.85, -22.0], offset: { x: -85, y: -45 } },
+      { id: 'insight-arm', label: 'Instrument Deployment Arm (IDA)', position: [0.75, 0.65, -21.15], offset: { x: 85, y: -35 } },
+      { id: 'insight-wts', label: 'Wind and Thermal Shield (WTS)', position: [0.2, 0.78, -22.2], offset: { x: -85, y: 35 } },
+      { id: 'insight-antenna', label: 'UHF Relay Antenna & Weather Mast', position: [-0.05, 1.25, -22.15], offset: { x: 85, y: 45 } }
+    ],
+    vistaAnchor: [0.0, 1.8, -22.0]
+  },
+  {
+    id: 'mgs-orbiter',
+    isOrbiter: true,
+    name: 'MARS SURVEYOR',
+    codename: 'MGS // MAPPING ORBIT',
+    role: 'MARS GLOBAL SURVEYOR',
+    destination: 'mars',
+    planet: 'MARS',
+    sector: 'AEROBRAKING ORBIT // ARCHIVE',
+    modelSrc: '/models/mgs-opt.glb',
+    alt: '3D model of Mars Global Surveyor orbiter',
+    scale: 0.75,
+    position: [0, 5.5, -4.0],
+    rotation: [0.1, 0.35, 0],
+    focusCamPos: [2.8, 6.2, -1.2],
+    focusLookAt: [0, 5.5, -4.0],
+    contactShadowRadius: 0,
+    agency: 'NASA / JPL / Lockheed Martin',
+    launchDate: 'November 7, 1996',
+    landingSite: 'Sun-synchronous Mars Orbit',
+    distanceTraveled: 'Over 20,000 Orbits',
+    operationalTime: '10 Years in Martian Orbit (1996-2006)',
+    status: 'Permanent Silent Orbit around Mars',
+    tagline: 'First comprehensive global surveyor of the Red Planet.',
+    description:
+      'Mars Global Surveyor revolutionized our understanding of Mars with high-resolution imagery of gullies and mineral maps identifying hematite deposits that guided Opportunity.',
+    lastTelemetry:
+      'Last contact November 2, 2006, after 10 years of groundbreaking operations.',
+    stats: [
+      { label: 'ORBITS', value: '20,000+' },
+      { label: 'PHOTOS', value: '240,000+' },
+      { label: 'SERVICE', value: '10 Years' },
+      { label: 'STATUS', value: 'Silent Orbit' }
+    ],
+    hotspots: [
+      { id: 'mgs-dish', label: '1.5m High-Gain Antenna', position: [0.65, 5.95, -3.80], offset: { x: 85, y: -45 } },
+      { id: 'mgs-camera', label: 'Mars Orbiter Camera (MOC)', position: [-0.40, 5.25, -4.25], offset: { x: -85, y: -35 } },
+      { id: 'mgs-solar', label: 'Solar Array & Drag Flaps', position: [-1.25, 5.55, -3.90], offset: { x: -85, y: 40 } }
+    ],
+    vistaAnchor: [0, 6.5, -4.0]
+  },
+  {
+    id: 'odyssey-orbiter',
+    isOrbiter: true,
+    name: 'MARS ODYSSEY',
+    codename: '2001 ODYSSEY // MARS',
+    role: 'LONGEST SURVIVING MARS ORBITER',
+    destination: 'mars',
+    planet: 'MARS',
+    sector: 'CIRCULAR POLAR ORBIT // ACTIVE',
+    modelSrc: '/models/odyssey-opt.glb',
+    alt: '3D model of Mars Odyssey 2001 spacecraft',
+    scale: 0.7,
+    position: [0, 5.5, -4.0],
+    rotation: [0.2, 0.4, 0],
+    focusCamPos: [2.6, 6.2, -1.4],
+    focusLookAt: [0, 5.5, -4.0],
+    contactShadowRadius: 0,
+    agency: 'NASA / JPL / Lockheed Martin',
+    launchDate: 'April 7, 2001',
+    landingSite: 'Sun-Synchronous Polar Orbit',
+    distanceTraveled: 'Over 100,000 Orbits',
+    operationalTime: 'Over 23 Years Active (Record Holder)',
+    status: 'Longest Continuously Operating Mars Spacecraft',
+    tagline: 'Humanity\'s longest-serving scout at another world.',
+    description:
+      '2001 Mars Odyssey discovered vast deposits of subsurface water ice, mapped global elemental abundances, and relayed key telemetry for Spirit, Opportunity, and Curiosity.',
+    lastTelemetry:
+      'Continuing orbital thermal emission imaging and rover relay support.',
+    stats: [
+      { label: 'ACTIVE', value: '23+ Years' },
+      { label: 'ORBITS', value: '100,000+' },
+      { label: 'RELAY', value: 'UHF Link' },
+      { label: 'STATUS', value: 'Operational' }
+    ],
+    hotspots: [
+      { id: 'ody-boom', label: 'GRS Instrument Boom', position: [0.75, 5.85, -3.75], offset: { x: 85, y: -45 } },
+      { id: 'ody-themis', label: 'THEMIS Thermal Imager', position: [-0.45, 5.30, -4.20], offset: { x: -85, y: -35 } },
+      { id: 'ody-antenna', label: 'High-Gain Parabolic Dish', position: [0.20, 6.10, -4.10], offset: { x: 85, y: 35 } }
+    ],
+    vistaAnchor: [0, 6.5, -4.0]
+  },
+  {
+    id: 'mro-orbiter',
+    isOrbiter: true,
+    name: 'MRO',
+    codename: 'MRO // RECONNAISSANCE',
+    role: 'HIGH RESOLUTION RECONNAISSANCE ORBITER',
+    destination: 'mars',
+    planet: 'MARS',
+    sector: 'LOW MARTIAN ORBIT // HI-RES',
+    modelSrc: '/models/mro-opt.glb',
+    alt: '3D model of Mars Reconnaissance Orbiter with large dish',
+    scale: 0.65,
+    position: [0, 5.5, -4.0],
+    rotation: [0.1, 0.5, 0],
+    focusCamPos: [2.7, 6.3, -1.3],
+    focusLookAt: [0, 5.5, -4.0],
+    contactShadowRadius: 0,
+    agency: 'NASA / JPL / Lockheed Martin',
+    launchDate: 'August 12, 2005',
+    landingSite: 'Low Mars Polar Orbit',
+    distanceTraveled: 'Over 75,000 Orbits',
+    operationalTime: '19+ Years in Orbit',
+    status: 'Active Primary Reconnaissance & Relay',
+    tagline: 'Revealing Martian surface features down to boulder size.',
+    description:
+      'Equipped with the 0.5m HiRISE telescope camera, MRO captures stunning 30cm/pixel imagery of Mars, photographing landers on the surface and tracking recurring dust storms.',
+    lastTelemetry:
+      'Operating HiRISE camera and UHF relay supporting surface missions.',
+    stats: [
+      { label: 'CAMERA', value: 'HiRISE 30cm' },
+      { label: 'DATA RETURN', value: '450+ Terabits' },
+      { label: 'SERVICE', value: '19+ Years' },
+      { label: 'STATUS', value: 'Operational' }
+    ],
+    hotspots: [
+      { id: 'mro-dish', label: '3.0m High-Gain Antenna Dish', position: [0.85, 6.20, -3.70], offset: { x: 85, y: -50 } },
+      { id: 'mro-hirise', label: 'HiRISE High-Resolution Camera', position: [-0.55, 5.15, -4.30], offset: { x: -85, y: -35 } },
+      { id: 'mro-solar', label: 'UltraFlex Solar Wings', position: [-1.45, 5.60, -3.85], offset: { x: -85, y: 40 } }
+    ],
+    vistaAnchor: [0, 6.5, -4.0]
+  },
+  {
+    id: 'maven-orbiter',
+    isOrbiter: true,
+    name: 'MAVEN',
+    codename: 'MAVEN // ATMOSPHERE',
+    role: 'ATMOSPHERE & VOLATILE EVOLUTION',
+    destination: 'mars',
+    planet: 'MARS',
+    sector: 'ELLIPTICAL SCIENCE ORBIT',
+    modelSrc: '/models/maven-opt.glb',
+    alt: '3D model of MAVEN Mars orbiter',
+    scale: 0.7,
+    position: [0, 5.5, -4.0],
+    rotation: [0.15, 0.45, 0],
+    focusCamPos: [2.6, 6.2, -1.4],
+    focusLookAt: [0, 5.5, -4.0],
+    contactShadowRadius: 0,
+    agency: 'NASA / Goddard / Lockheed Martin',
+    launchDate: 'November 18, 2013',
+    landingSite: 'Elliptical Mars Orbit',
+    distanceTraveled: 'Elliptical Upper Atmosphere Dipping',
+    operationalTime: '10+ Years in Orbit',
+    status: 'Active Atmospheric Evolution Observatory',
+    tagline: 'Discovering how Mars lost its atmosphere and water.',
+    description:
+      'MAVEN studies how the solar wind stripped away the Martian atmosphere over billions of years, transforming Mars from a warm, wet world into today\'s frozen desert.',
+    lastTelemetry:
+      'Conducting upper atmospheric escape measurements and deep-space communications relay.',
+    stats: [
+      { label: 'LAUNCH', value: '18 Nov 2013' },
+      { label: 'MISSION', value: 'Atmosphere' },
+      { label: 'SERVICE', value: '10+ Years' },
+      { label: 'STATUS', value: 'Operational' }
+    ],
+    hotspots: [
+      { id: 'maven-boom', label: 'Articulated Payload Boom', position: [0.70, 5.90, -3.80], offset: { x: 85, y: -45 } },
+      { id: 'maven-spectrometer', label: 'IUVS Ultraviolet Spectrograph', position: [-0.50, 5.30, -4.25], offset: { x: -85, y: -35 } },
+      { id: 'maven-solar', label: 'Gull-Wing Solar Arrays', position: [-1.35, 5.65, -3.90], offset: { x: -85, y: 40 } }
+    ],
+    vistaAnchor: [0, 6.5, -4.0]
   }
 ];
 
@@ -222,9 +545,11 @@ const MOON_TERRAIN_URL = '/models/moon_surface-opt.glb';
 const EARTH_BACKDROP_URL = '/models/realistic_earth-opt.glb';
 const MARS_TERRAIN_URL = '/models/mud_of_mars-opt.glb';
 const LUNAR_ROVER_URL = '/models/lunar_rover-opt.glb';
+const LUNAR_MODULE_URL = '/models/lunar_module-opt.glb';
 const MER_ROVER_URL = '/models/mer_rover-opt.glb';
 const INGENUITY_URL = '/models/ingenuity-opt.glb';
 const VIKING_URL = '/models/viking_lander-opt.glb';
+const INSIGHT_URL = '/models/insight-opt.glb';
 
 const MOON_VISTA_CAM = { pos: [0, 1.8, 14.5], lookAt: [0, 0.9, 0] };
 const MARS_VISTA_CAM = { pos: [0, 2.0, 12.0], lookAt: [0, 0.75, -1.0] };
@@ -324,6 +649,7 @@ export default function PlanetaryShowroom({
     loadedVehicles: {},
     currentPlanet: null,
     earthMesh: null,
+    orbitLayer: null,
     loadPlanetScene: null,
     syncRenderLoop: null,
     renderOnce: null,
@@ -404,6 +730,12 @@ export default function PlanetaryShowroom({
       setCurrentIndex(idx);
 
       const s = threeRef.current;
+      if (vehicle.isOrbiter) {
+        s.orbitLayer?.select(vehicle.id);
+      } else {
+        s.orbitLayer?.release();
+      }
+
       if (s.currentPlanet !== vehicle.destination && s.loadPlanetScene) {
         s.loadPlanetScene(vehicle.destination, () => {
           if (autoFly) {
@@ -446,12 +778,14 @@ export default function PlanetaryShowroom({
     const s = threeRef.current;
     const planet = s.currentPlanet || (initialDestination === 'mars' ? 'mars' : initialDestination === 'deepspace' ? 'deepspace' : 'moon');
     const vista = planet === 'mars' ? MARS_VISTA_CAM : planet === 'deepspace' ? DEEPSPACE_VISTA_CAM : MOON_VISTA_CAM;
+    s.orbitLayer?.release();
     setIsCraftDialogOpen(true);
     triggerCameraFly(vista.pos, vista.lookAt, 1100, 'camera_servo');
   }, [initialDestination, triggerCameraFly]);
 
   // Wake/pause render loop when overlay modals open/close
   useEffect(() => {
+    threeRef.current.orbitLayer?.setPaused(overlayPausedRef.current);
     threeRef.current.syncRenderLoop?.();
   }, [isCraftDialogOpen, showStoryModal, moreEquipmentOpen, sourcesOpen, isLoading3D]);
 
@@ -684,6 +1018,7 @@ export default function PlanetaryShowroom({
       }
       const s = threeRef.current;
       if (s.animating || isInteracting || activeRenderFrames > 0) return true;
+      if (s.orbitLayer && !prefersReducedMotion()) return true;
       if (s.earthMesh && !prefersReducedMotion()) return true;
       return false;
     };
@@ -698,6 +1033,10 @@ export default function PlanetaryShowroom({
       timer.update(time);
       const dt = Math.min(timer.getDelta(), 0.05);
       const s = threeRef.current;
+
+      if (s.orbitLayer) {
+        s.orbitLayer.update(dt);
+      }
 
       if (s.earthMesh && !prefersReducedMotion()) {
         // 0.036 rad/s matches original 0.0006/frame at 60 FPS across all refresh rates
@@ -813,6 +1152,10 @@ export default function PlanetaryShowroom({
       setIsLoading3D(true);
       setLoadPercent(8);
 
+      if (threeRef.current.orbitLayer) {
+        threeRef.current.orbitLayer.dispose();
+        threeRef.current.orbitLayer = null;
+      }
       clearAndDisposeGroup(terrainGroup);
       clearAndDisposeGroup(vehiclesGroup);
       activeSunLight = null;
@@ -891,11 +1234,11 @@ export default function PlanetaryShowroom({
           const earthBaseMesh = new THREE.Mesh(earthBaseGeo, earthBaseMat);
           earthGroup.add(earthBaseMesh);
 
-          const [earthGltf, terrainGltf, roverGltf] = await Promise.all([
+          const [earthGltf, terrainGltf, roverGltf, lmGltf] = await Promise.all([
             loadGLTFModel(EARTH_BACKDROP_URL, {
               signal,
               cacheBuffer: true,
-              onProgress: (r) => reportWeightedProgress('earth', r, 10)
+              onProgress: (r) => reportWeightedProgress('earth', r, 8)
             }).catch((err) => {
               if (err?.name === 'AbortError') throw err;
               console.warn('Realistic earth GLB notice:', err);
@@ -904,12 +1247,17 @@ export default function PlanetaryShowroom({
             loadGLTFModel(MOON_TERRAIN_URL, {
               signal,
               cacheBuffer: false,
-              onProgress: (r) => reportWeightedProgress('terrain', r, 60)
+              onProgress: (r) => reportWeightedProgress('terrain', r, 54)
             }),
             loadGLTFModel(LUNAR_ROVER_URL, {
               signal,
               cacheBuffer: true,
-              onProgress: (r) => reportWeightedProgress('rover', r, 22)
+              onProgress: (r) => reportWeightedProgress('rover', r, 18)
+            }),
+            loadGLTFModel(LUNAR_MODULE_URL, {
+              signal,
+              cacheBuffer: true,
+              onProgress: (r) => reportWeightedProgress('lm', r, 12)
             })
           ]);
 
@@ -917,6 +1265,7 @@ export default function PlanetaryShowroom({
             if (earthGltf) disposeObject3D(earthGltf.scene);
             disposeObject3D(terrainGltf.scene);
             disposeObject3D(roverGltf.scene);
+            disposeObject3D(lmGltf.scene);
             return;
           }
 
@@ -989,8 +1338,6 @@ export default function PlanetaryShowroom({
           vehiclesGroup.add(rover);
           threeRef.current.loadedVehicles['lunar-rover'] = rover;
 
-          // Plant rover flush on the contoured lunar slope rather than using a flat
-          // contact-shadow quad that slices diagonally across the inclined terrain.
           terrain.updateMatrixWorld(true);
           rover.updateMatrixWorld(true);
           const rBox = new THREE.Box3().setFromObject(rover);
@@ -1001,6 +1348,57 @@ export default function PlanetaryShowroom({
           const floorHits = floorRay.intersectObject(terrain, true);
           const surfaceY = floorHits.length > 0 ? floorHits[0].point.y : -0.028;
           rover.position.y += surfaceY - 0.01 - rBox.min.y;
+
+          // Stage Apollo Lunar Module (LM-10 Falcon)
+          const lm = lmGltf.scene;
+          const lmData = VEHICLES_DATA.find((v) => v.id === 'apollo-lunar-module');
+          lm.scale.setScalar(lmData.scale);
+          lm.position.set(...lmData.position);
+          lm.rotation.set(...lmData.rotation);
+          lm.traverse((c) => {
+            if (c.isMesh) {
+              c.castShadow = true;
+              c.receiveShadow = true;
+              if (c.material) {
+                c.material.metalness = Math.min(Math.max(c.material.metalness ?? 0.45, 0.25), 0.65);
+                c.material.roughness = Math.min(Math.max(c.material.roughness ?? 0.42, 0.3), 0.6);
+                c.material.envMapIntensity = 0.5;
+                c.material.needsUpdate = true;
+              }
+            }
+          });
+          vehiclesGroup.add(lm);
+          threeRef.current.loadedVehicles['apollo-lunar-module'] = lm;
+
+          registerContactShadow(
+            lmData.contactShadowRadius || 3.8,
+            0.65,
+            lm.position.x,
+            lm.position.y + 0.012,
+            lm.position.z
+          );
+
+          lm.updateMatrixWorld(true);
+          const lmBox = new THREE.Box3().setFromObject(lm);
+          const lmFloorRay = new THREE.Raycaster(
+            new THREE.Vector3(lm.position.x, 30, lm.position.z),
+            new THREE.Vector3(0, -1, 0)
+          );
+          const lmFloorHits = lmFloorRay.intersectObject(terrain, true);
+          const lmSurfaceY = lmFloorHits.length > 0 ? lmFloorHits[0].point.y : -0.02;
+          lm.position.y += lmSurfaceY - 0.01 - lmBox.min.y;
+
+          // Initialize Moon Orbit Layer (LRO, LADEE)
+          if (threeRef.current.orbitLayer) {
+            threeRef.current.orbitLayer.dispose();
+            threeRef.current.orbitLayer = null;
+          }
+          threeRef.current.orbitLayer = createOrbitLayer({
+            scene,
+            destination: 'moon',
+            profile: activeQuality,
+            signal
+          });
         } else if (planetName === 'mars') {
           // ================= MARS SETUP =================
           const MARS_HORIZON_COLOR = 0x1e0b07;
@@ -1075,26 +1473,31 @@ export default function PlanetaryShowroom({
           duneMesh.receiveShadow = true;
           terrainGroup.add(duneMesh);
 
-          const [marsTerrainGltf, oppyGltf, ingGltf, vikingGltf] = await Promise.all([
+          const [marsTerrainGltf, oppyGltf, ingGltf, vikingGltf, insGltf] = await Promise.all([
             loadGLTFModel(MARS_TERRAIN_URL, {
               signal,
               cacheBuffer: true,
-              onProgress: (r) => reportWeightedProgress('terrain', r, 26)
+              onProgress: (r) => reportWeightedProgress('terrain', r, 24)
             }),
             loadGLTFModel(MER_ROVER_URL, {
               signal,
               cacheBuffer: true,
-              onProgress: (r) => reportWeightedProgress('oppy', r, 28)
+              onProgress: (r) => reportWeightedProgress('oppy', r, 22)
             }),
             loadGLTFModel(INGENUITY_URL, {
               signal,
               cacheBuffer: true,
-              onProgress: (r) => reportWeightedProgress('ing', r, 19)
+              onProgress: (r) => reportWeightedProgress('ing', r, 16)
             }),
             loadGLTFModel(VIKING_URL, {
               signal,
               cacheBuffer: true,
-              onProgress: (r) => reportWeightedProgress('viking', r, 19)
+              onProgress: (r) => reportWeightedProgress('viking', r, 16)
+            }),
+            loadGLTFModel(INSIGHT_URL, {
+              signal,
+              cacheBuffer: true,
+              onProgress: (r) => reportWeightedProgress('insight', r, 16)
             })
           ]);
 
@@ -1103,6 +1506,7 @@ export default function PlanetaryShowroom({
             disposeObject3D(oppyGltf.scene);
             disposeObject3D(ingGltf.scene);
             disposeObject3D(vikingGltf.scene);
+            disposeObject3D(insGltf.scene);
             return;
           }
 
@@ -1266,6 +1670,63 @@ export default function PlanetaryShowroom({
           const vikingBox = new THREE.Box3().setFromObject(viking);
           const targetVikingY = vikingData.position[1];
           if (vikingBox.min.y < targetVikingY) viking.position.y += targetVikingY - vikingBox.min.y;
+
+          // Stage InSight Lander
+          const ins = insGltf.scene;
+          const insData = VEHICLES_DATA.find((v) => v.id === 'insight-lander');
+          ins.scale.setScalar(insData.scale);
+          ins.position.set(...insData.position);
+          ins.rotation.set(...insData.rotation);
+          ins.traverse((c) => {
+            if (c.isMesh) {
+              c.castShadow = true;
+              c.receiveShadow = true;
+              if (c.material) {
+                const matName = c.material.name || '';
+                if (matName === 'InSIGHT_foil_silver') {
+                  c.material.metalness = 0.65;
+                  c.material.roughness = 0.28;
+                } else {
+                  c.material.metalness = Math.min(Math.max(c.material.metalness ?? 0.35, 0.2), 0.6);
+                  c.material.roughness = Math.min(Math.max(c.material.roughness ?? 0.45, 0.3), 0.6);
+                }
+                c.material.envMapIntensity = 0.5;
+                c.material.needsUpdate = true;
+              }
+            }
+          });
+          vehiclesGroup.add(ins);
+          threeRef.current.loadedVehicles['insight-lander'] = ins;
+
+          registerContactShadow(
+            insData.contactShadowRadius || 2.6,
+            0.7,
+            ins.position.x,
+            ins.position.y + 0.012,
+            ins.position.z
+          );
+          marsTerrain.updateMatrixWorld(true);
+          ins.updateMatrixWorld(true);
+          const insBox = new THREE.Box3().setFromObject(ins);
+          const insFloorRay = new THREE.Raycaster(
+            new THREE.Vector3(ins.position.x, 30, ins.position.z),
+            new THREE.Vector3(0, -1, 0)
+          );
+          const insFloorHits = insFloorRay.intersectObject(marsTerrain, true);
+          const insSurfaceY = insFloorHits.length > 0 ? insFloorHits[0].point.y : -0.05;
+          ins.position.y += insSurfaceY - 0.01 - insBox.min.y;
+
+          // Initialize Mars Orbit Layer (MGS, Odyssey, MRO, MAVEN, Phobos, Deimos)
+          if (threeRef.current.orbitLayer) {
+            threeRef.current.orbitLayer.dispose();
+            threeRef.current.orbitLayer = null;
+          }
+          threeRef.current.orbitLayer = createOrbitLayer({
+            scene,
+            destination: 'mars',
+            profile: activeQuality,
+            signal
+          });
         } else {
           // ================= DEEP SPACE SETUP =================
           scene.background = new THREE.Color(0x000205);
@@ -1451,6 +1912,10 @@ export default function PlanetaryShowroom({
       controls.removeEventListener('end', onControlEnd);
       controls.removeEventListener('change', onControlChange);
       controls.dispose();
+      if (threeRef.current.orbitLayer) {
+        threeRef.current.orbitLayer.dispose();
+        threeRef.current.orbitLayer = null;
+      }
       clearAndDisposeGroup(terrainGroup);
       clearAndDisposeGroup(vehiclesGroup);
       activeSunLight = null;

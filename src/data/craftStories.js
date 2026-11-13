@@ -57,6 +57,24 @@ export const CRAFT_SOURCES = [
     url: 'https://science.nasa.gov/mission/new-horizons/',
     accessed: '2026-07-15',
   },
+  {
+    id: 'nasa-apollo-lm',
+    label: L('NASA — Apollo Lunar Module Mission Overview'),
+    url: 'https://nssdc.gsfc.nasa.gov/planetary/lunar/cslm.html',
+    accessed: '2026-11-13',
+  },
+  {
+    id: 'nasa-insight',
+    label: L('NASA JPL — InSight Mission Reference & Status'),
+    url: 'https://science.nasa.gov/mission/insight/',
+    accessed: '2026-11-13',
+  },
+  {
+    id: 'nasa-lro',
+    label: L('NASA — Lunar Reconnaissance Orbiter (LRO) Overview'),
+    url: 'https://science.nasa.gov/mission/lro/',
+    accessed: '2026-11-13',
+  },
 ];
 
 const SOURCE_BY_ID = Object.fromEntries(CRAFT_SOURCES.map((src) => [src.id, src]));
@@ -448,57 +466,283 @@ export const CRAFT_STORIES = {
     sources: [SOURCE_BY_ID['nasa-voyager'], SOURCE_BY_ID['nasa-new-horizons']],
   },
 
-  'deep-space-probe': {
-    id: 'deep-space-probe',
-    name: L('Deep Space Explorer (Voyager & Pioneer)'),
-    operator: L('NASA / JPL'),
-    location: 'deep-space',
-    launch: L('1972 (Pioneer 10) & 1977 (Voyager 1 & 2)'),
-    landing: L('Heliopause & Interstellar Space (No planetary landing)'),
-    status: 'active',
+  'apollo-lunar-module': {
+    id: 'apollo-lunar-module',
+    name: L('Apollo Lunar Module (Descent Stage)'),
+    operator: L('NASA (Apollo Program)'),
+    location: 'moon',
+    launch: L('Apollo 11–17 (1969–1972; exact timestamps per flight pending audit)'),
+    landing: L('Six lunar landing sites (Apollo 11, 12, 14, 15, 16, 17)'),
+    status: 'halted',
     statusNote: L(
-      'Voyager 1 & 2 remain active in interstellar space transmitting cosmic ray data; Pioneer 10 is silent/halted.'
+      'Halted mission hardware: descent stages remained at the six Apollo landing sites and served as launch platforms for the ascent stage. Only the descent stage remained on the Moon.'
     ),
-    lastVerified: '2026-07-15',
+    lastVerified: '2026-11-13',
     story: {
       question: L(
-        'What lies beyond our Sun\'s solar bubble, where the solar wind gives way to the interstellar medium?'
+        'How could a crewed spacecraft land softly on an airless lunar surface and later launch astronauts back into lunar orbit?'
       ),
       device: L(
-        'Radioisotope-powered probes with large high-gain parabolic antennas, magnetometer booms, and cosmic-ray sensors.'
+        'A two-stage vehicle comprising a descent stage with a throttleable rocket engine and landing gear, and an ascent stage for crew cabin and liftoff. Note that only the descent stage remained on the Moon.'
       ),
       experiment: L(
-        'Crossing the termination shock and heliopause into the uncharted space between the stars, measuring particle densities and magnetic fields.'
+        'Supported surface EVAs, scientific deployment, and geological sampling at six distinct landing zones across the lunar nearside.'
       ),
       discovery: L(
-        'Confirmed the first human-made crossing into interstellar space and returned the first direct in situ readings of galactic cosmic rays.'
+        'Enabled the first direct human field exploration of another world, returning over 380 kilograms of lunar samples.'
       ),
       ending: L(
-        'Equipped with the Golden Record and Pioneer Plaques, these eternal spacecraft will drift indefinitely through the Milky Way long after their power sources fade.'
+        'Descent stages remained at the six Apollo landing sites as permanent historic mission relics, while ascent stages returned crew to orbit.'
       ),
     },
     quiz: {
-      prompt: L('What powers the Voyager and Pioneer probes in the dark outer reaches of the solar system?'),
+      prompt: L('Which part of the Apollo Lunar Module remained permanently on the lunar surface?'),
       options: [
-        L('Radioisotope Thermoelectric Generators (RTGs) converting plutonium decay heat into electricity.'),
-        L('Large solar arrays tracking the distant Sun.'),
-        L('Chemical rocket fuel continuously burning in thrusters.'),
+        L('Only the descent stage remained on the Moon, serving as the launch platform for the crew.'),
+        L('The entire spacecraft including the crew cabin stayed parked together.'),
+        L('Both stages returned to Earth inside the Command Module.'),
       ],
       correctIndex: 0,
       explanation: L(
-        'At distances where sunlight is thousands of times weaker than at Earth, deep-space probes rely on nuclear RTGs rather than solar arrays.'
+        'Only the descent stage remained on the Moon at each Apollo site; the ascent stage carried the astronauts back into lunar orbit.'
       ),
     },
     visitDecision: {
       prompt: L('DO WE APPROACH THE INSTRUMENT?'),
       approachOutcome: L(
-        'Deep space craft hurtle through interstellar space at over 50,000 km/h. Any close interception requires matching enormous escape velocities while navigating cosmic radiation.'
+        'Approaching closely risks kicking abrasive regolith onto historic thermal foils and descent engine structures. NASA’s 2011 preservation recommendations advise generous buffer perimeters around landing sites.'
       ),
       keepDistanceOutcome: L(
-        'Long-range deep space communication antennas allow Earth to monitor telemetry across billions of kilometers without disturbing the probes\' eternal trajectories.'
+        'Respecting a standoff preserves historic descent stages and untouched footprint trails for future scientific study.'
       ),
     },
-    sources: [SOURCE_BY_ID['nasa-voyager'], SOURCE_BY_ID['nasa-new-horizons']],
+    sources: [SOURCE_BY_ID['nasa-apollo-lm'], SOURCE_BY_ID['nasa-heritage-2011']],
+  },
+
+  'insight-lander': {
+    id: 'insight-lander',
+    name: L('InSight Mars Lander'),
+    operator: L('NASA / JPL'),
+    location: 'mars',
+    launch: UNVERIFIED_TEXT, // TODO verify exact InSight launch date
+    landing: L('26 Nov 2018 (Elysium Planitia, Mars)'),
+    status: 'halted',
+    statusNote: L(
+      'Halted spacecraft: landed 26 Nov 2018 on Mars, used a seismometer plus heat and geodesy instruments, dust on the solar panels reduced power, NASA declared it retired 21 Dec 2022 (last contact 15 Dec 2022).'
+    ),
+    lastVerified: '2026-11-13',
+    story: {
+      question: L(
+        'What do seismic tremors, heat flow, and precision wobble reveal about the deep interior structure and core of Mars?'
+      ),
+      device: L(
+        'A stationary lander equipped with the SEIS seismometer, HP3 heat flow probe, and RISE radio science antennas. Displayed in arm-deployed configuration before ground instrument placement.'
+      ),
+      experiment: L(
+        'Recorded over 1,300 marsquakes and measured subtle radio Doppler shifts to map the Martian crust, mantle, and molten core.'
+      ),
+      discovery: L(
+        'Revealed Mars has a liquid metallic core, determined crustal thickness, and proved the planet remains seismically active.'
+      ),
+      ending: L(
+        'Dust on the solar panels reduced power over four years of operations; NASA declared it retired 21 Dec 2022 after last contact on 15 Dec 2022.'
+      ),
+    },
+    quiz: {
+      prompt: L('What primary factor caused the InSight lander to eventually lose electrical power on Mars?'),
+      options: [
+        L('Dust accumulating on its solar arrays gradually choked electrical generation over years.'),
+        L('A catastrophic software crash during a routine seismic recording.'),
+        L('Immediate battery failure upon landing in 2018.'),
+      ],
+      correctIndex: 0,
+      explanation: L(
+        'Without cleaning winds, atmospheric dust slowly covered InSight’s solar panels until battery power could no longer support transmissions.'
+      ),
+    },
+    visitDecision: {
+      prompt: L('DO WE APPROACH THE INSTRUMENT?'),
+      approachOutcome: L(
+        'Moving close to InSight’s deck could disturb dust distribution that records years of environmental deposition in Elysium Planitia.'
+      ),
+      keepDistanceOutcome: L(
+        'A careful standoff protects InSight and its delicate deployment arm as a quiet monument to Martian geophysics.'
+      ),
+    },
+    sources: [SOURCE_BY_ID['nasa-insight']],
+  },
+
+  'lro-orbiter': {
+    id: 'lro-orbiter',
+    name: L('Lunar Reconnaissance Orbiter (LRO)'),
+    operator: L('NASA / Goddard Space Flight Center'),
+    location: 'moon',
+    launch: UNVERIFIED_TEXT, // TODO verify LRO launch date
+    landing: L('Lunar Polar Orbit (No surface landing)'),
+    status: 'active',
+    statusNote: L(
+      'Orbiter in lunar polar orbit. Orbit visuals are illustrative and not to true scale or true orbital geometry.'
+    ),
+    lastVerified: '2026-11-13',
+    story: {
+      question: L(
+        'Can high-resolution orbital cameras map lunar topography and detect surface changes across decades?'
+      ),
+      device: L(
+        'A lunar polar orbiter carrying a suite of cameras, altimeters, and spectrometers. Orbit visuals are illustrative and not to true scale or true orbital geometry.'
+      ),
+      experiment: L(
+        'LRO\'s cameras (LROC) imaged the Apollo landing sites, showing descent stages and some tracks across the regolith.'
+      ),
+      discovery: L(
+        'Produced comprehensive 3D lunar surface maps and verified the preservation of historic hardware and tracks from orbit.'
+      ),
+      ending: L(
+        'Continues in active lunar orbit monitoring impact cratering and supporting landing site planning.'
+      ),
+    },
+    quiz: {
+      prompt: L('What significant historic feature did LRO’s narrow-angle cameras image on the Moon?'),
+      options: [
+        L('Apollo landing sites, showing the preserved descent stages and astronaut tracks.'),
+        L('Remnants of active ancient cities beneath the craters.'),
+        L('Active volcanic eruptions across the lunar maria.'),
+      ],
+      correctIndex: 0,
+      explanation: L(
+        'LRO’s high-resolution LROC camera successfully captured clear orbital views of the Apollo descent stages, rover trails, and scientific equipment.'
+      ),
+    },
+    visitDecision: {
+      prompt: L('ORBITAL TELEMETRY OBSERVATION'),
+      approachOutcome: L(
+        'Orbit visuals are illustrative and not to true scale or true orbital geometry. Telemetry is tracked via NASA ground networks.'
+      ),
+      keepDistanceOutcome: L(
+        'Observing from designated flight geometry honors orbital mechanics and technical drawing conventions.'
+      ),
+    },
+    sources: [SOURCE_BY_ID['nasa-lro']],
+  },
+
+  'ladee-orbiter': {
+    id: 'ladee-orbiter',
+    name: L('LADEE Orbiter'),
+    operator: L('NASA / Ames Research Center (TODO verify)'),
+    location: 'moon',
+    launch: UNVERIFIED_TEXT, // TODO verify LADEE launch date
+    landing: L('Lunar Orbit / Impact (TODO verify exact date)'),
+    status: 'unverified',
+    statusNote: L(
+      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify LADEE operational status).'
+    ),
+    lastVerified: '2026-11-13',
+    story: {
+      question: UNVERIFIED_TEXT,
+      device: L('Modular lunar orbiter designed to study the tenuous lunar exosphere and dust environment. Orbit visuals are illustrative and not to true scale or true orbital geometry. Note: LLCD may have flown as a technology demonstration payload on LADEE rather than as a separate spacecraft; verify before presenting separately.'),
+      experiment: UNVERIFIED_TEXT,
+      discovery: UNVERIFIED_TEXT,
+      ending: UNVERIFIED_TEXT,
+    },
+    quiz: null,
+    visitDecision: null,
+    sources: [SOURCE_BY_ID['nasa-lro']],
+  },
+
+  'mgs-orbiter': {
+    id: 'mgs-orbiter',
+    name: L('Mars Global Surveyor (MGS)'),
+    operator: L('NASA / JPL (TODO verify)'),
+    location: 'mars',
+    launch: UNVERIFIED_TEXT, // TODO verify MGS launch date
+    landing: L('Martian Orbit (TODO verify)'),
+    status: 'unverified',
+    statusNote: L(
+      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify MGS dates and status).'
+    ),
+    lastVerified: '2026-11-13',
+    story: {
+      question: UNVERIFIED_TEXT,
+      device: L('High-resolution mapping orbiter. Orbit visuals are illustrative and not to true scale or true orbital geometry.'),
+      experiment: UNVERIFIED_TEXT,
+      discovery: UNVERIFIED_TEXT,
+      ending: UNVERIFIED_TEXT,
+    },
+    quiz: null,
+    visitDecision: null,
+    sources: [SOURCE_BY_ID['nasa-opportunity']],
+  },
+
+  'odyssey-orbiter': {
+    id: 'odyssey-orbiter',
+    name: L('2001 Mars Odyssey'),
+    operator: L('NASA / JPL (TODO verify)'),
+    location: 'mars',
+    launch: UNVERIFIED_TEXT, // TODO verify Odyssey launch date
+    landing: L('Martian Orbit (TODO verify)'),
+    status: 'unverified',
+    statusNote: L(
+      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify Odyssey dates and status).'
+    ),
+    lastVerified: '2026-11-13',
+    story: {
+      question: UNVERIFIED_TEXT,
+      device: L('Long-duration orbital thermal mapper and communication relay. Orbit visuals are illustrative and not to true scale or true orbital geometry.'),
+      experiment: UNVERIFIED_TEXT,
+      discovery: UNVERIFIED_TEXT,
+      ending: UNVERIFIED_TEXT,
+    },
+    quiz: null,
+    visitDecision: null,
+    sources: [SOURCE_BY_ID['nasa-opportunity']],
+  },
+
+  'mro-orbiter': {
+    id: 'mro-orbiter',
+    name: L('Mars Reconnaissance Orbiter (MRO)'),
+    operator: L('NASA / JPL (TODO verify)'),
+    location: 'mars',
+    launch: UNVERIFIED_TEXT, // TODO verify MRO launch date
+    landing: L('Martian Orbit (TODO verify)'),
+    status: 'unverified',
+    statusNote: L(
+      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify MRO dates and status).'
+    ),
+    lastVerified: '2026-11-13',
+    story: {
+      question: UNVERIFIED_TEXT,
+      device: L('Heavy reconnaissance orbiter with HiRISE camera and radar sounder. Orbit visuals are illustrative and not to true scale or true orbital geometry.'),
+      experiment: UNVERIFIED_TEXT,
+      discovery: UNVERIFIED_TEXT,
+      ending: UNVERIFIED_TEXT,
+    },
+    quiz: null,
+    visitDecision: null,
+    sources: [SOURCE_BY_ID['nasa-opportunity']],
+  },
+
+  'maven-orbiter': {
+    id: 'maven-orbiter',
+    name: L('MAVEN Orbiter'),
+    operator: L('NASA / Goddard Space Flight Center (TODO verify)'),
+    location: 'mars',
+    launch: UNVERIFIED_TEXT, // TODO verify MAVEN launch date
+    landing: L('Martian Elliptical Orbit (TODO verify)'),
+    status: 'unverified',
+    statusNote: L(
+      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify MAVEN dates and status).'
+    ),
+    lastVerified: '2026-11-13',
+    story: {
+      question: UNVERIFIED_TEXT,
+      device: L('Atmospheric exploration orbiter investigating solar wind loss. Orbit visuals are illustrative and not to true scale or true orbital geometry.'),
+      experiment: UNVERIFIED_TEXT,
+      discovery: UNVERIFIED_TEXT,
+      ending: UNVERIFIED_TEXT,
+    },
+    quiz: null,
+    visitDecision: null,
+    sources: [SOURCE_BY_ID['nasa-opportunity']],
   },
 };
 
