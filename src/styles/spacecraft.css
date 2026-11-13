@@ -1,0 +1,1989 @@
+/* ==========================================================================
+   Planetary Vehicle Showroom Stylesheet — Abandoned But Not Forgotten
+   Seamlessly integrates 3D Terrain + 3D Vehicle + Starting Menu HUD Design
+   ========================================================================== */
+
+:root {
+    /* Unified Template Theme Tokens (NMSGeoSans / NMSFuturaProBook + Monochrome HUD) */
+    --hud-theme-bg: rgba(0, 0, 0, 0.9);
+    --hud-theme-bg-subtle: rgba(0, 0, 0, 0.78);
+    --hud-theme-border: #ffffff;
+    --hud-theme-border-highlight: #ffffff;
+    --hud-theme-warm: #ffffff;
+    --hud-theme-warm-bright: #cccccc;
+    --hud-theme-font: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    --hud-theme-font-head: 'NMSGeoSans', 'Tajawal', sans-serif;
+    --hud-theme-text: #ffffff;
+    --hud-theme-text-dim: rgba(255, 255, 255, 0.74);
+    --hud-theme-badge-bg: rgba(0, 0, 0, 0.88);
+    --color-accent-cyan: #ffffff;
+    --color-accent-amber: rgba(255, 255, 255, 0.85);
+    --color-space-deep: #000000;
+    --color-border-hud: rgba(255, 255, 255, 0.55);
+    --color-card-bg: rgba(0, 0, 0, 0.9);
+    --color-text-sub: rgba(255, 255, 255, 0.82);
+    --color-text-dark: rgba(255, 255, 255, 0.58);
+    --font-hud: 'NMSGeoSans', 'Tajawal', sans-serif;
+}
+
+/* Eliminate neon corner brackets across all HUD elements for the clean modern theme */
+.hud-frame .corner {
+    display: none !important;
+}
+
+.showroom-viewport {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 150;
+    overflow: hidden;
+    user-select: none;
+    animation: showroomFadeIn 0.4s ease-out;
+}
+
+@keyframes showroomFadeIn {
+    from { opacity: 0; transform: scale(1.02); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* ==========================================================================
+   3D VIEWPORT LAYERS (Skybox -> Planetary Terrain -> Vehicle Hero)
+   ========================================================================== */
+
+.showroom-skybox,
+.showroom-terrain-layer,
+.showroom-vehicle-layer,
+.showroom-hud-overlay,
+.showroom-webgl-container {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Three.js WebGL Canvas Layer */
+.showroom-webgl-container {
+    z-index: 2;
+    overflow: hidden;
+    background: #020409;
+}
+
+.showroom-webgl-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    outline: none;
+    cursor: grab;
+}
+
+.showroom-webgl-container canvas:active {
+    cursor: grabbing;
+}
+
+/* 3D Loading Screen */
+.showroom-3d-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    background: radial-gradient(circle at center, rgba(10, 18, 48, 0.95) 0%, rgba(3, 6, 20, 0.98) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+}
+
+.spin-slow {
+    animation: spinSlow 8s linear infinite;
+}
+
+@keyframes spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Spacecrafts Dialog Button in Top Bar */
+.showroom-dialog-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 16px !important;
+    font-size: 11px !important;
+    letter-spacing: 1.5px !important;
+    border-color: rgba(255, 255, 255, 0.45) !important;
+    background: rgba(12, 6, 10, 0.82) !important;
+    color: #ffffff !important;
+}
+
+.showroom-dialog-btn:hover {
+    border-color: #ffffff !important;
+    background: rgba(40, 14, 18, 0.95) !important;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.25) !important;
+}
+
+/* ==========================================================================
+   SHOWROOM MISSION BRIEFING OVERLAY (Reuses .ui-dialogue from menu.css)
+   ========================================================================== */
+
+.showroom-briefing-overlay .ui-skip {
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+
+@media (max-width: 640px) {
+    .showroom-briefing-overlay {
+        padding: 16px;
+    }
+
+    .showroom-briefing-overlay .ui-dialogue {
+        padding: 18px 20px 30px;
+        margin-bottom: max(18px, env(safe-area-inset-bottom, 18px));
+    }
+
+    .showroom-briefing-overlay .ui-dialogue h2 {
+        font-size: 20px;
+    }
+
+    .showroom-briefing-overlay .ui-dialogue p {
+        font-size: 15px;
+    }
+}
+
+
+/* Layer 1: Skybox */
+.showroom-skybox {
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Layer 2: 3D Planetary Landscape (Moon surface / Mars landscape) */
+.showroom-terrain-layer {
+    z-index: 2;
+    pointer-events: none;
+}
+
+.showroom-terrain-viewer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    --poster-color: transparent;
+    background: transparent;
+    pointer-events: none;
+}
+
+/* Layer 3: 3D Vehicle Standing on the Surface */
+.showroom-vehicle-layer {
+    z-index: 3;
+    pointer-events: auto;
+}
+
+.showroom-vehicle-viewer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    --poster-color: transparent;
+    background: transparent;
+    outline: none;
+    cursor: grab;
+    transition: transform 0.4s ease;
+}
+
+@media (min-width: 900px) {
+    .showroom-vehicle-viewer {
+        transform: translateX(110px);
+    }
+}
+
+.showroom-vehicle-viewer:active {
+    cursor: grabbing;
+}
+
+/* ==========================================================================
+   HUD & UI OVERLAY (Exact Starting Menu Style)
+   ========================================================================== */
+
+.showroom-hud-overlay {
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Top Bar */
+.showroom-top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) clamp(16px, 3vw, 32px) 16px;
+    background: linear-gradient(180deg, rgba(7, 3, 10, 0.95) 0%, rgba(7, 3, 10, 0.6) 70%, transparent 100%);
+    pointer-events: auto;
+}
+
+.showroom-destination-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--color-accent-cyan);
+    background: rgba(14, 23, 56, 0.7);
+    border: 1px solid var(--color-border-hud);
+    padding: 6px 14px;
+    border-radius: 6px;
+    text-transform: uppercase;
+}
+
+.showroom-center-indicator {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: #fff4ce;
+    text-shadow: 0 0 10px rgba(255, 204, 115, 0.5);
+    background: rgba(10, 18, 48, 0.6);
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(141, 225, 255, 0.2);
+}
+
+.showroom-choice-btn,
+.showroom-close-btn {
+    width: auto !important;
+    padding: 10px 18px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 12px !important;
+    letter-spacing: 1.5px !important;
+}
+
+/* Left & Right Big Navigation Chevrons */
+.showroom-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 70px;
+    background: rgba(8, 14, 38, 0.75);
+    border: 2px solid var(--color-border-hud);
+    color: var(--color-accent-cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 20;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    clip-path: polygon(
+        10px 0%,
+        100% 0%,
+        100% calc(100% - 10px),
+        calc(100% - 10px) 100%,
+        0% 100%,
+        0% 10px
+    );
+}
+
+.showroom-nav-prev {
+    left: 24px;
+}
+
+.showroom-nav-prev.is-hidden-by-card {
+    display: none !important;
+}
+
+.showroom-nav-pair {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.showroom-nav-next {
+    right: 24px;
+}
+
+.showroom-nav-btn:hover {
+    background: var(--color-accent-amber);
+    border-color: var(--color-accent-amber);
+    color: var(--color-text-dark);
+    box-shadow: 0 0 30px rgba(255, 204, 115, 0.6);
+    transform: translateY(-50%) scale(1.08);
+}
+
+.showroom-nav-btn:active {
+    transform: translateY(-50%) scale(0.96);
+}
+
+/* ==========================================================================
+   VEHICLE HUD CARD (Exact Starting Menu Style)
+   ========================================================================== */
+
+.showroom-card-wrapper {
+    position: absolute;
+    bottom: 90px;
+    left: 36px;
+    width: min(92vw, 440px);
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    pointer-events: auto;
+    z-index: 15;
+}
+
+.showroom-menu-card {
+    position: relative;
+    width: 100%;
+    background: var(--hud-theme-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--hud-theme-border);
+    border-radius: 4px;
+    padding: 24px 22px 20px;
+    text-align: left;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.85);
+    animation: cardSlideUp 0.35s ease-out;
+}
+
+@keyframes cardSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Starting Menu HUD Corners */
+.showroom-menu-card .hud-frame {
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+}
+
+.showroom-menu-card .eyebrow {
+    justify-content: flex-start;
+    margin-bottom: 8px;
+    font-family: var(--hud-theme-font);
+    font-size: 13px;
+    letter-spacing: 2.5px;
+    color: var(--hud-theme-warm);
+}
+
+.showroom-menu-card .game-title {
+    font-size: clamp(24px, 3.5vw, 32px);
+    margin-bottom: 4px;
+    text-shadow: 0 3px 0 #7c4456, 0 6px 18px rgba(0, 0, 0, 0.8);
+}
+
+.showroom-menu-card .title-accent {
+    font-size: 0.45em;
+    letter-spacing: 2.5px;
+    margin-top: 2px;
+}
+
+.showroom-menu-card .subtitle {
+    margin: 8px 0 16px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-text-sub);
+    max-width: 100%;
+}
+
+/* Quick Telemetry Spec Bar */
+.showroom-telemetry-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.telemetry-hud-box {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    text-align: left !important;
+}
+
+.telemetry-box-label {
+    font-family: 'NMSFuturaProBook', sans-serif !important;
+    font-size: 10px !important;
+    letter-spacing: 0.16em !important;
+    color: rgba(255, 255, 255, 0.65) !important;
+    text-transform: uppercase !important;
+    display: block !important;
+    margin: 0 !important;
+}
+
+.telemetry-box-value {
+    font-family: 'NMSGeoSans', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    color: #ffffff !important;
+}
+
+/* Last Telemetry Quote (Archive Log: Left white border, bold white title, white text, no bg tint) */
+.showroom-quote-banner {
+    background: transparent !important;
+    border: none !important;
+    border-left: 2px solid #ffffff !important;
+    border-radius: 0 !important;
+    padding: 2px 0 2px 14px !important;
+    margin: 16px 0 !important;
+}
+
+.quote-banner-label {
+    font-family: 'NMSGeoSans', sans-serif !important;
+    font-size: 11.5px !important;
+    letter-spacing: 0.18em !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    display: block !important;
+    margin-bottom: 4px !important;
+}
+
+.quote-banner-text {
+    font-family: 'NMSFuturaProBook', sans-serif !important;
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    color: #ffffff !important;
+    font-style: italic !important;
+    margin: 0 !important;
+}
+
+/* Buttons in Card */
+.showroom-buttons {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+}
+
+.showroom-buttons .btn {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 100px;
+    width: auto;
+    padding: 9px 12px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+}
+
+/* Hint overlay */
+.showroom-controls-hint {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(141, 225, 255, 0.7);
+    background: rgba(8, 14, 38, 0.65);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(141, 225, 255, 0.2);
+    padding: 6px 16px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Bottom Vehicle Selector Strip */
+.showroom-bottom-strip {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 95;
+    display: flex;
+    justify-content: center;
+    padding: 18px 24px;
+    background: linear-gradient(0deg, rgba(8, 14, 38, 0.95) 0%, rgba(8, 14, 38, 0) 100%);
+    pointer-events: none;
+}
+
+.showroom-pills-container {
+    pointer-events: auto;
+    display: flex;
+    gap: 12px;
+    background: rgba(10, 18, 48, 0.8);
+    border: 1px solid var(--color-border-hud);
+    padding: 6px 10px;
+    border-radius: 30px;
+    backdrop-filter: blur(10px);
+}
+
+.showroom-pill-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    color: var(--color-text-muted);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.showroom-pill-btn:hover {
+    color: #ffffff;
+}
+
+.showroom-pill-btn.active {
+    background: var(--color-accent-amber);
+    color: var(--color-text-dark);
+    box-shadow: 0 0 15px rgba(255, 204, 115, 0.4);
+}
+
+.pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.showroom-pill-btn.active .pill-dot {
+    background: #080d25 !important;
+    box-shadow: none !important;
+}
+
+.dot-moon {
+    background: #8de1ff;
+    box-shadow: 0 0 8px #8de1ff;
+}
+
+.dot-mars {
+    background: #ff7952;
+    box-shadow: 0 0 8px #ff7952;
+}
+
+/* ==========================================================================
+   MISSION HISTORY MODAL (Matches Starting Menu Aesthetic)
+   ========================================================================== */
+
+.story-details-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(3, 7, 22, 0.85);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    animation: showroomFadeIn 0.25s ease-out;
+}
+
+.story-details-card {
+    position: relative;
+    width: min(92vw, 560px);
+    background: rgba(10, 18, 48, 0.95);
+    border: 2px solid var(--color-border-hud);
+    padding: 34px 30px 28px;
+    text-align: left;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), 0 0 40px rgba(141, 225, 255, 0.15);
+}
+
+.story-details-body {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--color-text-sub);
+    margin-bottom: 20px;
+}
+
+.story-details-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: rgba(14, 23, 56, 0.8);
+    border: 1px solid var(--color-border-hud);
+    padding: 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #d0dcff;
+}
+
+.story-details-meta strong {
+    color: var(--color-accent-cyan);
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 2px;
+}
+
+
+/* ==========================================================================
+   INSTRUMENT RETICLES & HORIZON RADAR BEACONS (3D Space Projections)
+   ========================================================================== */
+
+.hotspot-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   INSTRUMENT DOSSIER CARD (Inspection Lock HUD)
+   ========================================================================== */
+
+.part-dossier {
+    position: absolute;
+    top: 86px;
+    right: 28px;
+    z-index: 18;
+    width: min(360px, calc(100vw - 40px));
+    padding: 22px 24px 20px;
+    background: var(--hud-theme-bg);
+    border: 1px solid var(--hud-theme-border);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(14px);
+    pointer-events: auto;
+    border-radius: 4px;
+    animation: dossierSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dossierSlideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.part-dossier .hud-frame {
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+}
+
+.dossier-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.dossier-header .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 0;
+    color: var(--hud-theme-warm);
+    font-family: var(--hud-theme-font);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.dossier-close-icon {
+    background: transparent;
+    border: 1px solid var(--hud-theme-border);
+    color: var(--hud-theme-text-dim);
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dossier-close-icon:hover {
+    border-color: #ffffff;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.part-dossier h2 {
+    font-family: var(--hud-theme-font);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #ffffff;
+    margin-bottom: 10px;
+}
+
+.part-dossier p {
+    font-family: var(--hud-theme-font);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--hud-theme-text-dim);
+    margin-bottom: 18px;
+}
+
+.dossier-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.dossier-play-btn {
+    background: var(--hud-theme-warm) !important;
+    color: #07030a !important;
+    border-color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+.dossier-play-btn:hover {
+    background: var(--hud-theme-warm-bright) !important;
+    box-shadow: 0 0 16px rgba(255, 154, 107, 0.45);
+}
+
+.dossier-actions .btn {
+    width: auto;
+    padding: 8px 18px;
+    font-family: var(--hud-theme-font);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: rgba(36, 14, 18, 0.85);
+    border: 1px solid var(--hud-theme-border);
+    color: #ffffff;
+    border-radius: 4px;
+}
+
+.dossier-actions .btn:hover {
+    border-color: #ffffff;
+    background: rgba(56, 22, 28, 0.95);
+}
+
+/* ==========================================================================
+   MOBILE & COMPACT TELEMETRY COLLAPSE
+   ========================================================================== */
+
+.showroom-card-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-bottom: 8px;
+}
+
+.showroom-card-header-row .eyebrow {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    word-break: break-word;
+}
+
+.showroom-card-header-row .eyebrow .eyebrow-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+}
+
+/* Minimize / Expand Button (No Man's Sky UI Style) */
+.showroom-hud-collapse-btn {
+    flex-shrink: 0;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: rgba(12, 6, 10, 0.78) !important;
+    border: 1px solid rgba(255, 255, 255, 0.45) !important;
+    color: #ffffff !important;
+    font-family: var(--font-display, 'NMSGeoSans', sans-serif) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    padding: 5px 12px !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.showroom-hud-collapse-btn:hover {
+    border-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #12060d !important;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.3) !important;
+}
+
+.showroom-hud-collapse-btn .collapse-chevron {
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.showroom-hud-collapse-btn .collapse-chevron.is-up {
+    transform: rotate(180deg) !important;
+}
+
+/* Smooth Card Collapse & Expansion Animation (No abrupt popping/bobbing) */
+.showroom-card-collapsible {
+    display: flex;
+    flex-direction: column;
+    max-height: min(56vh, 520px);
+    opacity: 1;
+    transform: translateY(0);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 255, 0.4) transparent;
+    padding-right: 4px;
+    transition: max-height 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.32s ease,
+                transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                margin 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.showroom-card-collapsible.is-collapsed {
+    max-height: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    transform: translateY(-8px) !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+}
+
+.showroom-card-wrapper {
+    transition: bottom 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.showroom-card-wrapper.is-minimized {
+    bottom: clamp(16px, 3vh, 32px) !important;
+}
+
+.showroom-card-wrapper.is-minimized .showroom-menu-card {
+    padding: 12px 18px 14px !important;
+}
+
+.showroom-card-wrapper.is-minimized .game-title {
+    font-size: 20px !important;
+    margin-bottom: 0 !important;
+}
+
+.showroom-card-wrapper.is-minimized .title-accent {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 12px;
+}
+
+.showroom-bottom-strip {
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+}
+
+.showroom-pills-container {
+    max-width: min(92vw, 760px);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN & MOBILE TUNING
+   ========================================================================== */
+
+@media (max-width: 860px) {
+    .showroom-card-wrapper {
+        bottom: 74px;
+        left: 16px;
+        right: 16px;
+        width: auto;
+    }
+
+    .showroom-nav-btn {
+        width: 48px;
+        height: 60px;
+    }
+
+    .showroom-nav-prev {
+        left: 10px;
+    }
+
+    .showroom-nav-next {
+        right: 10px;
+    }
+
+    .showroom-controls-hint {
+        display: none;
+    }
+
+    .showroom-pills-container {
+        max-width: 92vw;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@media (max-width: 720px) {
+    .showroom-top-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: max(10px, env(safe-area-inset-top)) 12px 8px;
+    }
+
+    .showroom-destination-badge,
+    .showroom-center-indicator {
+        font-size: 10px;
+        letter-spacing: 1px;
+    }
+
+    .showroom-center-indicator {
+        order: 5;
+        width: 100%;
+        text-align: center;
+    }
+
+    .showroom-mode-toggle .btn-label,
+    .showroom-choice-btn .btn-label,
+    .showroom-close-btn .btn-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .showroom-card-wrapper {
+        left: 12px;
+        right: 12px;
+        bottom: calc(64px + env(safe-area-inset-bottom));
+        max-height: 42vh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .showroom-menu-card {
+        padding: 16px 14px 14px;
+    }
+
+    .showroom-menu-card .game-title {
+        font-size: 24px;
+    }
+
+    .showroom-telemetry-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .telemetry-hud-box {
+        padding: 0;
+    }
+
+    .showroom-quote-banner {
+        padding: 2px 0 2px 12px;
+        margin-bottom: 12px;
+    }
+
+    .showroom-vista-callout {
+        left: 12px;
+        right: 12px;
+        bottom: calc(72px + env(safe-area-inset-bottom));
+        transform: none;
+        width: auto;
+        max-width: none;
+        padding: 18px 16px;
+    }
+
+    .showroom-nav-btn {
+        top: 42%;
+        width: 44px;
+        height: 68px;
+    }
+
+    .showroom-nav-prev {
+        left: max(6px, env(safe-area-inset-left));
+    }
+
+    .showroom-nav-next {
+        right: max(6px, env(safe-area-inset-right));
+    }
+
+    .part-reticle .reticle-label {
+        display: none;
+    }
+
+    .part-reticle.is-active .reticle-label {
+        display: inline;
+    }
+
+    .part-dossier {
+        top: auto;
+        right: 12px;
+        left: 12px;
+        bottom: calc(68px + env(safe-area-inset-bottom));
+        width: auto;
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+
+    .showroom-bottom-strip {
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .pill-name {
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .showroom-card-wrapper {
+        left: 8px;
+        right: 8px;
+        bottom: calc(58px + env(safe-area-inset-bottom));
+    }
+
+    .showroom-menu-card {
+        padding: 12px 10px 10px;
+    }
+
+    .showroom-menu-card .game-title {
+        font-size: 20px;
+    }
+
+    .showroom-buttons {
+        gap: 6px;
+    }
+
+    .showroom-buttons .btn {
+        padding: 8px 10px;
+        font-size: 11px;
+    }
+}
+
+/* Landscape mobile phone view (e.g. iPhone held horizontally) */
+@media (max-height: 520px) and (orientation: landscape) {
+    .showroom-top-bar {
+        padding: 6px 14px;
+    }
+
+    .showroom-center-indicator {
+        display: none;
+    }
+
+    .showroom-card-wrapper {
+        left: auto;
+        right: 16px;
+        top: 56px;
+        bottom: 50px;
+        width: min(340px, 42vw);
+        max-height: none;
+        overflow-y: auto;
+    }
+
+    .showroom-card-wrapper.is-minimized {
+        bottom: auto !important;
+        top: 56px !important;
+    }
+
+    .showroom-menu-card {
+        padding: 14px 16px;
+    }
+
+    .showroom-menu-card .game-title {
+        font-size: 20px;
+    }
+
+    .showroom-vista-callout {
+        bottom: 50px;
+        padding: 12px 16px;
+        max-width: 480px;
+    }
+
+    .part-dossier {
+        top: 56px;
+        bottom: 50px;
+        right: 16px;
+        left: auto;
+        width: min(340px, 42vw);
+        max-height: none;
+        overflow-y: auto;
+    }
+
+    .showroom-nav-btn {
+        top: 50%;
+        width: 40px;
+        height: 56px;
+    }
+
+    .showroom-bottom-strip {
+        padding: 6px 12px;
+    }
+}
+
+
+/* =====================================================================
+   NO MAN'S SKY UI THEME OVERRIDES FOR SHOWROOM
+   ===================================================================== */
+:root {
+    --hud-theme-bg: rgba(0, 0, 0, 0.9);
+    --hud-theme-bg-subtle: rgba(0, 0, 0, 0.78);
+    --hud-theme-border: #ffffff;
+    --hud-theme-border-highlight: #ffffff;
+    --hud-theme-warm: #ffffff;
+    --hud-theme-warm-bright: #cccccc;
+    --hud-theme-font: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    --hud-theme-font-head: 'NMSGeoSans', 'Tajawal', sans-serif;
+    --hud-theme-text: #ffffff;
+    --hud-theme-text-dim: rgba(255, 255, 255, 0.74);
+    --hud-theme-badge-bg: rgba(0, 0, 0, 0.88);
+}
+
+.showroom-viewport {
+    font-family: var(--hud-theme-font);
+}
+
+.showroom-menu-card,
+.part-dossier,
+.story-details-card,
+.showroom-vista-callout {
+    background: rgba(0, 0, 0, 0.9) !important;
+    border: 1px solid #ffffff !important;
+    border-radius: 10px !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8) !important;
+}
+
+.showroom-menu-card .game-title,
+.part-dossier h2,
+.story-details-card h2,
+.showroom-vista-callout h2 {
+    font-family: 'NMSGeoSans', 'Tajawal', sans-serif !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.08em !important;
+    color: #ffffff !important;
+    text-shadow: none !important;
+}
+
+.showroom-menu-card .eyebrow,
+.part-dossier .eyebrow,
+.story-details-card .eyebrow,
+.showroom-vista-callout .vista-callout-badge {
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif !important;
+    font-size: 12px !important;
+    letter-spacing: 0.2em !important;
+    color: rgba(255, 255, 255, 0.72) !important;
+    text-transform: uppercase !important;
+}
+
+.showroom-menu-card .subtitle,
+.part-dossier p,
+.story-details-body,
+.showroom-vista-callout p {
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    color: rgba(255, 255, 255, 0.82) !important;
+}
+
+/* Telemetry boxes: Borderless & blended into background */
+.showroom-telemetry-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 14px 22px !important;
+    margin: 12px 0 !important;
+}
+
+.telemetry-hud-box {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    min-width: 68px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+.telemetry-box-label {
+    font-family: 'NMSFuturaProBook', sans-serif !important;
+    font-size: 11px !important;
+    letter-spacing: 0.12em !important;
+    color: rgba(255, 255, 255, 0.65) !important;
+    text-transform: uppercase !important;
+}
+
+.telemetry-box-value {
+    font-family: 'NMSGeoSans', sans-serif !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    color: #ffffff !important;
+}
+
+/* Quote banner (Archive Log): Left border in white, bold white title, white text, weird bg removed */
+.showroom-quote-banner {
+    background: transparent !important;
+    border: none !important;
+    border-left: 2px solid #ffffff !important;
+    border-radius: 0 !important;
+    padding: 2px 0 2px 14px !important;
+    margin: 14px 0 !important;
+}
+
+.quote-banner-label {
+    font-family: 'NMSGeoSans', sans-serif !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.18em !important;
+    color: #ffffff !important;
+    text-transform: uppercase !important;
+    display: block !important;
+    margin-bottom: 4px !important;
+}
+
+.quote-banner-text {
+    font-family: 'NMSFuturaProBook', sans-serif !important;
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    color: #ffffff !important;
+    font-style: italic !important;
+    margin: 0 !important;
+}
+
+/* Vehicle Card Header, Title and Role */
+.showroom-main-title {
+    display: flex !important;
+    align-items: baseline !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    font-size: 24px !important;
+    margin: 6px 0 0 0 !important;
+}
+
+.showroom-main-title .title-accent {
+    font-family: 'NMSFuturaProBook', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    letter-spacing: 0.08em !important;
+}
+
+.showroom-role-text {
+    font-family: 'NMSFuturaProBook', sans-serif !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.18em !important;
+    text-transform: uppercase !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+    margin: 4px 0 8px 0 !important;
+}
+
+/* Buttons in Showroom: Hug text, flow with card */
+.showroom-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 12px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    margin-top: 16px !important;
+    width: 100% !important;
+}
+
+.showroom-buttons .btn {
+    width: auto !important;
+    flex: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 9px 20px !important;
+    border-radius: 6px !important;
+}
+
+.showroom-viewport .btn,
+.showroom-viewport .ui-btn {
+    clip-path: none !important;
+    border-radius: 5px !important;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.15em !important;
+    text-transform: uppercase !important;
+    transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease !important;
+}
+
+.showroom-viewport .btn-primary {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    box-shadow: none !important;
+}
+.showroom-viewport .btn-primary:hover {
+    background: #cccccc !important;
+    color: #000000 !important;
+    transform: scale(1.02) !important;
+}
+
+.showroom-viewport .btn-secondary {
+    background: rgba(0, 0, 0, 0.78) !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+.showroom-viewport .btn-secondary:hover {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-color: #ffffff !important;
+    transform: scale(1.02) !important;
+}
+
+/* Arrow Nav Paddles: Higher up (top: 36%) to completely avoid card overlap */
+.showroom-nav-btn {
+    top: 36% !important;
+    clip-path: none !important;
+    border-radius: 5px !important;
+    width: 44px !important;
+    height: 56px !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7) !important;
+}
+.showroom-nav-btn:hover {
+    background: #cccccc !important;
+    color: #000000 !important;
+    border-color: #ffffff !important;
+    transform: translateY(-50%) scale(1.02) !important;
+}
+
+/* Top bar Back button & actions */
+.showroom-top-left-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.showroom-back-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 9px 20px !important;
+    border: 1px solid rgba(255, 255, 255, 0.75) !important;
+    border-radius: 6px !important;
+    background: rgba(12, 6, 10, 0.92) !important;
+    color: #ffffff !important;
+    font-family: var(--font-display, 'NMSGeoSans', sans-serif) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.15em !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+    transition: all 0.2s ease !important;
+}
+
+.showroom-back-btn:hover {
+    background: #ffffff !important;
+    color: #12060d !important;
+    border-color: #ffffff !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Top bar indicators & badges */
+.showroom-center-indicator {
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif !important;
+    letter-spacing: 0.16em !important;
+    background: rgba(0, 0, 0, 0.88) !important;
+    border: 1px solid #ffffff !important;
+    border-radius: 5px !important;
+    color: #ffffff !important;
+    text-shadow: none !important;
+}
+
+/* Top bar: Fixed on top, always clickable with high z-index */
+.showroom-top-bar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 100 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) clamp(16px, 3vw, 32px) 16px !important;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.55) 70%, transparent 100%) !important;
+    pointer-events: auto !important;
+}
+
+.showroom-bottom-strip {
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, transparent 100%) !important;
+}
+
+.showroom-pills-container {
+    background: rgba(0, 0, 0, 0.9) !important;
+    border: 1px solid #ffffff !important;
+    border-radius: 10px !important;
+}
+
+.showroom-pill-btn {
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif !important;
+    font-size: 13px !important;
+    letter-spacing: 0.08em !important;
+    border-radius: 5px !important;
+    color: rgba(255, 255, 255, 0.72) !important;
+}
+.showroom-pill-btn.active {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+}
+.showroom-pill-btn.active .pill-dot {
+    background: #000000 !important;
+}
+
+.showroom-error-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.showroom-error-text {
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .showroom-viewport,
+    .showroom-menu-card,
+    .story-details-card {
+        animation: none !important;
+    }
+    .spin-slow,
+    .story-status-badge.status-active {
+        animation: none !important;
+    }
+}
+
+/* ==========================================================================
+   EDUCATIONAL STORYTELLING LAYER — TEMPLATE-UNIFIED MONOCHROME UI
+   ========================================================================== */
+
+.showroom-top-mid-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.showroom-archive-btn {
+    border-color: #ffffff !important;
+    color: #ffffff !important;
+}
+
+.showroom-archive-btn:hover {
+    background: #cccccc !important;
+    color: #000000 !important;
+}
+
+.showroom-header-status {
+    margin-top: 8px;
+}
+
+.story-status-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+}
+
+.story-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 5px;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+}
+
+.story-status-badge.status-halted {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+.story-status-badge.status-passive-useful {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.16);
+    border-color: #ffffff;
+}
+
+.story-status-badge.status-active {
+    color: #000000;
+    background: #ffffff;
+    border-color: #ffffff;
+    animation: hudStatusPulse 2.4s ease-in-out infinite;
+}
+
+.story-status-badge.status-unverified {
+    color: rgba(255, 255, 255, 0.65);
+    background: transparent;
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+@keyframes hudStatusPulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(255, 255, 255, 0.25); }
+    50% { box-shadow: 0 0 14px rgba(255, 255, 255, 0.6); }
+}
+
+.pill-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.pill-status-dot.status-halted {
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.pill-status-dot.status-passive-useful,
+.pill-status-dot.status-active {
+    background: #ffffff;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.75);
+}
+
+.pill-status-dot.status-unverified {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.showroom-pill-btn.active .pill-status-dot.status-halted,
+.showroom-pill-btn.active .pill-status-dot.status-passive-useful,
+.showroom-pill-btn.active .pill-status-dot.status-active {
+    background: #000000;
+    box-shadow: none;
+}
+
+.showroom-pill-btn.active .pill-status-dot.status-unverified {
+    border-color: #000000;
+}
+
+.story-dossier-extension {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.72);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.story-summary-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.story-compact-line {
+    margin: 0;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.story-learn-more-btn {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 5px;
+    border: 1px solid #ffffff;
+    background: transparent;
+    color: #ffffff;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.25s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.story-learn-more-btn:hover {
+    background: #ffffff;
+    color: #000000;
+    transform: scale(1.02);
+}
+
+.story-learn-more-btn .story-chevron-icon {
+    transition: transform 0.25s ease;
+}
+
+.story-learn-more-btn.is-open .story-chevron-icon {
+    transform: rotate(180deg);
+}
+
+.story-sections-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.story-section-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.story-section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'NMSGeoSans', 'Tajawal', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #ffffff;
+}
+
+.story-section-copy {
+    margin: 0;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.84);
+}
+
+.story-verify-box {
+    margin-top: 4px;
+    padding: 10px 12px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.85);
+    gap: 6px;
+}
+
+.story-verify-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.story-source-mini-list {
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.story-source-mini-list a {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #ffffff;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 12.5px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.story-source-mini-list a:hover {
+    color: #cccccc;
+}
+
+.story-interactive-block {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.story-block-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'NMSGeoSans', 'Tajawal', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #ffffff;
+}
+
+.story-interactive-prompt {
+    margin: 0;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: #ffffff;
+}
+
+.story-quiz-options,
+.story-visit-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.story-visit-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.story-choice-pill {
+    flex: 1 1 auto;
+    text-align: left;
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background-color 0.25s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.story-visit-actions .story-choice-pill {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.story-choice-pill:hover {
+    background: #cccccc;
+    color: #000000;
+    border-color: #ffffff;
+    transform: scale(1.01);
+}
+
+.story-choice-pill.is-selected {
+    border-color: #ffffff;
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+.story-choice-pill.is-recommended {
+    border-color: #ffffff;
+    background: #ffffff;
+    color: #000000;
+}
+
+.story-feedback-note {
+    padding: 9px 12px;
+    border-radius: 0 5px 5px 0;
+    border-left: 2px solid #ffffff;
+    background: rgba(255, 255, 255, 0.07);
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 13px;
+    line-height: 1.48;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.story-feedback-note p {
+    margin: 3px 0 0;
+}
+
+.story-feedback-tag {
+    display: block;
+    font-family: 'NMSGeoSans', 'Tajawal', sans-serif;
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #ffffff;
+}
+
+/* Task 5 Archive Tray Modal */
+.story-archive-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.88);
+}
+
+.story-filter-tab {
+    padding: 7px 14px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    background: transparent;
+    color: #ffffff;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.25s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.story-filter-tab:hover {
+    background: #cccccc;
+    color: #000000;
+}
+
+.story-filter-tab.is-active {
+    border-color: #ffffff;
+    background: #ffffff;
+    color: #000000;
+}
+
+.story-archive-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.story-archive-card {
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(0, 0, 0, 0.82);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.story-archive-card.is-contrast-card {
+    grid-column: 1 / -1;
+    border-color: #ffffff;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.story-archive-card-top {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.story-sector-tag {
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.story-archive-card-title {
+    margin: 0;
+    font-family: 'NMSGeoSans', 'Tajawal', sans-serif;
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+}
+
+.story-archive-card-operator {
+    margin: 0;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.story-archive-card-summary {
+    margin: 0;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.story-contrast-timeline {
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.72);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.story-timeline-nodes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 8px;
+}
+
+.story-timeline-node {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(0, 0, 0, 0.68);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.story-timeline-node-head {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.story-timeline-node-head strong {
+    font-family: 'NMSGeoSans', 'Tajawal', sans-serif;
+    font-weight: 400;
+}
+
+.story-timeline-node p {
+    margin: 0;
+    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 480px) {
+    .showroom-card-collapsible {
+        max-height: min(46vh, 380px);
+    }
+    .showroom-top-mid-actions {
+        gap: 6px;
+    }
+    .story-dossier-extension {
+        padding: 10px;
+    }
+    .story-archive-filters {
+        padding: 10px 16px;
+    }
+}

@@ -1,0 +1,470 @@
+/**
+ * Synthesized surface ambience and camera-servo cues.
+ * Moon: vacuum comms hiss (no wind) + cosmic radiation crackles + deep system hum.
+ * Mars: gusting thin-air wind + atmospheric whistles.
+ * Camera transitions: realistic pneumatic/hydrazine thrusters & servo whines.
+ * Volumes follow the settings modal (localStorage + gameSettingsChange).
+ */
+
+const SETTINGS_KEY = 'abnf_game_settings';
+
+function readSettings() {
+  const fallback = { master: 0.8, music: 0.7, sfx: 0.9, mute: false };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return {
+      master: clamp01((parsed.masterVolume ?? 80) / 100),
+      music: clamp01((parsed.musicVolume ?? 70) / 100),
+      sfx: clamp01((parsed.sfxVolume ?? 90) / 100),
+      mute: !!parsed.muteAudio
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+function makeNoiseBuffer(ctx, seconds = 2) {
+  const length = Math.floor(ctx.sampleRate * seconds);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  let brown = 0;
+  for (let i = 0; i < length; i += 1) {
+    const white = Math.random() * 2 - 1;
+    brown = (brown + 0.02 * white) / 1.02;
+    data[i] = brown * 3.4;
+  }
+  return buffer;
+}
+
+class SurfaceAudioEngine {
+  constructor() {
+    this.ctx = null;
+    this.master = null;
+    this.music = null;
+    this.sfx = null;
+    this.noiseBuffer = null;
+    this.settings = readSettings();
+    this.planet = null;
+    this.bed = [];
+    this.crackleTimer = null;
+    this.windGustTimer = null;
+    this.installed = false;
+  }
+
+  install() {
+    if (this.installed || typeof window === 'undefined') return () => {};
+    this.installed = true;
+
+    const onSettings = (event) => {
+      const detail = event.detail || {};
+      this.settings = {
+        master: clamp01((detail.masterVolume ?? this.settings.master * 100) / 100),
+        music: clamp01((detail.musicVolume ?? this.settings.music * 100) / 100),
+        sfx: clamp01((detail.sfxVolume ?? this.settings.sfx * 100) / 100),
+        mute: !!detail.muteAudio
+      };
+      this.applyGains();
+    };
+
+    const onCue = (event) => {
+      const detail = event.detail || {};
+      this.handle(detail.cue, detail);
+    };
+
+    const unlock = () => {
+      this.ensure();
+      if (this.ctx?.state === 'suspended') this.ctx.resume();
+    };
+
+    window.addEventListener('gameSettingsChange', onSettings);
+    window.addEventListener('gameAudioCue', onCue);
+    window.addEventListener('pointerdown', unlock, { passive: true });
+    window.addEventListener('touchstart', unlock, { passive: true });
+    window.addEventListener('keydown', unlock, { passive: true });
+
+    return () => {
+      window.removeEventListener('gameSettingsChange', onSettings);
+      window.removeEventListener('gameAudioCue', onCue);
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('touchstart', unlock);
+      window.removeEventListener('keydown', unlock);
+      this.stopAmbience();
+      if (this.ctx) this.ctx.close();
+      this.ctx = null;
+      this.installed = false;
+    };
+  }
+
+  ensure() {
+    if (this.ctx) return;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    this.ctx = new AudioCtx();
+    this.master = this.ctx.createGain();
+    this.music = this.ctx.createGain();
+    this.sfx = this.ctx.createGain();
+    this.music.connect(this.master);
+    this.sfx.connect(this.master);
+    this.master.connect(this.ctx.destination);
+    this.noiseBuffer = makeNoiseBuffer(this.ctx);
+    this.applyGains();
+  }
+
+  applyGains() {
+    if (!this.master) return;
+    const silent = this.settings.mute ? 0 : 1;
+    this.master.gain.value = this.settings.master * silent;
+    this.music.gain.value = this.settings.music;
+    this.sfx.gain.value = this.settings.sfx;
+  }
+
+  resume() {
+    this.ensure();
+    if (this.ctx?.state === 'suspended') this.ctx.resume();
+  }
+
+  handle(cue, detail = {}) {
+    if (!cue) return;
+    this.resume();
+    if (cue === 'surface_ambience') {
+      this.startAmbience(detail.planet);
+    } else if (cue === 'surface_ambience_stop') {
+      this.stopAmbience();
+    } else if (cue === 'camera_servo') {
+      this.playServo('fly');
+      this.playThruster('medium');
+    } else if (cue === 'vehicle_swipe') {
+      this.playServo('swipe');
+      this.playThruster('light');
+    } else if (cue === 'thruster') {
+      this.playThruster(detail.intensity || 'medium');
+    } else if (cue === 'part_select' || cue === 'part_lock') {
+      this.playServo('lock');
+      this.playBlip(0.12, 980, 1640);
+    } else if (cue === 'part_unlock') {
+      this.playBlip(0.06, 1200, 600);
+    } else if (cue === 'start_journey') {
+      this.playServo('launch');
+      this.playThruster('heavy');
+    } else if (String(cue).startsWith('story_step_')) {
+      this.playBlip(0.05, 800, 1200);
+    }
+  }
+
+  startAmbience(planet) {
+    if (planet !== 'moon' && planet !== 'mars') return;
+    this.resume();
+    if (!this.ctx || this.planet === planet) return;
+    this.stopAmbience();
+    this.planet = planet;
+    if (planet === 'mars') this.buildMarsWind();
+    else this.buildMoonVacuum();
+  }
+
+  stopAmbience() {
+    this.planet = null;
+    if (this.crackleTimer) {
+      clearInterval(this.crackleTimer);
+      this.crackleTimer = null;
+    }
+    if (this.windGustTimer) {
+      clearInterval(this.windGustTimer);
+      this.windGustTimer = null;
+    }
+    const now = this.ctx?.currentTime ?? 0;
+    this.bed.forEach((node) => {
+      try {
+        if (node.gain) {
+          node.gain.gain.cancelScheduledValues(now);
+          node.gain.gain.setTargetAtTime(0.0001, now, 0.08);
+        }
+        if (node.source?.stop) node.source.stop(now + 0.4);
+      } catch {
+        /* already stopped */
+      }
+    });
+    this.bed = [];
+  }
+
+  spawnNoise(destination) {
+    const source = this.ctx.createBufferSource();
+    source.buffer = this.noiseBuffer;
+    source.loop = true;
+    source.connect(destination);
+    source.start();
+    return source;
+  }
+
+  buildMarsWind() {
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // Atmospheric low-mid hollow wind
+    const bedFilter = ctx.createBiquadFilter();
+    bedFilter.type = 'bandpass';
+    bedFilter.frequency.value = 260;
+    bedFilter.Q.value = 0.7;
+
+    const bedGain = ctx.createGain();
+    bedGain.gain.setValueAtTime(0.0001, now);
+    bedGain.gain.linearRampToValueAtTime(0.24, now + 1.2);
+
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.12;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 0.08;
+    lfo.connect(lfoGain);
+    lfoGain.connect(bedGain.gain);
+    lfo.start();
+
+    const source = this.spawnNoise(bedFilter);
+    bedFilter.connect(bedGain);
+    bedGain.connect(this.music);
+
+    // High altitude thin-sky whistle
+    const hissFilter = ctx.createBiquadFilter();
+    hissFilter.type = 'bandpass';
+    hissFilter.frequency.value = 1600;
+    hissFilter.Q.value = 3.0;
+    const hissGain = ctx.createGain();
+    hissGain.gain.value = 0.018;
+    const hiss = this.spawnNoise(hissFilter);
+    hissFilter.connect(hissGain);
+    hissGain.connect(this.music);
+
+    this.bed.push(
+      { source, gain: bedGain },
+      { source: lfo, gain: lfoGain },
+      { source: hiss, gain: hissGain }
+    );
+
+    // Occasional Martian dust wind gusts
+    this.windGustTimer = setInterval(() => {
+      if (this.planet !== 'mars' || !this.ctx || this.settings.mute) return;
+      const gustTime = this.ctx.currentTime;
+      bedFilter.frequency.cancelScheduledValues(gustTime);
+      bedFilter.frequency.setValueAtTime(260, gustTime);
+      bedFilter.frequency.exponentialRampToValueAtTime(420, gustTime + 1.8);
+      bedFilter.frequency.exponentialRampToValueAtTime(260, gustTime + 4.2);
+    }, 9500);
+  }
+
+  buildMoonVacuum() {
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // Airless space: high frequency telemetry carrier hiss
+    const hissFilter = ctx.createBiquadFilter();
+    hissFilter.type = 'highpass';
+    hissFilter.frequency.value = 4400;
+    const hissGain = ctx.createGain();
+    hissGain.gain.setValueAtTime(0.0001, now);
+    hissGain.gain.linearRampToValueAtTime(0.022, now + 0.8);
+    const hiss = this.spawnNoise(hissFilter);
+    hissFilter.connect(hissGain);
+    hissGain.connect(this.music);
+
+    // Deep spacesuit life support internal drone
+    const drone = ctx.createOscillator();
+    drone.type = 'sine';
+    drone.frequency.value = 48;
+    const droneGain = ctx.createGain();
+    droneGain.gain.setValueAtTime(0.0001, now);
+    droneGain.gain.linearRampToValueAtTime(0.035, now + 1.4);
+    drone.connect(droneGain);
+    droneGain.connect(this.music);
+    drone.start();
+
+    this.bed.push({ source: hiss, gain: hissGain }, { source: drone, gain: droneGain });
+
+    // Occasional cosmic radiation crackles
+    this.crackleTimer = setInterval(() => {
+      if (this.planet !== 'moon' || !this.ctx) return;
+      this.playCrackle();
+    }, 2800);
+  }
+
+  playCrackle() {
+    if (!this.ctx || this.settings.mute) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const source = ctx.createBufferSource();
+    source.buffer = this.noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 2400 + Math.random() * 1800;
+    filter.Q.value = 6;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.music);
+    source.start(now);
+    source.stop(now + 0.1);
+  }
+
+  /**
+   * Synthesizes an authentic spacecraft pneumatic thruster / RCS burst
+   * @param {'light'|'medium'|'heavy'} intensity
+   */
+  playThruster(intensity = 'medium') {
+    if (!this.ctx || this.settings.mute) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    const isLight = intensity === 'light';
+    const isHeavy = intensity === 'heavy';
+    const dur = isLight ? 0.28 : isHeavy ? 1.35 : 0.65;
+    const peakGain = isLight ? 0.14 : isHeavy ? 0.32 : 0.22;
+
+    // 1. High-pressure gas jet hiss
+    const hissSource = ctx.createBufferSource();
+    hissSource.buffer = this.noiseBuffer;
+    hissSource.loop = true;
+
+    const hissBand = ctx.createBiquadFilter();
+    hissBand.type = 'bandpass';
+    hissBand.frequency.setValueAtTime(isLight ? 1400 : 950, now);
+    hissBand.frequency.exponentialRampToValueAtTime(isLight ? 600 : 380, now + dur);
+    hissBand.Q.value = 2.2;
+
+    const hissGain = ctx.createGain();
+    hissGain.gain.setValueAtTime(0.0001, now);
+    hissGain.gain.exponentialRampToValueAtTime(peakGain, now + 0.035);
+    hissGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    hissSource.connect(hissBand);
+    hissBand.connect(hissGain);
+    hissGain.connect(this.sfx);
+    hissSource.start(now);
+    hissSource.stop(now + dur + 0.02);
+
+    // 2. Deep sub-bass propulsion rumble
+    const subOsc = ctx.createOscillator();
+    subOsc.type = 'triangle';
+    const startSub = isLight ? 90 : isHeavy ? 45 : 65;
+    const endSub = isLight ? 40 : 32;
+    subOsc.frequency.setValueAtTime(startSub, now);
+    subOsc.frequency.exponentialRampToValueAtTime(endSub, now + dur);
+
+    const subFilter = ctx.createBiquadFilter();
+    subFilter.type = 'lowpass';
+    subFilter.frequency.value = isHeavy ? 160 : 120;
+
+    const subGain = ctx.createGain();
+    const subPeak = isLight ? 0.08 : isHeavy ? 0.28 : 0.18;
+    subGain.gain.setValueAtTime(0.0001, now);
+    subGain.gain.exponentialRampToValueAtTime(subPeak, now + 0.05);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    subOsc.connect(subFilter);
+    subFilter.connect(subGain);
+    subGain.connect(this.sfx);
+    subOsc.start(now);
+    subOsc.stop(now + dur + 0.02);
+  }
+
+  playServo(kind) {
+    if (!this.ctx || this.settings.mute) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const isLock = kind === 'lock';
+    const isSwipe = kind === 'swipe';
+    const isLaunch = kind === 'launch';
+
+    const dur = isSwipe ? 0.32 : isLaunch ? 1.15 : isLock ? 0.22 : 0.85;
+    const peak = isSwipe ? 0.16 : isLaunch ? 0.28 : isLock ? 0.18 : 0.22;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.noiseBuffer;
+    noise.loop = true;
+    const band = ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.Q.value = isSwipe ? 3.2 : isLock ? 4.5 : 5;
+    const startFreq = isSwipe ? 720 : isLaunch ? 180 : isLock ? 950 : 260;
+    const midFreq = isSwipe ? 1680 : isLaunch ? 1400 : isLock ? 1800 : 1280;
+    band.frequency.setValueAtTime(startFreq, now);
+    band.frequency.exponentialRampToValueAtTime(midFreq, now + dur * 0.45);
+    band.frequency.exponentialRampToValueAtTime(210, now + dur);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.exponentialRampToValueAtTime(peak, now + 0.035);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    noise.connect(band);
+    band.connect(noiseGain);
+    noiseGain.connect(this.sfx);
+    noise.start(now);
+    noise.stop(now + dur + 0.02);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(isSwipe ? 180 : isLock ? 240 : 96, now);
+    osc.frequency.exponentialRampToValueAtTime(isSwipe ? 460 : isLock ? 520 : 280, now + dur * 0.7);
+    const oscFilter = ctx.createBiquadFilter();
+    oscFilter.type = 'lowpass';
+    oscFilter.frequency.value = 900;
+    const oscGain = ctx.createGain();
+    oscGain.gain.setValueAtTime(0.0001, now);
+    oscGain.gain.exponentialRampToValueAtTime(isSwipe ? 0.05 : isLock ? 0.06 : 0.07, now + 0.04);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(oscFilter);
+    oscFilter.connect(oscGain);
+    oscGain.connect(this.sfx);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  playBlip(level = 0.07, startFreq = 880, endFreq = 1320) {
+    if (!this.ctx || this.settings.mute) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(startFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.08);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(level, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+    osc.connect(gain);
+    gain.connect(this.sfx);
+    osc.start(now);
+    osc.stop(now + 0.16);
+  }
+}
+
+const engine = new SurfaceAudioEngine();
+
+export function installSurfaceAudio() {
+  return engine.install();
+}
+
+export function dispatchAudioCue(cue, extra = {}) {
+  engine.handle(cue, extra);
+}
+
+/** Play HUD confirmation lock cue without touching the core synthesis graph. */
+export function playLock() {
+  engine.handle('part_lock');
+}
+
+/** Play HUD release / toggle cue. */
+export function playUnlock() {
+  engine.handle('part_unlock');
+}
+
+/** Play lightweight UI servo cue ('fly' | 'swipe' | 'lock' | 'launch'). */
+export function playServo(kind = 'fly') {
+  engine.resume();
+  engine.playServo(kind);
+}
