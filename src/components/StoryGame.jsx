@@ -30,8 +30,146 @@ function ShowroomLoadingOverlay() {
   );
 }
 
+const SCENE_1_LINES = [
+  {
+    speaker: 'LUNA',
+    role: 'CURIOUS EXPLORER',
+    text: "What's happening?! The pages... an old NASA mission logbook found among Grandpa's relics is starting to glow!"
+  },
+  {
+    speaker: "MISSION LOGBOOK",
+    role: "APOLLO ARCHIVE",
+    isLogbook: true,
+    text: "They didn't vanish. They stayed right where their last command ended—silent sentinels on distant worlds."
+  },
+  {
+    speaker: 'LUNA',
+    role: 'CURIOUS EXPLORER',
+    text: "Holographic constellations and miniature planets are spiraling into the room, whispering the tales of machines humanity left behind among the stars!"
+  }
+];
+
+const SCENE_2_LINES = [
+  {
+    speaker: 'LUNA',
+    role: 'CURIOUS EXPLORER',
+    text: "Where am I?! The bedroom walls dissolved into an infinite expanse of stellar dust and planetary orbits!"
+  },
+  {
+    speaker: "MISSION LOGBOOK",
+    role: "COSMIC ARCHIVE",
+    isLogbook: true,
+    text: "Space is not empty. It carries the echoes of humanity's greatest endeavors—waiting for someone to remember them."
+  },
+  {
+    speaker: 'LUNA',
+    role: 'CURIOUS EXPLORER',
+    text: "The telemetry coordinates to the forgotten explorers are locking in... time to choose which world to investigate first!"
+  }
+];
+
+function StoryDialogueBox({
+  chapter,
+  bgImage,
+  bgAlt,
+  lines,
+  onComplete,
+  completeLabel,
+  completeIcon: CompleteIcon
+}) {
+  const [currentLine, setCurrentLine] = useState(0);
+
+  const isLastLine = currentLine >= lines.length - 1;
+  const line = lines[currentLine] || lines[0];
+
+  const handleAdvance = () => {
+    if (!isLastLine) {
+      window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'camera_servo' } }));
+      setCurrentLine((prev) => prev + 1);
+    } else {
+      onComplete();
+    }
+  };
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (['Space', 'Enter', 'ArrowRight'].includes(e.code) && !e.repeat) {
+        e.preventDefault();
+        handleAdvance();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [currentLine, isLastLine]);
+
+  return (
+    <section className="story-cinematic-stage" aria-label={`Story Scene: ${chapter}`}>
+      <img src={bgImage} alt={bgAlt} className="story-cinematic-bg" />
+      <div className="story-cinematic-vignette" />
+
+      <div className="story-chapter-chip">
+        <BookOpen size={14} />
+        <span>{chapter}</span>
+      </div>
+
+      <div className="story-dialogue-wrapper">
+        <div className="dialogue-portrait-col">
+          <div className="dialogue-portrait-frame">
+            <img
+              src="/assets/story/girl_thinking.png"
+              alt="Young girl explorer speaking"
+              className="dialogue-character-img"
+            />
+            <div className="dialogue-portrait-glow" />
+          </div>
+        </div>
+
+        <div
+          className="story-dialogue-box"
+          onClick={handleAdvance}
+          role="button"
+          tabIndex={0}
+          aria-label="Click or press Space to advance dialogue"
+        >
+          <div className={`dialogue-nameplate ${line.isLogbook ? 'is-logbook' : ''}`}>
+            <span className="nameplate-name">{line.speaker}</span>
+            <span className="nameplate-role">// {line.role}</span>
+          </div>
+
+          <p className="dialogue-line-text">{line.text}</p>
+
+          <div className="dialogue-bottom-row">
+            <span className="dialogue-counter">
+              LOG {currentLine + 1} / {lines.length}
+            </span>
+
+            {isLastLine ? (
+              <button
+                type="button"
+                className="btn btn-primary dialogue-complete-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onComplete();
+                }}
+              >
+                <span>{completeLabel}</span>
+                {CompleteIcon && <CompleteIcon size={14} />}
+              </button>
+            ) : (
+              <span className="dialogue-advance-prompt">
+                <span>CLICK OR PRESS SPACE TO ADVANCE</span>
+                <span>▼</span>
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function StoryGame({ onBackToMenu }) {
-  // Scene states: 'book' -> 'drift' -> 'choice' -> 'moon' | 'mars' | 'deepspace'
+  // Scene states: 'book' -> 'drift' -> 'choice' -> 'moon' | 'mars'
   const [currentScene, setCurrentScene] = useState('book');
   const [craftBrowse, setCraftBrowse] = useState(false);
   const activeLang = useActiveLanguage();
@@ -62,7 +200,7 @@ export default function StoryGame({ onBackToMenu }) {
         }
         if (craftBrowse) {
           setCraftBrowse(false);
-        } else if (['moon', 'mars', 'deepspace'].includes(currentScene)) {
+        } else if (['moon', 'mars'].includes(currentScene)) {
           goToScene('choice');
         } else if (currentScene === 'choice') {
           goToScene('drift');
@@ -86,7 +224,7 @@ export default function StoryGame({ onBackToMenu }) {
     setCurrentScene(sceneName);
   };
 
-  const isExploring = ['moon', 'mars', 'deepspace'].includes(currentScene);
+  const isExploring = ['moon', 'mars'].includes(currentScene);
 
   return (
     <div className={`story-container ${isExploring ? 'is-exploring' : ''}`}>
@@ -153,87 +291,33 @@ export default function StoryGame({ onBackToMenu }) {
       {/* Main Story Stage */}
       <main className="story-stage">
         {/* ================================================================
-            SCENE 1: THE SPACE BOOK ("What's happening?")
+            SCENE 1: THE SPACE BOOK (Hades / RPG Dialogue Box)
             ================================================================ */}
         {currentScene === 'book' && (
-          <section className="story-cutscene-card" aria-label="Scene: The Space Book">
-            <div className="cutscene-image-frame">
-              <img
-                src="/assets/story/scene1_book.jpg"
-                alt="Young girl in her room opening a magical glowing NASA space exploration book"
-                className="cutscene-img"
-              />
-              <div className="speech-bubble" role="status">
-                What's happening?
-              </div>
-            </div>
-
-            <div className="cutscene-narration">
-              <span className="cutscene-chapter">PROLOGUE // THE ARCHIVE UNSEALED</span>
-              <p className="story-logbook-note">
-                <BookOpen size={14} aria-hidden="true" />
-                <span>{storyUi.logbookNotes.book}</span>
-              </p>
-              <p className="cutscene-text">
-                Late at night, an old NASA mission logbook found among forgotten relics begins
-                to glow. Holographic constellations and miniature planets spiral out into the
-                room, whispering the tales of machines humanity left behind among the stars.
-              </p>
-            </div>
-
-            <div className="cutscene-actions">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => goToScene('drift')}
-              >
-                <span>CONTINUE</span>
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </section>
+          <StoryDialogueBox
+            chapter="PROLOGUE // THE ARCHIVE UNSEALED"
+            bgImage="/assets/story/scene1_book.jpg"
+            bgAlt="Young girl in her room opening a magical glowing NASA space exploration book"
+            lines={SCENE_1_LINES}
+            onComplete={() => goToScene('drift')}
+            completeLabel="ENTER THE BOOK"
+            completeIcon={ChevronRight}
+          />
         )}
 
         {/* ================================================================
-            SCENE 2: INSIDE THE BOOK ("Where am I?")
+            SCENE 2: INSIDE THE BOOK (Hades / RPG Dialogue Box)
             ================================================================ */}
         {currentScene === 'drift' && (
-          <section className="story-cutscene-card" aria-label="Scene: Inside the Book">
-            <div className="cutscene-image-frame">
-              <img
-                src="/assets/story/scene2_drift.jpg"
-                alt="The girl weightlessly drifting through celestial nebulae and space"
-                className="cutscene-img"
-              />
-              <div className="speech-bubble" role="status">
-                Where am I?
-              </div>
-            </div>
-
-            <div className="cutscene-narration">
-              <span className="cutscene-chapter">CHAPTER I // THE COSMIC ARCHIVE</span>
-              <p className="story-logbook-note">
-                <BookOpen size={14} aria-hidden="true" />
-                <span>{storyUi.logbookNotes.drift}</span>
-              </p>
-              <p className="cutscene-text">
-                The walls dissolve into an infinite expanse of stellar dust and planetary
-                orbits. Pulled through the digital memories of distant telemetry, the solar
-                system opens up. Ahead lie the coordinates to the forgotten explorers.
-              </p>
-            </div>
-
-            <div className="cutscene-actions">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => goToScene('choice')}
-              >
-                <span>MAKE A CHOICE</span>
-                <Compass size={16} />
-              </button>
-            </div>
-          </section>
+          <StoryDialogueBox
+            chapter="CHAPTER I // THE COSMIC ARCHIVE"
+            bgImage="/assets/story/scene2_drift.jpg"
+            bgAlt="The girl weightlessly drifting through celestial nebulae and space"
+            lines={SCENE_2_LINES}
+            onComplete={() => goToScene('choice')}
+            completeLabel="MAKE A CHOICE"
+            completeIcon={Compass}
+          />
         )}
 
         {/* ================================================================
@@ -252,7 +336,7 @@ export default function StoryGame({ onBackToMenu }) {
               </p>
             </div>
 
-            <div className="choice-destinations-grid choice-grid-3">
+            <div className="choice-destinations-grid choice-grid-2">
               {/* Destination 1: 3D MOON */}
               <article className="planet-choice-card moon-choice-card">
                 <span className="card-hud-badge">TARGET // SECTOR 01</span>
@@ -314,31 +398,6 @@ export default function StoryGame({ onBackToMenu }) {
                   <span>GO TO MARS</span>
                 </button>
               </article>
-
-              {/* Destination 3: DEEP SPACE */}
-              <article className="planet-choice-card deepspace-choice-card">
-                <span className="card-hud-badge">TARGET // SECTOR 03</span>
-
-                <div className="planet-3d-viewport deepspace-viewport">
-                  <div className="deepspace-placeholder-orb" aria-hidden="true">
-                    <Rocket size={48} />
-                  </div>
-                </div>
-
-                <h3 className="planet-choice-name">DEEP SPACE</h3>
-                <p className="planet-telemetry">
-                  Beyond the planets • Interstellar void • Voyagers, Pioneer, and New Horizons sail into the unknown.
-                </p>
-
-                <button
-                  type="button"
-                  className="btn btn-primary choice-dest-btn"
-                  onClick={() => goToScene('deepspace')}
-                >
-                  <Rocket size={16} />
-                  <span>GO TO DEEP SPACE</span>
-                </button>
-              </article>
             </div>
 
             {/* Character below the grid */}
@@ -352,7 +411,7 @@ export default function StoryGame({ onBackToMenu }) {
                 className="character-thinking-img"
               />
               <p className="character-prompt">
-                "Three frontiers... which forgotten story will we uncover first?"
+                "Two frontiers... the Moon or Mars: which forgotten story will we uncover first?"
               </p>
             </div>
           </section>

@@ -16,7 +16,14 @@ import {
   RotateCcw,
   Layers,
   Archive,
-  AlertTriangle
+  AlertTriangle,
+  Pause,
+  Play,
+  CheckCircle2,
+  HelpCircle,
+  Compass,
+  Eye,
+  FileText
 } from 'lucide-react';
 import { dispatchAudioCue, playServo } from '../audio/surfaceAudio';
 import {
@@ -632,11 +639,19 @@ export default function PlanetaryShowroom({
   const [loadError, setLoadError] = useState(null);
   const [isHudMinimized, setIsHudMinimized] = useState(false);
 
+  // UX Redesign States (Tasks 1, 2, 3, 6)
+  const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(true);
+  const [detailTab, setDetailTab] = useState('info'); // 'info' | 'task' | 'quiz'
+  const [quizState, setQuizState] = useState({});
+  const [isOrbitalView, setIsOrbitalView] = useState(false);
+  const [isOrbitTransitioning, setIsOrbitTransitioning] = useState(false);
+
   const activeLang = useActiveLanguage();
   const storyUi = getStoryUiCopy(activeLang);
 
   const overlayPausedRef = useRef(false);
-  overlayPausedRef.current = showStoryModal || moreEquipmentOpen || sourcesOpen;
+  overlayPausedRef.current = showStoryModal || moreEquipmentOpen || sourcesOpen || isPauseMenuOpen;
 
   const threeRef = useRef({
     scene: null,
@@ -720,14 +735,63 @@ export default function PlanetaryShowroom({
     []
   );
 
-  // Switch to specific vehicle
+  // Switch to specific vehicle with surface <-> orbit dark fade transition (Task 6)
   const selectVehicleIndex = useCallback(
     (idx, autoFly = true, cue = 'vehicle_swipe') => {
       if (idx < 0 || idx >= filteredVehicles.length) return;
       const vehicle = filteredVehicles[idx];
       if (!vehicle) return;
 
+      const currentV = filteredVehicles[currentIndex];
+      const isSwitchingOrbit = currentV && Boolean(currentV.isOrbiter) !== Boolean(vehicle.isOrbiter);
+
+      if (isSwitchingOrbit) {
+        setIsOrbitTransitioning(true);
+        if (cue) dispatchAudioCue(cue);
+
+        setTimeout(() => {
+          setIsOrbitalView(Boolean(vehicle.isOrbiter));
+          setCurrentIndex(idx);
+          setIsDetailsOpen(true);
+
+          const s = threeRef.current;
+          if (vehicle.isOrbiter) {
+            if (s.terrainGroup) s.terrainGroup.visible = false;
+            if (s.vehiclesGroup) s.vehiclesGroup.visible = false;
+            s.orbitLayer?.select(vehicle.id);
+            if (s.scene) {
+              s.scene.fog = null;
+            }
+          } else {
+            if (s.terrainGroup) s.terrainGroup.visible = true;
+            if (s.vehiclesGroup) s.vehiclesGroup.visible = true;
+            s.orbitLayer?.release();
+            if (s.scene) {
+              if (vehicle.destination === 'mars') {
+                s.scene.fog = new THREE.FogExp2(0x1e0b07, 0.014);
+              } else {
+                s.scene.fog = new THREE.Fog(0x020409, 3500, 7500);
+              }
+            }
+          }
+
+          if (s.camera && s.controls) {
+            s.camera.position.set(...vehicle.focusCamPos);
+            s.controls.target.set(...vehicle.focusLookAt);
+            s.controls.update();
+            s.renderOnce?.();
+          }
+
+          setTimeout(() => {
+            setIsOrbitTransitioning(false);
+          }, 450);
+        }, 400);
+
+        return;
+      }
+
       setCurrentIndex(idx);
+      setIsDetailsOpen(true);
 
       const s = threeRef.current;
       if (vehicle.isOrbiter) {
@@ -746,8 +810,15 @@ export default function PlanetaryShowroom({
         triggerCameraFly(vehicle.focusCamPos, vehicle.focusLookAt, 1600, cue);
       }
     },
-    [filteredVehicles, triggerCameraFly]
+    [filteredVehicles, currentIndex, triggerCameraFly]
   );
+
+  const handleReturnToSurface = useCallback(() => {
+    const surfaceIdx = filteredVehicles.findIndex((v) => !v.isOrbiter);
+    if (surfaceIdx !== -1) {
+      selectVehicleIndex(surfaceIdx, true, 'camera_servo');
+    }
+  }, [filteredVehicles, selectVehicleIndex]);
 
   const handleNext = useCallback(() => {
     const nextIdx = (currentIndex + 1) % filteredVehicles.length;
@@ -769,6 +840,7 @@ export default function PlanetaryShowroom({
 
   const handleCraftDialogComplete = useCallback(() => {
     setIsCraftDialogOpen(false);
+    setIsDetailsOpen(true);
     // Always transition to the first vehicle of the active destination
     // (Opportunity on Mars, Lunar Rover on Moon / All, Deep Space Probe on Deep Space).
     selectVehicleIndex(0, true, 'camera_servo');
@@ -787,13 +859,23 @@ export default function PlanetaryShowroom({
   useEffect(() => {
     threeRef.current.orbitLayer?.setPaused(overlayPausedRef.current);
     threeRef.current.syncRenderLoop?.();
-  }, [isCraftDialogOpen, showStoryModal, moreEquipmentOpen, sourcesOpen, isLoading3D]);
+  }, [isCraftDialogOpen, showStoryModal, moreEquipmentOpen, sourcesOpen, isLoading3D, isPauseMenuOpen]);
+
+  // Audio pause/resume effect for pause menu (Task 1)
+  useEffect(() => {
+    if (isPauseMenuOpen) {
+      dispatchAudioCue('surface_ambience_stop');
+    } else if (!isLoading3D && !loadError && isOpen) {
+      const planet = threeRef.current.currentPlanet || (activePlanet === 'all' ? (currentVehicle?.destination || 'moon') : activePlanet);
+      dispatchAudioCue('surface_ambience', { planet });
+    }
+  }, [isPauseMenuOpen, isLoading3D, loadError, isOpen, activePlanet, currentVehicle]);
 
   // Touch swipe handlers
   const handleTouchStart = (e) => {
     if (
       e.target.closest(
-        'button, a, input, textarea, .showroom-menu-card, .ui-dialogue, .briefing-overlay, .story-hud-modal, .story-modal-backdrop'
+        'button, a, input, textarea, .showroom-menu-card, .ui-dialogue, .briefing-overlay, .story-hud-modal, .story-modal-backdrop, .showroom-pause-overlay, .showroom-details-panel'
       )
     ) {
       touchStartXRef.current = null;
@@ -828,6 +910,15 @@ export default function PlanetaryShowroom({
         return;
       }
 
+      if (isPauseMenuOpen) {
+        if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsPauseMenuOpen(false);
+        }
+        return;
+      }
+
       if (showStoryModal) {
         if (e.key === 'Escape') {
           e.preventDefault();
@@ -843,12 +934,10 @@ export default function PlanetaryShowroom({
         return;
       }
 
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation?.();
-        if (onBackToChoice) onBackToChoice();
-        else onClose();
+        setIsPauseMenuOpen(true);
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         handleNext();
@@ -860,7 +949,7 @@ export default function PlanetaryShowroom({
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isOpen, showStoryModal, isDialogVisible, handleNext, handlePrev, onClose, onBackToChoice]);
+  }, [isOpen, isPauseMenuOpen, showStoryModal, isDialogVisible, handleNext, handlePrev, onClose, onBackToChoice]);
 
   // Initialize Three.js Scene
   useEffect(() => {
@@ -1987,54 +2076,38 @@ export default function PlanetaryShowroom({
         </div>
       )}
 
-      {/* Top Header HUD Bar */}
+      {/* Top Header HUD Bar — Clean layout with Back/Surface, Destination badge, Counter, and Accessible Pause Button (Task 1) */}
       {!isDialogVisible && (
-        <header className="showroom-top-bar">
-          <div className="showroom-top-left-actions">
-            <button
-              type="button"
-              className="showroom-back-btn"
-              onClick={onBackToChoice || onClose}
-              aria-label={onBackToChoice ? 'Back to Destinations' : 'Back to Main Menu'}
-              title={onBackToChoice ? 'Back to Destinations' : 'Back to Main Menu'}
-            >
-              <ArrowLeft size={16} />
-              <span className="btn-label">BACK</span>
-            </button>
+        <header className="showroom-top-bar" role="banner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isOrbitalView ? (
+              <button
+                type="button"
+                className="showroom-surface-return-btn"
+                onClick={handleReturnToSurface}
+                aria-label="Return to surface exploration"
+                title="Descend back to surface exploration view"
+              >
+                <Compass size={15} />
+                <span className="btn-label">SURFACE VIEW</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="showroom-back-btn"
+                onClick={onBackToChoice || onClose}
+                aria-label={onBackToChoice ? 'Back to Destinations' : 'Back to Main Menu'}
+                title={onBackToChoice ? 'Back to Destinations' : 'Back to Main Menu'}
+              >
+                <ArrowLeft size={16} />
+                <span className="btn-label">BACK</span>
+              </button>
+            )}
 
             <div className="showroom-destination-badge">
               {isMoon ? <Orbit size={16} /> : isDeepSpace ? <Radio size={16} /> : <Sparkles size={16} />}
-              <span>{currentVehicle.sector}</span>
+              <span>{isOrbitalView ? `${currentVehicle.planet} // ORBITAL SPACE` : currentVehicle.sector}</span>
             </div>
-          </div>
-
-          {/* Replay Mission Briefing Dialog & Archive Tray Buttons */}
-          <div className="showroom-top-mid-actions">
-            <button
-              type="button"
-              className="btn btn-secondary showroom-dialog-btn"
-              onClick={handleOpenCraftDialog}
-              aria-label="Open spacecrafts dialog"
-              title="Open Mission Briefing Dialog"
-            >
-              <Layers size={14} />
-              <span className="btn-label">SPACECRAFTS</span>
-            </button>
-
-            <button
-              id="btn-more-equipment-hud"
-              type="button"
-              className="btn btn-secondary showroom-dialog-btn showroom-archive-btn"
-              onClick={() => {
-                playServo('fly');
-                setMoreEquipmentOpen(true);
-              }}
-              aria-label={storyUi.moreEquipmentBtn}
-              title={storyUi.moreEquipmentTitle}
-            >
-              <Archive size={14} />
-              <span className="btn-label">{storyUi.moreEquipmentBtn}</span>
-            </button>
           </div>
 
           <div className="showroom-center-indicator">
@@ -2043,209 +2116,433 @@ export default function PlanetaryShowroom({
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {onBackToChoice && (
-              <button
-                type="button"
-                className="btn btn-secondary showroom-choice-btn"
-                onClick={onBackToChoice}
-                aria-label="Change destination"
-                title="Return to Moon / Mars Choice"
-              >
-                <RotateCcw size={14} />
-                <span className="btn-label">CHANGE DESTINATION</span>
-              </button>
-            )}
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               type="button"
-              className="btn btn-secondary showroom-close-btn"
-              onClick={onClose}
-              aria-label="Return to Exploration"
+              className="showroom-pause-btn"
+              onClick={() => setIsPauseMenuOpen(true)}
+              aria-label="Open exploration pause menu"
+              title="Pause exploration (Esc or P)"
             >
-              <span className="btn-label">{onBackToChoice ? 'MAIN MENU' : 'EXIT SHOWROOM'}</span>
-              <X size={16} />
+              <Pause size={14} />
+              <span className="btn-label">PAUSE</span>
             </button>
           </div>
         </header>
       )}
 
-      {/* Big Left & Right Arrow Buttons to Swipe Between Vehicles */}
-      {!isDialogVisible && filteredVehicles.length > 1 && (
-        <>
-          <button
-            type="button"
-            className={`showroom-nav-btn showroom-nav-prev ${!isHudMinimized ? 'is-hidden-by-card' : ''}`}
-            onClick={handlePrev}
-            aria-label="Previous Vehicle"
-            title={`Previous: ${filteredVehicles[(currentIndex - 1 + filteredVehicles.length) % filteredVehicles.length].name}`}
-          >
-            <ChevronLeft size={36} />
-          </button>
+      {/* Task 1: Accessible Pause Menu Modal */}
+      {isPauseMenuOpen && (
+        <div
+          className="showroom-pause-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Exploration Paused"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsPauseMenuOpen(false);
+          }}
+        >
+          <div className="showroom-pause-modal">
+            <button
+              type="button"
+              className="showroom-pause-close-btn"
+              onClick={() => setIsPauseMenuOpen(false)}
+              aria-label="Resume exploration"
+              title="Resume exploration (Esc or P)"
+            >
+              <X size={16} />
+            </button>
 
-          <button
-            type="button"
-            className="showroom-nav-btn showroom-nav-next"
-            onClick={handleNext}
-            aria-label="Next Vehicle"
-            title={`Next: ${filteredVehicles[(currentIndex + 1) % filteredVehicles.length].name}`}
-          >
-            <ChevronRight size={36} />
-          </button>
-        </>
+            <div className="showroom-pause-header">
+              <span className="showroom-pause-eyebrow">
+                {currentVehicle.planet} // SIMULATION HALTED
+              </span>
+              <h2 className="showroom-pause-title">EXPLORATION PAUSED</h2>
+            </div>
+
+            <div className="showroom-pause-actions">
+              <button
+                type="button"
+                className="pause-action-btn is-primary"
+                onClick={() => setIsPauseMenuOpen(false)}
+              >
+                <Play size={18} />
+                <span>RESUME EXPLORATION</span>
+              </button>
+
+              <button
+                type="button"
+                className="pause-action-btn"
+                onClick={() => {
+                  setIsPauseMenuOpen(false);
+                  handleOpenCraftDialog();
+                }}
+              >
+                <Layers size={18} />
+                <span>SPACECRAFTS BRIEFING</span>
+              </button>
+
+              <button
+                type="button"
+                className="pause-action-btn"
+                onClick={() => {
+                  setIsPauseMenuOpen(false);
+                  playServo('fly');
+                  setMoreEquipmentOpen(true);
+                }}
+              >
+                <Archive size={18} />
+                <span>EQUIPMENT ARCHIVE</span>
+              </button>
+
+              <button
+                type="button"
+                className="pause-action-btn"
+                onClick={() => {
+                  setIsPauseMenuOpen(false);
+                  setSourcesOpen(true);
+                }}
+              >
+                <FileText size={18} />
+                <span>SOURCES &amp; VERIFICATION</span>
+              </button>
+
+              {onBackToChoice && (
+                <button
+                  type="button"
+                  className="pause-action-btn"
+                  onClick={() => {
+                    setIsPauseMenuOpen(false);
+                    onBackToChoice();
+                  }}
+                >
+                  <RotateCcw size={18} />
+                  <span>CHANGE DESTINATION</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="pause-action-btn is-danger"
+                onClick={() => {
+                  setIsPauseMenuOpen(false);
+                  onClose();
+                }}
+              >
+                <X size={18} />
+                <span>EXIT TO MAIN MENU</span>
+              </button>
+            </div>
+
+            <p className="showroom-pause-footer-hint">
+              Press ESC or P to resume • Touch controls enabled
+            </p>
+          </div>
+        </div>
       )}
 
-      {/* Vehicle Info Card */}
-      {!isDialogVisible && (
-        <>
-          <div className={`showroom-card-wrapper ${isHudMinimized ? 'is-minimized' : ''}`}>
-        <section className="menu-content showroom-menu-card">
-          <div className="hud-frame" aria-hidden="true">
-            <span className="corner corner-tl" />
-            <span className="corner corner-tr" />
-            <span className="corner corner-bl" />
-            <span className="corner corner-br" />
-          </div>
-
-          <div className="showroom-card-header-row">
-            <p className="eyebrow">
-              <Radio size={14} className="lucide-inline" />
-              <span className="eyebrow-text">
+      {/* Task 3: Mission Details Panel with Info, Task, Quiz tabs */}
+      {!isDialogVisible && isDetailsOpen && (
+        <aside className="showroom-details-panel" role="region" aria-label="Mission Details">
+          <div className="details-top-header">
+            <div className="details-title-group">
+              <p className="details-eyebrow">
                 {currentVehicle.planet} // {currentVehicle.status}
-              </span>
-            </p>
+              </p>
+              <h2 className="details-main-title">{currentVehicle.name}</h2>
+              <span className="details-subtitle">{currentVehicle.codename} • {currentVehicle.role}</span>
+            </div>
 
             <button
               type="button"
-              className="showroom-hud-collapse-btn"
-              onClick={() => setIsHudMinimized((prev) => !prev)}
-              aria-label={isHudMinimized ? 'Expand Telemetry HUD' : 'Minimize Telemetry HUD'}
-              title={isHudMinimized ? 'Expand Telemetry' : 'Minimize to View Rover'}
+              className="details-close-btn"
+              onClick={() => setIsDetailsOpen(false)}
+              aria-label="Close details and inspect 3D model"
+              title="Close panel to inspect 3D model unobstructed"
             >
-              <ChevronDown size={14} className={`collapse-chevron ${isHudMinimized ? 'is-up' : ''}`} />
-              <span className="collapse-text">{isHudMinimized ? 'EXPAND' : 'MINIMIZE'}</span>
+              <Eye size={13} />
+              <span>VIEW MODEL</span>
+              <X size={13} />
             </button>
           </div>
 
-          <div className="showroom-title-header">
-            <h1 className="game-title showroom-main-title">
-              {currentVehicle.name}
-              <span className="title-accent">{currentVehicle.codename}</span>
-            </h1>
-            {currentVehicle.role && <p className="showroom-role-text">{currentVehicle.role}</p>}
-            {(() => {
+          {/* 3 Tabs Bar: Info, Task, Quiz */}
+          <nav className="details-tabs-bar" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={detailTab === 'info'}
+              className={`details-tab-btn ${detailTab === 'info' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
+              onClick={() => setDetailTab('info')}
+            >
+              <Info size={14} />
+              <span>INFO</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={detailTab === 'task'}
+              className={`details-tab-btn ${detailTab === 'task' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
+              onClick={() => setDetailTab('task')}
+            >
+              <CheckCircle2 size={14} />
+              <span>TASK</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={detailTab === 'quiz'}
+              className={`details-tab-btn ${detailTab === 'quiz' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
+              onClick={() => setDetailTab('quiz')}
+            >
+              <HelpCircle size={14} />
+              <span>QUIZ</span>
+            </button>
+          </nav>
+
+          {/* Tab Content Body */}
+          <div className="details-content-scroll">
+            {detailTab === 'info' && (
+              <>
+                <p className="details-section-quote">"{currentVehicle.tagline}"</p>
+
+                <div className="details-telemetry-grid">
+                  {currentVehicle.stats.map((stat, i) => (
+                    <div key={i} className="details-telemetry-cell">
+                      <span className="details-cell-label">{stat.label}</span>
+                      <span className="details-cell-value">{stat.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="details-description-text">{currentVehicle.description}</p>
+
+                <div className="details-meta-list">
+                  <div className="details-meta-item">
+                    <span>AGENCY</span>
+                    <strong>{currentVehicle.agency}</strong>
+                  </div>
+                  <div className="details-meta-item">
+                    <span>LAUNCH</span>
+                    <strong>{currentVehicle.launchDate}</strong>
+                  </div>
+                  <div className="details-meta-item">
+                    <span>LOCATION</span>
+                    <strong>{currentVehicle.landingSite}</strong>
+                  </div>
+                  <div className="details-meta-item">
+                    <span>LIFESPAN</span>
+                    <strong>{currentVehicle.operationalTime}</strong>
+                  </div>
+                  <div className="details-meta-item">
+                    <span>TRAVERSE</span>
+                    <strong>{currentVehicle.distanceTraveled}</strong>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {detailTab === 'task' && (() => {
               const activeStory = getCraftStory(currentVehicle.id, activeLang);
-              return activeStory ? (
-                <StatusBadge
-                  status={activeStory.status}
-                  lastVerified={activeStory.lastVerified}
-                  lang={activeLang}
-                  className="showroom-header-status"
-                />
-              ) : null;
+              return (
+                <>
+                  <div className="details-task-card">
+                    <h3 className="details-task-heading">HISTORICAL MISSION TASK</h3>
+                    <p className="details-task-body">
+                      {activeStory?.story?.question || currentVehicle.tagline}
+                    </p>
+                    {activeStory?.story?.experiment && (
+                      <p className="details-task-body" style={{ marginTop: '6px' }}>
+                        {activeStory.story.experiment}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="details-task-card">
+                    <h3 className="details-task-heading">ARCHIVE TELEMETRY LOG</h3>
+                    <p className="details-task-body">
+                      {currentVehicle.lastTelemetry}
+                    </p>
+                  </div>
+
+                  {activeStory?.visitDecision && (
+                    <div className="details-task-card">
+                      <h3 className="details-task-heading">HERITAGE PRESERVATION GUIDANCE</h3>
+                      <p className="details-task-body">
+                        {activeStory.visitDecision.keepDistanceOutcome || activeStory.visitDecision.approachOutcome}
+                      </p>
+                    </div>
+                  )}
+
+                  {currentVehicle.hotspots && currentVehicle.hotspots.length > 0 && (
+                    <div className="details-task-card">
+                      <h3 className="details-task-heading">KEY SCIENTIFIC INSTRUMENTS</h3>
+                      <div className="details-instruments-list">
+                        {currentVehicle.hotspots.map((h) => (
+                          <div key={h.id} className="details-instrument-chip">
+                            <span className="details-instrument-dot" />
+                            <span>{h.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+
+            {detailTab === 'quiz' && (() => {
+              const activeStory = getCraftStory(currentVehicle.id, activeLang);
+              const quiz = activeStory?.quiz;
+              const currentQuizState = quizState[currentVehicle.id] || { selectedIndex: null, isSubmitted: false };
+              const isAnswered = currentQuizState.isSubmitted;
+              const isCorrect = isAnswered && currentQuizState.selectedIndex === quiz?.correctIndex;
+
+              if (!quiz) {
+                return (
+                  <p className="details-task-body">No knowledge check quiz registered for this craft.</p>
+                );
+              }
+
+              return (
+                <div className="details-quiz-box">
+                  <p className="details-quiz-prompt">{quiz.prompt}</p>
+
+                  <div className="details-quiz-options">
+                    {quiz.options.map((option, optIdx) => {
+                      const isOptionSelected = currentQuizState.selectedIndex === optIdx;
+                      let optionClass = 'details-quiz-option-btn';
+                      if (isAnswered) {
+                        if (optIdx === quiz.correctIndex) optionClass += ' is-correct';
+                        else if (isOptionSelected) optionClass += ' is-incorrect';
+                      }
+
+                      return (
+                        <button
+                          key={optIdx}
+                          type="button"
+                          className={optionClass}
+                          disabled={isAnswered}
+                          onClick={() => {
+                            setQuizState((prev) => ({
+                              ...prev,
+                              [currentVehicle.id]: { selectedIndex: optIdx, isSubmitted: true }
+                            }));
+                            playServo('click');
+                          }}
+                        >
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {isAnswered && (
+                    <>
+                      <div className={`details-quiz-feedback ${!isCorrect ? 'is-incorrect-banner' : ''}`}>
+                        <strong>{isCorrect ? '✓ VERIFIED KNOWLEDGE' : '⚠️ REVIEW THE ARCHIVE'}</strong>
+                        <p style={{ margin: '6px 0 0' }}>{quiz.explanation}</p>
+                      </div>
+
+                      {!isCorrect && (
+                        <button
+                          type="button"
+                          className="details-quiz-retry-btn"
+                          onClick={() => {
+                            setQuizState((prev) => ({
+                              ...prev,
+                              [currentVehicle.id]: { selectedIndex: null, isSubmitted: false }
+                            }));
+                          }}
+                        >
+                          TRY AGAIN
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
             })()}
           </div>
+        </aside>
+      )}
 
-          <div className={`showroom-card-collapsible ${isHudMinimized ? 'is-collapsed' : ''}`}>
-            <p className="subtitle">"{currentVehicle.tagline}"</p>
+      {/* Floating Reopen Button if details closed */}
+      {!isDialogVisible && !isDetailsOpen && (
+        <button
+          type="button"
+          className="showroom-open-details-btn"
+          onClick={() => setIsDetailsOpen(true)}
+          aria-label="Open mission details"
+        >
+          <Info size={16} />
+          <span>MISSION DETAILS [INFO • TASK • QUIZ]</span>
+        </button>
+      )}
 
-            <div className="showroom-telemetry-row">
-              {currentVehicle.stats.map((stat, i) => (
-                <div key={i} className="telemetry-hud-box">
-                  <span className="telemetry-box-label">{stat.label}</span>
-                  <span className="telemetry-box-value">{stat.value}</span>
-                </div>
+      {/* 3D Camera Controls Hint */}
+      {!isDialogVisible && (
+        <div className="showroom-controls-hint" aria-hidden="true">
+          <RotateCw size={14} />
+          <span>DRAG TO ORBIT • PINCH / SCROLL TO ZOOM • SELECT DOTS TO SWITCH CRAFT</span>
+        </div>
+      )}
+
+      {/* Task 2: Minimal Clean Dot Indicators */}
+      {!isDialogVisible && filteredVehicles.length > 1 && (
+        <footer className="showroom-dots-strip" role="navigation" aria-label="Vehicle Selector">
+          <div className="showroom-dots-wrapper">
+            <button
+              type="button"
+              className="showroom-dot-nav-btn"
+              onClick={handlePrev}
+              aria-label="Previous spacecraft"
+              title="Previous spacecraft"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            <div className="showroom-dots-track">
+              {filteredVehicles.map((v, idx) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  className="showroom-dot-target"
+                  onClick={() => selectVehicleIndex(idx, true)}
+                  aria-label={`Select ${v.name}${v.isOrbiter ? ' (Orbiter)' : ''}`}
+                  title={`${v.name}${v.isOrbiter ? ' [Orbiter]' : ''}`}
+                >
+                  <span
+                    className={`showroom-dot-shape ${
+                      idx === currentIndex ? 'is-active' : ''
+                    } ${v.isOrbiter ? 'is-orbiter' : ''} ${!isMoon ? 'is-mars' : ''}`}
+                  />
+                </button>
               ))}
             </div>
 
-            <div className="showroom-quote-banner">
-              <span className="quote-banner-label">ARCHIVE LOG</span>
-              <p className="quote-banner-text">{currentVehicle.lastTelemetry}</p>
-            </div>
-
-            <ShowroomStoryPanel
-              vehicleId={currentVehicle.id}
-              lang={activeLang}
-              onOpenSources={() => setSourcesOpen(true)}
-            />
-
-            <div className="menu-buttons showroom-buttons">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setShowStoryModal(true)}
-              >
-                <span className="btn-label">MISSION HISTORY</span>
-              </button>
-
-              {filteredVehicles.length > 1 && (
-                <div className="showroom-nav-pair">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handlePrev}
-                    aria-label="Previous spacecraft"
-                    title="Previous Vehicle"
-                  >
-                    <span className="btn-label">‹ PREV</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleNext}
-                    aria-label="Next spacecraft"
-                    title="Next Vehicle"
-                  >
-                    <span className="btn-label">NEXT ›</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              className="showroom-dot-nav-btn"
+              onClick={handleNext}
+              aria-label="Next spacecraft"
+              title="Next spacecraft"
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
-        </section>
-      </div>
 
-      {/* 3D Camera Controls Hint */}
-      <div className="showroom-controls-hint" aria-hidden="true">
-        <RotateCw size={14} />
-        <span>DRAG TO ORBIT • PINCH / SCROLL TO ZOOM • SWIPE TO SWITCH CRAFT</span>
-      </div>
-
-      {/* Bottom Vehicle Selector Strip */}
-      <footer className="showroom-bottom-strip">
-        <div className="showroom-pills-container">
-          {filteredVehicles.map((v, idx) => {
-            const pillStory = getCraftStory(v.id, activeLang);
-            const pillStatus = pillStory?.status || 'unverified';
-            return (
-              <button
-                key={v.id}
-                type="button"
-                className={`showroom-pill-btn ${idx === currentIndex ? 'active' : ''}`}
-                onClick={() => selectVehicleIndex(idx, true)}
-              >
-                <span
-                  className={`pill-dot ${
-                    v.destination === 'moon'
-                      ? 'dot-moon'
-                      : v.destination === 'deepspace'
-                      ? 'dot-deepspace'
-                      : 'dot-mars'
-                  }`}
-                />
-                <span className="pill-name">{v.name}</span>
-                <span
-                  className={`pill-status-dot status-${pillStatus}`}
-                  title={storyUi.statusLabels[pillStatus] || pillStatus}
-                  aria-label={storyUi.statusLabels[pillStatus] || pillStatus}
-                />
-              </button>
-            );
-          })}
-        </div>
-      </footer>
-        </>
+          <span className="showroom-dot-active-name">
+            {currentVehicle.name} {currentVehicle.isOrbiter ? '• ORBITER' : ''}
+          </span>
+        </footer>
       )}
+
+      {/* Task 6: Surface <-> Orbit Dark Transition Fade Overlay */}
+      <div
+        className={`showroom-orbital-fade ${isOrbitTransitioning ? 'is-active' : ''}`}
+        aria-hidden="true"
+      />
 
       {/* Bottom Typewriter Briefing Dialog — transitions directly to first spacecraft */}
       <MissionBriefingDialog
