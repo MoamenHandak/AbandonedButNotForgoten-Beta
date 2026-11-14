@@ -144,14 +144,14 @@ export const VEHICLES_DATA = [
     role: 'LUNAR RECONNAISSANCE ORBITER',
     destination: 'moon',
     planet: 'THE MOON',
-    sector: 'LUNAR ORBIT // POLAR RECON',
+    sector: 'LUNAR POLAR ORBIT // MAPPING',
     modelSrc: '/models/lro-opt.glb',
     alt: '3D model of Lunar Reconnaissance Orbiter circling the Moon',
-    scale: 0.8,
-    position: [0, 5.0, 0],
+    scale: 0.15,
+    position: [12.93, -9.06, 2.2],
     rotation: [0.1, 0.4, 0],
-    focusCamPos: [2.8, 5.8, 3.2],
-    focusLookAt: [0, 5.0, 0],
+    focusCamPos: [16.46, -10.19, 5.02],
+    focusLookAt: [12.93, -9.06, 2.2],
     contactShadowRadius: 0,
     agency: 'NASA / Goddard',
     launchDate: 'June 18, 2009',
@@ -171,11 +171,11 @@ export const VEHICLES_DATA = [
       { label: 'STATUS', value: 'Operational' }
     ],
     hotspots: [
-      { id: 'lro-hga', label: 'High-Gain Antenna (HGA)', position: [0.55, 5.55, 0.25], offset: { x: 85, y: -45 } },
-      { id: 'lro-cam', label: 'LROC Narrow Angle Camera', position: [-0.45, 4.95, -0.20], offset: { x: -85, y: -35 } },
-      { id: 'lro-solar', label: 'Solar Array Wing', position: [-0.95, 5.15, 0.45], offset: { x: 85, y: 35 } }
+      { id: 'lro-hga', label: 'High-Gain Antenna (HGA)', position: [13.48, -8.51, 2.45], offset: { x: 85, y: -45 } },
+      { id: 'lro-cam', label: 'LROC Narrow Angle Camera', position: [12.48, -9.11, 2.0], offset: { x: -85, y: -35 } },
+      { id: 'lro-solar', label: 'Solar Array Wing', position: [11.98, -8.91, 2.65], offset: { x: 85, y: 35 } }
     ],
-    vistaAnchor: [0, 6.0, 0]
+    vistaAnchor: [12.93, -9.06, 2.2]
   },
   {
     id: 'ladee-orbiter',
@@ -188,11 +188,11 @@ export const VEHICLES_DATA = [
     sector: 'LUNAR EQUATORIAL ORBIT // RETIRED',
     modelSrc: '/models/ladee-opt.glb',
     alt: '3D model of LADEE lunar atmosphere probe',
-    scale: 0.85,
-    position: [0, 5.0, 0],
+    scale: 0.055,
+    position: [-12.21, -8.24, 12.37],
     rotation: [0.15, 0.5, 0],
-    focusCamPos: [2.5, 5.6, 3.0],
-    focusLookAt: [0, 5.0, 0],
+    focusCamPos: [-16.82, -8.7, 13.91],
+    focusLookAt: [-12.21, -8.24, 12.37],
     contactShadowRadius: 0,
     agency: 'NASA / Ames',
     launchDate: 'September 7, 2013',
@@ -212,11 +212,11 @@ export const VEHICLES_DATA = [
       { label: 'STATUS', value: 'Decommissioned' }
     ],
     hotspots: [
-      { id: 'ladee-laser', label: 'LLCD Optical Laser Terminal', position: [0.40, 5.40, 0.20], offset: { x: 85, y: -40 } },
-      { id: 'ladee-dust', label: 'Lunar Dust Experiment (LDEX)', position: [-0.35, 4.80, -0.30], offset: { x: -85, y: 35 } },
-      { id: 'ladee-cells', label: 'Body Solar Array Panels', position: [-0.45, 5.25, 0.35], offset: { x: -85, y: -30 } }
+      { id: 'ladee-laser', label: 'LLCD Optical Laser Terminal', position: [-11.81, -7.84, 12.57], offset: { x: 85, y: -40 } },
+      { id: 'ladee-dust', label: 'Lunar Dust Experiment (LDEX)', position: [-12.56, -8.44, 12.07], offset: { x: -85, y: 35 } },
+      { id: 'ladee-cells', label: 'Body Solar Array Panels', position: [-12.66, -7.99, 12.72], offset: { x: -85, y: -30 } }
     ],
-    vistaAnchor: [0, 6.0, 0]
+    vistaAnchor: [-12.21, -8.24, 12.37]
   },
   {
     id: 'mer-opportunity',
@@ -393,11 +393,11 @@ export const VEHICLES_DATA = [
     sector: 'AEROBRAKING ORBIT // ARCHIVE',
     modelSrc: '/models/mgs-opt.glb',
     alt: '3D model of Mars Global Surveyor orbiter',
-    scale: 0.75,
-    position: [0, 5.5, -4.0],
+    scale: 0.024,
+    position: [17.13, 0.19, 2.77],
     rotation: [0.1, 0.35, 0],
-    focusCamPos: [2.8, 6.2, -1.2],
-    focusLookAt: [0, 5.5, -4.0],
+    focusCamPos: [21.52, 1.84, 5.7],
+    focusLookAt: [17.13, 0.19, 2.77],
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
     launchDate: 'November 7, 1996',
@@ -417,11 +417,11 @@ export const VEHICLES_DATA = [
       { label: 'STATUS', value: 'Silent Orbit' }
     ],
     hotspots: [
-      { id: 'mgs-dish', label: '1.5m High-Gain Antenna', position: [0.65, 5.95, -3.80], offset: { x: 85, y: -45 } },
-      { id: 'mgs-camera', label: 'Mars Orbiter Camera (MOC)', position: [-0.40, 5.25, -4.25], offset: { x: -85, y: -35 } },
-      { id: 'mgs-solar', label: 'Solar Array & Drag Flaps', position: [-1.25, 5.55, -3.90], offset: { x: -85, y: 40 } }
+      { id: 'mgs-dish', label: '1.5m High-Gain Antenna', position: [17.78, 0.64, 2.97], offset: { x: 85, y: -45 } },
+      { id: 'mgs-camera', label: 'Mars Orbiter Camera (MOC)', position: [16.73, -0.06, 2.52], offset: { x: -85, y: -35 } },
+      { id: 'mgs-solar', label: 'Solar Array & Drag Flaps', position: [15.88, 0.24, 2.87], offset: { x: -85, y: 40 } }
     ],
-    vistaAnchor: [0, 6.5, -4.0]
+    vistaAnchor: [17.13, 0.19, 2.77]
   },
   {
     id: 'odyssey-orbiter',
@@ -434,11 +434,11 @@ export const VEHICLES_DATA = [
     sector: 'CIRCULAR POLAR ORBIT // ACTIVE',
     modelSrc: '/models/odyssey-opt.glb',
     alt: '3D model of Mars Odyssey 2001 spacecraft',
-    scale: 0.7,
-    position: [0, 5.5, -4.0],
+    scale: 0.065,
+    position: [0.15, 6.53, 17.77],
     rotation: [0.2, 0.4, 0],
-    focusCamPos: [2.6, 6.2, -1.4],
-    focusLookAt: [0, 5.5, -4.0],
+    focusCamPos: [-2.01, 9.78, 22.29],
+    focusLookAt: [0.15, 6.53, 17.77],
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
     launchDate: 'April 7, 2001',
@@ -458,11 +458,11 @@ export const VEHICLES_DATA = [
       { label: 'STATUS', value: 'Operational' }
     ],
     hotspots: [
-      { id: 'ody-boom', label: 'GRS Instrument Boom', position: [0.75, 5.85, -3.75], offset: { x: 85, y: -45 } },
-      { id: 'ody-themis', label: 'THEMIS Thermal Imager', position: [-0.45, 5.30, -4.20], offset: { x: -85, y: -35 } },
-      { id: 'ody-antenna', label: 'High-Gain Parabolic Dish', position: [0.20, 6.10, -4.10], offset: { x: 85, y: 35 } }
+      { id: 'ody-boom', label: 'GRS Instrument Boom', position: [0.9, 6.88, 18.02], offset: { x: 85, y: -45 } },
+      { id: 'ody-themis', label: 'THEMIS Thermal Imager', position: [-0.3, 6.33, 17.57], offset: { x: -85, y: -35 } },
+      { id: 'ody-antenna', label: 'High-Gain Parabolic Dish', position: [0.35, 7.13, 17.67], offset: { x: 85, y: 35 } }
     ],
-    vistaAnchor: [0, 6.5, -4.0]
+    vistaAnchor: [0.15, 6.53, 17.77]
   },
   {
     id: 'mro-orbiter',
@@ -475,11 +475,11 @@ export const VEHICLES_DATA = [
     sector: 'LOW MARTIAN ORBIT // HI-RES',
     modelSrc: '/models/mro-opt.glb',
     alt: '3D model of Mars Reconnaissance Orbiter with large dish',
-    scale: 0.65,
-    position: [0, 5.5, -4.0],
+    scale: 0.26,
+    position: [-17.41, 14.01, -4.08],
     rotation: [0.1, 0.5, 0],
-    focusCamPos: [2.7, 6.3, -1.3],
-    focusLookAt: [0, 5.5, -4.0],
+    focusCamPos: [-20.58, 18.57, -7.09],
+    focusLookAt: [-17.41, 14.01, -4.08],
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
     launchDate: 'August 12, 2005',
@@ -499,11 +499,11 @@ export const VEHICLES_DATA = [
       { label: 'STATUS', value: 'Operational' }
     ],
     hotspots: [
-      { id: 'mro-dish', label: '3.0m High-Gain Antenna Dish', position: [0.85, 6.20, -3.70], offset: { x: 85, y: -50 } },
-      { id: 'mro-hirise', label: 'HiRISE High-Resolution Camera', position: [-0.55, 5.15, -4.30], offset: { x: -85, y: -35 } },
-      { id: 'mro-solar', label: 'UltraFlex Solar Wings', position: [-1.45, 5.60, -3.85], offset: { x: -85, y: 40 } }
+      { id: 'mro-dish', label: '3.0m High-Gain Antenna Dish', position: [-16.56, 14.71, -3.78], offset: { x: 85, y: -50 } },
+      { id: 'mro-hirise', label: 'HiRISE High-Resolution Camera', position: [-17.96, 13.66, -4.38], offset: { x: -85, y: -35 } },
+      { id: 'mro-solar', label: 'UltraFlex Solar Wings', position: [-18.86, 14.11, -3.93], offset: { x: -85, y: 40 } }
     ],
-    vistaAnchor: [0, 6.5, -4.0]
+    vistaAnchor: [-17.41, 14.01, -4.08]
   },
   {
     id: 'maven-orbiter',
@@ -516,11 +516,11 @@ export const VEHICLES_DATA = [
     sector: 'ELLIPTICAL SCIENCE ORBIT',
     modelSrc: '/models/maven-opt.glb',
     alt: '3D model of MAVEN Mars orbiter',
-    scale: 0.7,
-    position: [0, 5.5, -4.0],
+    scale: 0.18,
+    position: [3.6, -9.57, -21.08],
     rotation: [0.15, 0.45, 0],
-    focusCamPos: [2.6, 6.2, -1.4],
-    focusLookAt: [0, 5.5, -4.0],
+    focusCamPos: [6.51, -9.93, -25.03],
+    focusLookAt: [3.6, -9.57, -21.08],
     contactShadowRadius: 0,
     agency: 'NASA / Goddard / Lockheed Martin',
     launchDate: 'November 18, 2013',
@@ -540,11 +540,11 @@ export const VEHICLES_DATA = [
       { label: 'STATUS', value: 'Operational' }
     ],
     hotspots: [
-      { id: 'maven-boom', label: 'Articulated Payload Boom', position: [0.70, 5.90, -3.80], offset: { x: 85, y: -45 } },
-      { id: 'maven-spectrometer', label: 'IUVS Ultraviolet Spectrograph', position: [-0.50, 5.30, -4.25], offset: { x: -85, y: -35 } },
-      { id: 'maven-solar', label: 'Gull-Wing Solar Arrays', position: [-1.35, 5.65, -3.90], offset: { x: -85, y: 40 } }
+      { id: 'maven-boom', label: 'Articulated Payload Boom', position: [4.3, -9.17, -20.88], offset: { x: 85, y: -45 } },
+      { id: 'maven-spectrometer', label: 'IUVS Ultraviolet Spectrograph', position: [3.1, -9.77, -21.33], offset: { x: -85, y: -35 } },
+      { id: 'maven-solar', label: 'Gull-Wing Solar Arrays', position: [2.25, -9.42, -20.98], offset: { x: -85, y: 40 } }
     ],
-    vistaAnchor: [0, 6.5, -4.0]
+    vistaAnchor: [3.6, -9.57, -21.08]
   }
 ];
 
@@ -758,13 +758,20 @@ export default function PlanetaryShowroom({
           if (vehicle.isOrbiter) {
             if (s.terrainGroup) s.terrainGroup.visible = false;
             if (s.vehiclesGroup) s.vehiclesGroup.visible = false;
+            s.orbitLayer?.setOrbitalMode(true);
             s.orbitLayer?.select(vehicle.id);
             if (s.scene) {
               s.scene.fog = null;
             }
+            if (s.controls) {
+              s.controls.maxPolarAngle = Math.PI;
+              s.controls.maxDistance = 140.0;
+              s.controls.minDistance = 1.0;
+            }
           } else {
             if (s.terrainGroup) s.terrainGroup.visible = true;
             if (s.vehiclesGroup) s.vehiclesGroup.visible = true;
+            s.orbitLayer?.setOrbitalMode(false);
             s.orbitLayer?.release();
             if (s.scene) {
               if (vehicle.destination === 'mars') {
@@ -772,6 +779,11 @@ export default function PlanetaryShowroom({
               } else {
                 s.scene.fog = new THREE.Fog(0x020409, 3500, 7500);
               }
+            }
+            if (s.controls) {
+              s.controls.maxPolarAngle = Math.PI / 2 - 0.02;
+              s.controls.maxDistance = 45.0;
+              s.controls.minDistance = 1.5;
             }
           }
 
@@ -795,9 +807,35 @@ export default function PlanetaryShowroom({
 
       const s = threeRef.current;
       if (vehicle.isOrbiter) {
+        if (s.terrainGroup) s.terrainGroup.visible = false;
+        if (s.vehiclesGroup) s.vehiclesGroup.visible = false;
+        s.orbitLayer?.setOrbitalMode(true);
         s.orbitLayer?.select(vehicle.id);
+        if (s.scene) {
+          s.scene.fog = null;
+        }
+        if (s.controls) {
+          s.controls.maxPolarAngle = Math.PI;
+          s.controls.maxDistance = 140.0;
+          s.controls.minDistance = 1.0;
+        }
       } else {
+        if (s.terrainGroup) s.terrainGroup.visible = true;
+        if (s.vehiclesGroup) s.vehiclesGroup.visible = true;
+        s.orbitLayer?.setOrbitalMode(false);
         s.orbitLayer?.release();
+        if (s.scene) {
+          if (vehicle.destination === 'mars') {
+            s.scene.fog = new THREE.FogExp2(0x1e0b07, 0.014);
+          } else {
+            s.scene.fog = new THREE.Fog(0x020409, 3500, 7500);
+          }
+        }
+        if (s.controls) {
+          s.controls.maxPolarAngle = Math.PI / 2 - 0.02;
+          s.controls.maxDistance = 45.0;
+          s.controls.minDistance = 1.5;
+        }
       }
 
       if (s.currentPlanet !== vehicle.destination && s.loadPlanetScene) {
