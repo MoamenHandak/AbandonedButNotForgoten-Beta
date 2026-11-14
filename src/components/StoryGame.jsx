@@ -11,7 +11,7 @@ import {
   Rocket
 } from 'lucide-react';
 import ModelPreviewCanvas from './ModelPreviewCanvas';
-import { prefetchGLB, preloadImage } from '../utils/modelCache';
+import { prefetchGLB, preloadImage, resolveAssetUrl } from '../utils/modelCache';
 import { getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
 import { getTranslations } from '../constants/translations';
 import '../styles/story.css';
@@ -106,7 +106,7 @@ function StoryDialogueBox({
 
   return (
     <section className="story-cinematic-stage" aria-label={`Story Scene: ${chapter}`}>
-      <img src={bgImage} alt={bgAlt} className="story-cinematic-bg" />
+      <img src={resolveAssetUrl(bgImage)} alt={bgAlt} className="story-cinematic-bg" />
       <div className="story-cinematic-vignette" />
 
       <div className="story-chapter-chip">
@@ -118,7 +118,7 @@ function StoryDialogueBox({
         <div className="dialogue-portrait-col">
           <div className="dialogue-portrait-frame">
             <img
-              src="/assets/story/girl_thinking.png"
+              src={resolveAssetUrl('/assets/story/girl_thinking.png')}
               alt="Young girl explorer speaking"
               className="dialogue-character-img"
             />
@@ -406,7 +406,7 @@ export default function StoryGame({ onBackToMenu }) {
             {/* Character below the grid */}
             <div className="choice-character-row">
               <img
-                src="/assets/story/girl_thinking.png"
+                src={resolveAssetUrl('/assets/story/girl_thinking.png')}
                 alt="Young explorer pondering destination choice"
                 className="character-thinking-img"
               />

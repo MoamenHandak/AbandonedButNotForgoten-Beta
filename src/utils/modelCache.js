@@ -13,10 +13,22 @@ const inFlightFetches = new Map(); // url -> { promise, subscribers: Set<(ratio)
 let sharedDracoLoader = null;
 let sharedGltfLoader = null;
 
+const BASE = (import.meta.env?.BASE_URL || '/').replace(/\/+$/, '') + '/';
+
+export function resolveAssetUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (/^(?:[a-z]+:)?\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  if (url.startsWith(BASE)) return url;
+  const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
+  return `${BASE}${cleanUrl}`;
+}
+
 function getGLTFLoader() {
   if (!sharedGltfLoader) {
     sharedDracoLoader = new DRACOLoader();
-    sharedDracoLoader.setDecoderPath('/draco/');
+    sharedDracoLoader.setDecoderPath(resolveAssetUrl('/draco/'));
     sharedDracoLoader.setWorkerLimit(Math.min(2, navigator.hardwareConcurrency || 2));
 
     sharedGltfLoader = new GLTFLoader();
@@ -45,6 +57,7 @@ function storeCachedBuffer(url, bytes) {
 }
 
 function fetchBytesDeduplicated(url, { onProgress, cacheBuffer = true } = {}) {
+  url = resolveAssetUrl(url);
   const cached = bufferCache.get(url);
   if (cached) {
     // Refresh LRU order
@@ -175,7 +188,7 @@ export function preloadImage(url) {
     const img = new Image();
     img.onload = () => resolve(true);
     img.onerror = () => resolve(false);
-    img.src = url;
+    img.src = resolveAssetUrl(url);
   });
 }
 

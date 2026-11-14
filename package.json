@@ -1,4 +1,5 @@
 {
+  "homepage": "https://moamenhandak.github.io/AbandonedButNotForgoten-Beta/",
   "name": "abandoned-but-not-forgotten",
   "private": true,
   "version": "1.0.0",
@@ -7,7 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "optimize:models": "node scripts/optimize-models.mjs"
+    "optimize:models": "node scripts/optimize-models.mjs",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "lucide-react": "^0.475.0",
