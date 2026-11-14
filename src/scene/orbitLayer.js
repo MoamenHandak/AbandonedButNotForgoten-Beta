@@ -40,28 +40,28 @@ const ORBIT_CONFIGS = {
       id: 'lro-orbiter',
       name: 'LRO',
       modelSrc: '/models/lro-opt.glb',
-      orbitRadiusA: 16.5,
-      orbitRadiusB: 15.5,
+      orbitRadiusA: 20.5,
+      orbitRadiusB: 19.0,
       center: [0, 0, 0],
       inclination: [1.45, 0.2, 0.1], // Near-polar mapping orbit ~85 deg
       speed: 0.18, // rad/s
       initialAngle: 0.85,
-      craftScale: 0.15, // Native span 16.27m -> scaled to ~2.44 units
-      stationedPos: [12.93, -9.06, 2.2],
+      craftScale: 0.075, // Scaled down for balanced Moon orbit
+      stationedPos: [16.03, -11.07, 2.7],
       color: 0x00e5ff,
     },
     {
       id: 'ladee-orbiter',
       name: 'LADEE',
       modelSrc: '/models/ladee-opt.glb',
-      orbitRadiusA: 19.5,
-      orbitRadiusB: 18.0,
+      orbitRadiusA: 25.0,
+      orbitRadiusB: 23.0,
       center: [0, 0, 0],
       inclination: [0.35, 0.45, 0.2],
       speed: 0.14,
       initialAngle: 2.7,
-      craftScale: 0.055, // Native span 44.57m -> scaled to ~2.45 units
-      stationedPos: [-12.21, -8.24, 12.37],
+      craftScale: 0.0275, // Scaled down for balanced Moon orbit
+      stationedPos: [-15.67, -10.56, 15.83],
       color: 0x8de1ff,
     },
   ],
@@ -160,7 +160,7 @@ function createMartianMoonMesh(radius, seed) {
 }
 
 /**
- * Builds a HUD ellipse track and tick marks encircling the planet globe.
+ * Builds a HUD ellipse track encircling the planet globe.
  */
 function createOrbitTrackGroup(cfg) {
   const trackGroup = new THREE.Group();
@@ -180,7 +180,7 @@ function createOrbitTrackGroup(cfg) {
   const trackMat = new THREE.LineBasicMaterial({
     color: cfg.color || 0x00e5ff,
     transparent: true,
-    opacity: 0.42,
+    opacity: 0.20,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
     fog: false,
@@ -189,39 +189,6 @@ function createOrbitTrackGroup(cfg) {
   const lineLoop = new THREE.Line(trackGeo, trackMat);
   trackGroup.add(lineLoop);
 
-  // Amber tick marks every 30 degrees (12 ticks along the orbit loop)
-  const tickCount = 12;
-  const tickPositions = new Float32Array(tickCount * 2 * 3);
-  for (let i = 0; i < tickCount; i++) {
-    const theta = (i / tickCount) * Math.PI * 2;
-    const x0 = cfg.orbitRadiusA * Math.cos(theta);
-    const z0 = cfg.orbitRadiusB * Math.sin(theta);
-    const x1 = (cfg.orbitRadiusA + 0.65) * Math.cos(theta);
-    const z1 = (cfg.orbitRadiusB + 0.65) * Math.sin(theta);
-
-    const idx = i * 6;
-    tickPositions[idx] = x0;
-    tickPositions[idx + 1] = 0;
-    tickPositions[idx + 2] = z0;
-    tickPositions[idx + 3] = x1;
-    tickPositions[idx + 4] = 0;
-    tickPositions[idx + 5] = z1;
-  }
-
-  const tickGeo = new THREE.BufferGeometry();
-  tickGeo.setAttribute('position', new THREE.BufferAttribute(tickPositions, 3));
-  const tickMat = new THREE.LineBasicMaterial({
-    color: 0xffcc73,
-    transparent: true,
-    opacity: 0.55,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    fog: false,
-  });
-
-  const tickLines = new THREE.LineSegments(tickGeo, tickMat);
-  trackGroup.add(tickLines);
-
   // Apply inclination and orbital center
   trackGroup.rotation.set(...cfg.inclination);
   const cx = cfg.center ? cfg.center[0] : 0;
@@ -229,85 +196,7 @@ function createOrbitTrackGroup(cfg) {
   const cz = cfg.center ? cfg.center[2] : 0;
   trackGroup.position.set(cx, cy, cz);
 
-  return { trackGroup, lineLoop, trackGeo, trackMat, tickLines, tickGeo, tickMat };
-}
-
-/**
- * 3D HUD Hotspot Badge & Leader Line for orbiters.
- * Reuses existing visual tokens: glowing anchor dot, elbow leader line,
- * and Orbitron technical badge.
- */
-function createOrbiterHudBadge(name) {
-  const badgeGroup = new THREE.Group();
-
-  // 1. Glowing anchor dot at center
-  const dotGeo = new THREE.BufferGeometry();
-  dotGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3));
-  const dotMat = new THREE.PointsMaterial({
-    color: 0x00e5ff,
-    size: 4,
-    transparent: true,
-    opacity: 0.9,
-    depthTest: false,
-    fog: false,
-  });
-  const dot = new THREE.Points(dotGeo, dotMat);
-  badgeGroup.add(dot);
-
-  // 2. Elbow leader line
-  const lineGeo = new THREE.BufferGeometry();
-  const linePos = new Float32Array([
-    0, 0, 0,
-    0.6, 0.4, 0,
-    0.6, 0.4, 0,
-    1.2, 0.4, 0,
-  ]);
-  lineGeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
-  const lineMat = new THREE.LineBasicMaterial({
-    color: 0x00e5ff,
-    transparent: true,
-    opacity: 0.75,
-    depthTest: false,
-    fog: false,
-  });
-  const elbow = new THREE.LineSegments(lineGeo, lineMat);
-  badgeGroup.add(elbow);
-
-  // 3. Telemetry badge billboard sprite
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 64;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#030614';
-  ctx.fillRect(0, 0, 256, 64);
-  ctx.strokeStyle = '#00e5ff';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(2, 2, 252, 60);
-
-  // Amber radar pip
-  ctx.fillStyle = '#ffcc73';
-  ctx.beginPath();
-  ctx.arc(22, 32, 6, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Technical Orbitron label
-  ctx.font = 'bold 22px "Orbitron", sans-serif';
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(name.toUpperCase(), 38, 40);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  const spriteMat = new THREE.SpriteMaterial({
-    map: tex,
-    transparent: true,
-    depthTest: false,
-    fog: false,
-  });
-  const sprite = new THREE.Sprite(spriteMat);
-  sprite.position.set(2.0, 0.4, 0);
-  sprite.scale.set(2.2, 0.55, 1.0);
-  badgeGroup.add(sprite);
-
-  return { badgeGroup, dotGeo, dotMat, lineGeo, lineMat, sprite, spriteMat, tex };
+  return { trackGroup, lineLoop, trackGeo, trackMat };
 }
 
 /**
@@ -430,11 +319,6 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
     orbiterState.modelGroup.scale.setScalar(cfg.craftScale);
     layerGroup.add(orbiterState.modelGroup);
 
-    // 3D HUD telemetry badge
-    const hudBadge = createOrbiterHudBadge(cfg.name);
-    orbiterState.hudBadge = hudBadge;
-    orbiterState.modelGroup.add(hudBadge.badgeGroup);
-
     // Pre-allocated trail buffer (Quality preset)
     if (trailsEnabled && !isReducedMotion) {
       const trailPositions = new Float32Array(orbiterState.trailCount * 3);
@@ -446,7 +330,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       const trailMat = new THREE.LineBasicMaterial({
         color: cfg.color || 0x00e5ff,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.18,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         fog: false,
@@ -654,14 +538,8 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
           // Face forward along orbital tangent flight path
           calculateOrbitPosition(o.cfg, (o.cfg.initialAngle || 0) + 0.05, _tmpTangentPos);
           o.modelGroup.lookAt(_tmpTangentPos);
-          if (o.hudBadge) {
-            o.hudBadge.badgeGroup.visible = false;
-          }
         } else {
           o.isSelected = false;
-          if (o.hudBadge) {
-            o.hudBadge.badgeGroup.visible = true;
-          }
         }
       }
     },
@@ -670,9 +548,6 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       selectedOrbiterId = null;
       for (let i = 0; i < orbiters.length; i++) {
         orbiters[i].isSelected = false;
-        if (orbiters[i].hudBadge) {
-          orbiters[i].hudBadge.badgeGroup.visible = true;
-        }
       }
     },
 
@@ -686,22 +561,13 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       tracks.forEach((t) => {
         t.trackGeo.dispose();
         t.trackMat.dispose();
-        t.tickGeo.dispose();
-        t.tickMat.dispose();
+        if (t.tickGeo) t.tickGeo.dispose();
+        if (t.tickMat) t.tickMat.dispose();
         disposeObject3D(t.trackGroup);
       });
       orbiters.forEach((o) => {
         if (o.trailGeo) o.trailGeo.dispose();
         if (o.trailLine && o.trailLine.material) o.trailLine.material.dispose();
-        if (o.hudBadge) {
-          o.hudBadge.tex.dispose();
-          o.hudBadge.spriteMat.dispose();
-          o.hudBadge.lineGeo.dispose();
-          o.hudBadge.lineMat.dispose();
-          o.hudBadge.dotGeo.dispose();
-          o.hudBadge.dotMat.dispose();
-          disposeObject3D(o.hudBadge.badgeGroup);
-        }
         if (o.loadedModel) disposeObject3D(o.loadedModel);
         disposeObject3D(o.modelGroup);
       });

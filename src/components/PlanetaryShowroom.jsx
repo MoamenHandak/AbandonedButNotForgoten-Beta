@@ -148,11 +148,11 @@ export const VEHICLES_DATA = [
     sector: 'LUNAR POLAR ORBIT // MAPPING',
     modelSrc: '/models/lro-opt.glb',
     alt: '3D model of Lunar Reconnaissance Orbiter circling the Moon',
-    scale: 0.15,
-    position: [12.93, -9.06, 2.2],
+    scale: 0.075,
+    position: [16.03, -11.07, 2.7],
     rotation: [0.1, 0.4, 0],
-    focusCamPos: [16.46, -10.19, 5.02],
-    focusLookAt: [12.93, -9.06, 2.2],
+    focusCamPos: [19.56, -12.2, 5.52],
+    focusLookAt: [16.03, -11.07, 2.7],
     contactShadowRadius: 0,
     agency: 'NASA / Goddard',
     launchDate: 'June 18, 2009',
@@ -172,11 +172,11 @@ export const VEHICLES_DATA = [
       { label: 'STATUS', value: 'Operational' }
     ],
     hotspots: [
-      { id: 'lro-hga', label: 'High-Gain Antenna (HGA)', position: [13.48, -8.51, 2.45], offset: { x: 85, y: -45 } },
-      { id: 'lro-cam', label: 'LROC Narrow Angle Camera', position: [12.48, -9.11, 2.0], offset: { x: -85, y: -35 } },
-      { id: 'lro-solar', label: 'Solar Array Wing', position: [11.98, -8.91, 2.65], offset: { x: 85, y: 35 } }
+      { id: 'lro-hga', label: 'High-Gain Antenna (HGA)', position: [16.58, -10.52, 2.95], offset: { x: 85, y: -45 } },
+      { id: 'lro-cam', label: 'LROC Narrow Angle Camera', position: [15.58, -11.12, 2.5], offset: { x: -85, y: -35 } },
+      { id: 'lro-solar', label: 'Solar Array Wing', position: [15.08, -10.92, 3.15], offset: { x: 85, y: 35 } }
     ],
-    vistaAnchor: [12.93, -9.06, 2.2]
+    vistaAnchor: [16.03, -11.07, 2.7]
   },
   {
     id: 'ladee-orbiter',
@@ -189,11 +189,11 @@ export const VEHICLES_DATA = [
     sector: 'LUNAR EQUATORIAL ORBIT // RETIRED',
     modelSrc: '/models/ladee-opt.glb',
     alt: '3D model of LADEE lunar atmosphere probe',
-    scale: 0.055,
-    position: [-12.21, -8.24, 12.37],
+    scale: 0.0275,
+    position: [-15.67, -10.56, 15.83],
     rotation: [0.15, 0.5, 0],
-    focusCamPos: [-16.82, -8.7, 13.91],
-    focusLookAt: [-12.21, -8.24, 12.37],
+    focusCamPos: [-20.28, -11.02, 17.37],
+    focusLookAt: [-15.67, -10.56, 15.83],
     contactShadowRadius: 0,
     agency: 'NASA / Ames',
     launchDate: 'September 7, 2013',
@@ -213,11 +213,11 @@ export const VEHICLES_DATA = [
       { label: 'STATUS', value: 'Decommissioned' }
     ],
     hotspots: [
-      { id: 'ladee-laser', label: 'LLCD Optical Laser Terminal', position: [-11.81, -7.84, 12.57], offset: { x: 85, y: -40 } },
-      { id: 'ladee-dust', label: 'Lunar Dust Experiment (LDEX)', position: [-12.56, -8.44, 12.07], offset: { x: -85, y: 35 } },
-      { id: 'ladee-cells', label: 'Body Solar Array Panels', position: [-12.66, -7.99, 12.72], offset: { x: -85, y: -30 } }
+      { id: 'ladee-laser', label: 'LLCD Optical Laser Terminal', position: [-15.27, -10.16, 16.03], offset: { x: 85, y: -40 } },
+      { id: 'ladee-dust', label: 'Lunar Dust Experiment (LDEX)', position: [-16.02, -10.76, 15.53], offset: { x: -85, y: 35 } },
+      { id: 'ladee-cells', label: 'Body Solar Array Panels', position: [-16.12, -10.31, 16.18], offset: { x: -85, y: -30 } }
     ],
-    vistaAnchor: [-12.21, -8.24, 12.37]
+    vistaAnchor: [-15.67, -10.56, 15.83]
   },
   {
     id: 'mer-opportunity',
@@ -1087,8 +1087,8 @@ export default function PlanetaryShowroom({
     scene.add(vehiclesGroup);
     threeRef.current.vehiclesGroup = vehiclesGroup;
 
-    // Starfield Background (Deep Space)
-    const MAX_STAR_COUNT = 3000;
+    // Starfield Background (Deep Space — Full 360° Celestial Sphere)
+    const MAX_STAR_COUNT = 6000;
     const starGeometry = new THREE.BufferGeometry();
     const starPositions = new Float32Array(MAX_STAR_COUNT * 3);
     for (let i = 0; i < MAX_STAR_COUNT * 3; i += 3) {
@@ -1096,9 +1096,9 @@ export default function PlanetaryShowroom({
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
       const phi = Math.acos(2.0 * v - 1.0);
-      const r = 250 + Math.random() * 50;
+      const r = 260 + Math.random() * 60;
       starPositions[i] = r * Math.sin(phi) * Math.cos(theta);
-      starPositions[i + 1] = Math.abs(r * Math.cos(phi)) + 5;
+      starPositions[i + 1] = r * Math.cos(phi);
       starPositions[i + 2] = r * Math.sin(phi) * Math.sin(theta);
     }
     starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
