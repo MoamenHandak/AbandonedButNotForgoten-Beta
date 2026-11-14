@@ -148,7 +148,7 @@ export const VEHICLES_DATA = [
     sector: 'LUNAR POLAR ORBIT // MAPPING',
     modelSrc: '/models/lro-opt.glb',
     alt: '3D model of Lunar Reconnaissance Orbiter circling the Moon',
-    scale: 0.075,
+    scale: 0.038,
     position: [16.03, -11.07, 2.7],
     rotation: [0.1, 0.4, 0],
     focusCamPos: [19.56, -12.2, 5.52],
@@ -189,7 +189,7 @@ export const VEHICLES_DATA = [
     sector: 'LUNAR EQUATORIAL ORBIT // RETIRED',
     modelSrc: '/models/ladee-opt.glb',
     alt: '3D model of LADEE lunar atmosphere probe',
-    scale: 0.0275,
+    scale: 0.014,
     position: [-15.67, -10.56, 15.83],
     rotation: [0.15, 0.5, 0],
     focusCamPos: [-20.28, -11.02, 17.37],
@@ -767,8 +767,8 @@ export default function PlanetaryShowroom({
             }
             if (s.controls) {
               s.controls.maxPolarAngle = Math.PI;
-              s.controls.maxDistance = 140.0;
-              s.controls.minDistance = 1.0;
+              s.controls.maxDistance = 350.0;
+              s.controls.minDistance = 0.5;
             }
           } else {
             if (s.terrainGroup) s.terrainGroup.visible = true;
@@ -789,9 +789,21 @@ export default function PlanetaryShowroom({
             }
           }
 
+          let targetCam = vehicle.focusCamPos;
+          let targetLook = vehicle.focusLookAt;
+          if (vehicle.isOrbiter && s.orbitLayer) {
+            const curPos = s.orbitLayer.getOrbiterPosition(vehicle.id);
+            if (curPos) {
+              targetLook = [curPos.x, curPos.y, curPos.z];
+              const norm = curPos.clone().normalize();
+              const camVec = curPos.clone().add(norm.clone().multiplyScalar(4.0)).add(new THREE.Vector3(0, 1.5, 0));
+              targetCam = [camVec.x, camVec.y, camVec.z];
+            }
+          }
+
           if (s.camera && s.controls) {
-            s.camera.position.set(...vehicle.focusCamPos);
-            s.controls.target.set(...vehicle.focusLookAt);
+            s.camera.position.set(...targetCam);
+            s.controls.target.set(...targetLook);
             s.controls.update();
             s.renderOnce?.();
           }
@@ -818,8 +830,8 @@ export default function PlanetaryShowroom({
         }
         if (s.controls) {
           s.controls.maxPolarAngle = Math.PI;
-          s.controls.maxDistance = 140.0;
-          s.controls.minDistance = 1.0;
+          s.controls.maxDistance = 350.0;
+          s.controls.minDistance = 0.5;
         }
       } else {
         if (s.terrainGroup) s.terrainGroup.visible = true;
@@ -840,14 +852,26 @@ export default function PlanetaryShowroom({
         }
       }
 
+      let targetFlyCam = vehicle.focusCamPos;
+      let targetFlyLook = vehicle.focusLookAt;
+      if (vehicle.isOrbiter && s.orbitLayer) {
+        const curPos = s.orbitLayer.getOrbiterPosition(vehicle.id);
+        if (curPos) {
+          targetFlyLook = [curPos.x, curPos.y, curPos.z];
+          const norm = curPos.clone().normalize();
+          const camVec = curPos.clone().add(norm.clone().multiplyScalar(4.0)).add(new THREE.Vector3(0, 1.5, 0));
+          targetFlyCam = [camVec.x, camVec.y, camVec.z];
+        }
+      }
+
       if (s.currentPlanet !== vehicle.destination && s.loadPlanetScene) {
         s.loadPlanetScene(vehicle.destination, () => {
           if (autoFly) {
-            triggerCameraFly(vehicle.focusCamPos, vehicle.focusLookAt, 1600, cue);
+            triggerCameraFly(targetFlyCam, targetFlyLook, 1600, cue);
           }
         });
       } else if (autoFly) {
-        triggerCameraFly(vehicle.focusCamPos, vehicle.focusLookAt, 1600, cue);
+        triggerCameraFly(targetFlyCam, targetFlyLook, 1600, cue);
       }
     },
     [filteredVehicles, currentIndex, triggerCameraFly]
@@ -1096,7 +1120,7 @@ export default function PlanetaryShowroom({
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
       const phi = Math.acos(2.0 * v - 1.0);
-      const r = 260 + Math.random() * 60;
+      const r = 550 + Math.random() * 120;
       starPositions[i] = r * Math.sin(phi) * Math.cos(theta);
       starPositions[i + 1] = r * Math.cos(phi);
       starPositions[i + 2] = r * Math.sin(phi) * Math.sin(theta);
@@ -1164,7 +1188,10 @@ export default function PlanetaryShowroom({
       const s = threeRef.current;
 
       if (s.orbitLayer) {
-        s.orbitLayer.update(dt);
+        s.orbitLayer.update(dt, s.camera, s.controls, s.animating, {
+          targetCamPos: s.targetCamPos,
+          targetLookAt: s.targetLookAt,
+        });
       }
 
       if (s.earthMesh && !prefersReducedMotion()) {

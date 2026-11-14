@@ -18,7 +18,7 @@ import { loadGLTFModel, disposeObject3D, prefersReducedMotion } from '../utils/m
 // Planetary configurations for orbital scenes
 const PLANET_CONFIGS = {
   moon: {
-    radius: 12.0,
+    radius: 18.0,
     modelSrc: '/models/moon-opt.glb',
     spinSpeed: 0.012,
     fallbackColor: 0x989da3,
@@ -40,28 +40,26 @@ const ORBIT_CONFIGS = {
       id: 'lro-orbiter',
       name: 'LRO',
       modelSrc: '/models/lro-opt.glb',
-      orbitRadiusA: 20.5,
-      orbitRadiusB: 19.0,
+      orbitRadiusA: 41.0,
+      orbitRadiusB: 38.0,
       center: [0, 0, 0],
       inclination: [1.45, 0.2, 0.1], // Near-polar mapping orbit ~85 deg
       speed: 0.18, // rad/s
       initialAngle: 0.85,
-      craftScale: 0.075, // Scaled down for balanced Moon orbit
-      stationedPos: [16.03, -11.07, 2.7],
+      craftScale: 0.038, // Scaled down for balanced Moon orbit
       color: 0x00e5ff,
     },
     {
       id: 'ladee-orbiter',
       name: 'LADEE',
       modelSrc: '/models/ladee-opt.glb',
-      orbitRadiusA: 25.0,
-      orbitRadiusB: 23.0,
+      orbitRadiusA: 50.0,
+      orbitRadiusB: 46.0,
       center: [0, 0, 0],
       inclination: [0.35, 0.45, 0.2],
       speed: 0.14,
       initialAngle: 2.7,
-      craftScale: 0.0275, // Scaled down for balanced Moon orbit
-      stationedPos: [-15.67, -10.56, 15.83],
+      craftScale: 0.014, // Scaled down for balanced Moon orbit
       color: 0x8de1ff,
     },
   ],
@@ -293,6 +291,28 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
   const orbitAmbient = new THREE.AmbientLight(0xffffff, 0.35);
   layerGroup.add(orbitAmbient);
 
+  // Pre-allocated temporary vectors
+  const _tmpPos = new THREE.Vector3();
+  const _tmpTangentPos = new THREE.Vector3();
+  const _tmpRot = new THREE.Euler();
+  const _tmpMat = new THREE.Matrix4();
+
+  function calculateOrbitPosition(cfg, angle, out) {
+    const x0 = cfg.orbitRadiusA * Math.cos(angle);
+    const z0 = cfg.orbitRadiusB * Math.sin(angle);
+    _tmpPos.set(x0, 0, z0);
+
+    _tmpRot.set(...cfg.inclination);
+    _tmpMat.makeRotationFromEuler(_tmpRot);
+    _tmpPos.applyMatrix4(_tmpMat);
+
+    const cx = cfg.center ? cfg.center[0] : 0;
+    const cy = cfg.center ? cfg.center[1] : 0;
+    const cz = cfg.center ? cfg.center[2] : 0;
+
+    out.set(_tmpPos.x + cx, _tmpPos.y + cy, _tmpPos.z + cz);
+  }
+
   // =========================================================================
   // 2. ORBIT TRACKS & ROTATING ORBITERS
   // =========================================================================
@@ -315,6 +335,11 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       trailCount: 28,
       trailHead: 0,
     };
+
+    calculateOrbitPosition(cfg, cfg.initialAngle, orbiterState.currentPos);
+    orbiterState.modelGroup.position.copy(orbiterState.currentPos);
+    calculateOrbitPosition(cfg, cfg.initialAngle + 0.05, _tmpTangentPos);
+    orbiterState.modelGroup.lookAt(_tmpTangentPos);
 
     orbiterState.modelGroup.scale.setScalar(cfg.craftScale);
     layerGroup.add(orbiterState.modelGroup);
@@ -420,33 +445,12 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
     ambientMoons.push(phobosState, deimosState);
   }
 
-  // Pre-allocated temporary vectors
-  const _tmpPos = new THREE.Vector3();
-  const _tmpTangentPos = new THREE.Vector3();
-  const _tmpRot = new THREE.Euler();
-  const _tmpMat = new THREE.Matrix4();
-
-  function calculateOrbitPosition(cfg, angle, out) {
-    const x0 = cfg.orbitRadiusA * Math.cos(angle);
-    const z0 = cfg.orbitRadiusB * Math.sin(angle);
-    _tmpPos.set(x0, 0, z0);
-
-    _tmpRot.set(...cfg.inclination);
-    _tmpMat.makeRotationFromEuler(_tmpRot);
-    _tmpPos.applyMatrix4(_tmpMat);
-
-    const cx = cfg.center ? cfg.center[0] : 0;
-    const cy = cfg.center ? cfg.center[1] : 0;
-    const cz = cfg.center ? cfg.center[2] : 0;
-
-    out.set(_tmpPos.x + cx, _tmpPos.y + cy, _tmpPos.z + cz);
-  }
-
   return {
     /**
-     * Updates planet axial spin, orbiter movements along tracks, and ambient moons.
+     * Updates planet axial spin, orbiter movements along tracks, ambient moons,
+     * and dynamic camera tracking for the selected orbiter.
      */
-    update(dt) {
+    update(dt, camera, controls, isAnimating, animTargets) {
       if (isDisposed) return;
       const step = Math.min(dt, 0.1);
 
@@ -459,36 +463,62 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       for (let i = 0; i < orbiters.length; i++) {
         const o = orbiters[i];
 
-        if (o.isSelected) {
-          // Stationed at the scenic vantage point with the planet globe framed behind it.
-          // Hotspots are calibrated to this stationed pose; OrbitControls lets user orbit 360°.
-          if (o.cfg.stationedPos) {
-            o.modelGroup.position.set(...o.cfg.stationedPos);
-          }
-        } else {
-          // Actively orbiting around the planet globe
-          if (!isPaused && !isReducedMotion) {
-            o.angle += o.cfg.speed * step;
-            if (o.angle > Math.PI * 2) o.angle -= Math.PI * 2;
-          }
+        const prevX = o.currentPos.x;
+        const prevY = o.currentPos.y;
+        const prevZ = o.currentPos.z;
 
-          calculateOrbitPosition(o.cfg, o.angle, o.currentPos);
-          o.modelGroup.position.copy(o.currentPos);
+        // Spacecraft always keeps orbiting along its orbit, even during inspection
+        if (!isPaused && !isReducedMotion) {
+          o.angle += o.cfg.speed * step;
+          if (o.angle > Math.PI * 2) o.angle -= Math.PI * 2;
+        }
 
-          // Face tangent velocity vector
-          calculateOrbitPosition(o.cfg, o.angle + 0.05, _tmpTangentPos);
-          o.modelGroup.lookAt(_tmpTangentPos);
+        calculateOrbitPosition(o.cfg, o.angle, o.currentPos);
+        o.modelGroup.position.copy(o.currentPos);
 
-          // Update trail ring buffer (Quality preset)
-          if (o.trailLine && o.trailGeo) {
-            const buf = o.trailBuffer;
-            const head = o.trailHead;
-            buf[head * 3] = o.currentPos.x;
-            buf[head * 3 + 1] = o.currentPos.y;
-            buf[head * 3 + 2] = o.currentPos.z;
-            o.trailHead = (head + 1) % o.trailCount;
-            o.trailGeo.attributes.position.needsUpdate = true;
+        // Face tangent velocity vector
+        calculateOrbitPosition(o.cfg, o.angle + 0.05, _tmpTangentPos);
+        o.modelGroup.lookAt(_tmpTangentPos);
+
+        // Dynamic camera tracking: when inspecting this orbiter, translate camera and controls target
+        if (o.isSelected && camera && controls) {
+          const dx = o.currentPos.x - prevX;
+          const dy = o.currentPos.y - prevY;
+          const dz = o.currentPos.z - prevZ;
+
+          // Only apply delta if there was a previous position
+          if (prevX !== 0 || prevY !== 0 || prevZ !== 0) {
+            if (isAnimating && animTargets) {
+              if (animTargets.targetLookAt) {
+                animTargets.targetLookAt.x += dx;
+                animTargets.targetLookAt.y += dy;
+                animTargets.targetLookAt.z += dz;
+              }
+              if (animTargets.targetCamPos) {
+                animTargets.targetCamPos.x += dx;
+                animTargets.targetCamPos.y += dy;
+                animTargets.targetCamPos.z += dz;
+              }
+            } else if (!isAnimating) {
+              controls.target.x += dx;
+              controls.target.y += dy;
+              controls.target.z += dz;
+              camera.position.x += dx;
+              camera.position.y += dy;
+              camera.position.z += dz;
+            }
           }
+        }
+
+        // Update trail ring buffer (Quality preset)
+        if (o.trailLine && o.trailGeo) {
+          const buf = o.trailBuffer;
+          const head = o.trailHead;
+          buf[head * 3] = o.currentPos.x;
+          buf[head * 3 + 1] = o.currentPos.y;
+          buf[head * 3 + 2] = o.currentPos.z;
+          o.trailHead = (head + 1) % o.trailCount;
+          o.trailGeo.attributes.position.needsUpdate = true;
         }
       }
 
@@ -529,18 +559,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       isOrbitalMode = true;
       layerGroup.visible = true;
       for (let i = 0; i < orbiters.length; i++) {
-        const o = orbiters[i];
-        if (o.cfg.id === id) {
-          o.isSelected = true;
-          if (o.cfg.stationedPos) {
-            o.modelGroup.position.set(...o.cfg.stationedPos);
-          }
-          // Face forward along orbital tangent flight path
-          calculateOrbitPosition(o.cfg, (o.cfg.initialAngle || 0) + 0.05, _tmpTangentPos);
-          o.modelGroup.lookAt(_tmpTangentPos);
-        } else {
-          o.isSelected = false;
-        }
+        orbiters[i].isSelected = (orbiters[i].cfg.id === id);
       }
     },
 
@@ -554,6 +573,11 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
     getOrbiterObject(id) {
       const match = orbiters.find((o) => o.cfg.id === id);
       return match ? match.modelGroup : null;
+    },
+
+    getOrbiterPosition(id) {
+      const match = orbiters.find((o) => o.cfg.id === id);
+      return match ? match.currentPos.clone() : null;
     },
 
     dispose() {

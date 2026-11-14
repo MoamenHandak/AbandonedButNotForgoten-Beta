@@ -84,25 +84,22 @@ export default function CreditsModal({ isOpen, onClose }) {
           <span className="cr-diamond" aria-hidden="true" />
 
           <div className="cr-block">
-            <span className="cr-role">{t.roles?.coreDev || 'Core Developer'}</span>
-            <h3 className="cr-name">Moamen</h3>
-          </div>
-          <div className="cr-block">
             <span className="cr-role">{t.roles?.projectLead || 'Project Manager & Leader'}</span>
             <h3 className="cr-name">Joudy Elgebally</h3>
           </div>
           <div className="cr-block">
+            <span className="cr-role">{t.roles?.coreDev || 'Developers'}</span>
+            <h3 className="cr-name">Moamen Handak</h3>
+            <h3 className="cr-name">Ammar</h3>
+          </div>
+          <div className="cr-block">
             <span className="cr-role">{t.roles?.designer || 'Designer & Presenter'}</span>
             <h3 className="cr-name">Sara Ibrahim</h3>
+            <h3 className="cr-name">Rosal Emad</h3>
           </div>
           <div className="cr-block">
             <span className="cr-role">{t.roles?.researcher || 'Researcher'}</span>
-            <h3 className="cr-name">Hanaa Salim</h3>
-          </div>
-          <div className="cr-block">
-            <span className="cr-role">{t.roles?.contributors || 'Contributors'}</span>
-            <h3 className="cr-name">Ammar</h3>
-            <h3 className="cr-name">Rosal Emad</h3>
+            <h3 className="cr-name">Ahmed</h3>
           </div>
 
           <div className="cr-block cr-memory">

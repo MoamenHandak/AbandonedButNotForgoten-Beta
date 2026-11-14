@@ -402,18 +402,6 @@ export default function StoryGame({ onBackToMenu }) {
                 </button>
               </article>
             </div>
-
-            {/* Character below the grid */}
-            <div className="choice-character-row">
-              <img
-                src={resolveAssetUrl('/assets/story/girl_thinking.png')}
-                alt="Young explorer pondering destination choice"
-                className="character-thinking-img"
-              />
-              <p className="character-prompt">
-                "{t.girlPrompt}"
-              </p>
-            </div>
           </section>
         )}
 
