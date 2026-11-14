@@ -1999,22 +1999,24 @@
     gap: 7px !important;
     min-height: 38px !important;
     padding: 6px 14px !important;
-    border: 1px solid rgba(255, 255, 255, 0.35) !important;
-    background: rgba(0, 0, 0, 0.75) !important;
+    border: 1px solid #ffffff !important;
+    background: rgba(0, 0, 0, 0.85) !important;
     color: #ffffff !important;
-    font-family: 'NMSGeoSans', 'Tajawal', sans-serif !important;
+    font-family: var(--font-ui, 'Tajawal', sans-serif) !important;
     font-size: 12px !important;
+    font-weight: 700 !important;
     letter-spacing: 0.1em !important;
     cursor: pointer !important;
-    border-radius: 6px !important;
-    transition: all 0.2s ease !important;
+    border-radius: 5px !important;
+    transition: background-color 0.25s ease, color 0.2s ease, transform 0.2s ease !important;
 }
 
 .showroom-pause-btn:hover {
-    background: rgba(255, 255, 255, 0.18) !important;
-    border-color: #00e5ff !important;
-    color: #00e5ff !important;
-    box-shadow: 0 0 12px rgba(0, 229, 255, 0.25) !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.45) !important;
+    transform: scale(1.02) !important;
 }
 
 .showroom-pause-overlay {
@@ -2299,12 +2301,22 @@
     backdrop-filter: blur(16px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
     overflow: hidden;
-    animation: detailsSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: detailsSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.showroom-details-panel.is-leaving {
+    animation: detailsSlideOut 0.28s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+    pointer-events: none;
 }
 
 @keyframes detailsSlideIn {
-    from { opacity: 0; transform: translateX(-16px); }
+    from { opacity: 0; transform: translateX(-40px); }
     to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes detailsSlideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(-40px); }
 }
 
 .details-top-header {
@@ -2702,6 +2714,116 @@
 }
 
 /* ==========================================================================
+   INTERACTIVE 3D MODEL BEACON ("!" HOTSPOT)
+   Hovers directly over active spacecraft; invites user to click for mission dossier
+   ========================================================================== */
+
+.showroom-model-hotspot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 85;
+    display: none; /* Managed dynamically via screen projection in requestAnimationFrame */
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    pointer-events: auto;
+    user-select: none;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.2s ease;
+    animation: hotspotFadeIn 0.3s ease-out;
+}
+
+@keyframes hotspotFadeIn {
+    from { opacity: 0; transform: translate(-50%, -40%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.model-hotspot-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.88);
+    border: 2px solid #ffffff;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.65), 0 4px 18px rgba(0, 0, 0, 0.8);
+    position: relative;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, color 0.2s ease, box-shadow 0.25s ease;
+}
+
+.model-hotspot-badge::before {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.65);
+    animation: hotspotPulseRing 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+@keyframes hotspotPulseRing {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.95;
+    }
+    100% {
+        transform: scale(1.65);
+        opacity: 0;
+    }
+}
+
+.model-hotspot-exclamation {
+    font-family: var(--ui-head, 'Orbitron', 'Space Grotesk', sans-serif);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.model-hotspot-label {
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #ffffff;
+    border-radius: 4px;
+    color: #ffffff;
+    font-family: var(--font-ui, 'Tajawal', sans-serif);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    opacity: 0.92;
+    transition: all 0.2s ease;
+}
+
+.showroom-model-hotspot:hover .model-hotspot-badge {
+    background: #ffffff;
+    color: #000000;
+    transform: scale(1.15);
+    box-shadow: 0 0 24px rgba(255, 255, 255, 0.95);
+}
+
+.showroom-model-hotspot:hover .model-hotspot-exclamation {
+    color: #000000;
+    text-shadow: none;
+}
+
+.showroom-model-hotspot:hover .model-hotspot-label {
+    opacity: 1;
+    transform: translateY(-2px);
+    background: #ffffff;
+    color: #000000;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.5);
+}
+
+/* ==========================================================================
    TASK 6: SURFACE <-> ORBIT TRANSITION
    Dark cinematic fade overlay and Return to Surface control
    ========================================================================== */
@@ -2752,6 +2874,16 @@
         right: 12px;
         width: auto;
         max-height: 52vh;
+    }
+
+    @keyframes detailsSlideIn {
+        from { opacity: 0; transform: translateY(40px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes detailsSlideOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(40px); }
     }
 
     .showroom-open-details-btn {

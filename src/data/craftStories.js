@@ -198,40 +198,61 @@ export const CRAFT_STORIES = {
 
   'ingenuity-helicopter': {
     id: 'ingenuity-helicopter',
-    name: L('Ingenuity Mars Helicopter'),
-    operator: L('NASA / JPL (Verification Pending)'),
+    name: L('Ingenuity Mars Helicopter', 'مروحية إنجينويتي المريخية'),
+    operator: L('NASA / Jet Propulsion Laboratory', 'ناسا / مختبر الدفع النفاث'),
     location: 'mars',
-    launch: UNVERIFIED_TEXT, // TODO: verify exact Mars 2020 launch timestamp against NASA JPL source
-    landing: UNVERIFIED_TEXT, // TODO: verify Jezero Crater landing & deployment dates against NASA JPL source
-    status: 'unverified',
+    launch: L('July 30, 2020 (Cape Canaveral)', '30 يوليو 2020 (كيب كانافيرال)'),
+    landing: L('February 18, 2021 (Jezero Crater, Mars)', '18 فبراير 2021 (فوهة جيزيرو، المريخ)'),
+    status: 'halted',
     statusNote: L(
-      'Unconfirmed in the sources we reviewed — full flight log, dates, and final blade-damage details pending direct NASA verification.'
+      'Halted historic rotorcraft: planned for 5 demo flights over 30 days; completed 72 historic flights over nearly 3 years before retiring on January 25, 2024.',
+      'مروحية تاريخية متوقفة: صُممت لخمس رحلات تجريبية خلال 30 يوماً؛ وأنجزت 72 رحلة على مدار 3 سنوات تقريباً قبل تقاعدها في 25 يناير 2024.'
     ),
-    lastVerified: '2026-11-12',
+    lastVerified: '2026-11-14',
     story: {
-      question: UNVERIFIED_TEXT, // TODO: verify official technology-demonstration objective phrasing
-      device: UNVERIFIED_TEXT, // TODO: verify mass, coaxial rotor specs, and solar cap from NASA source
-      experiment: UNVERIFIED_TEXT, // TODO: verify exact flight count and distance totals
-      discovery: UNVERIFIED_TEXT, // TODO: verify primary aerodynamic & scouting finding
-      ending: UNVERIFIED_TEXT, // TODO: verify final flight date and rotor condition wording
+      question: L(
+        'Can an autonomous rotorcraft achieve powered, controlled aerodynamic flight in Mars’s ultra-thin atmosphere (less than 1% of Earth’s atmospheric density)?',
+        'هل تستطيع طائرة مروحية ذاتية التحكم تحقيق طيران ديناميكي هوائي في غلاف المريخ فائق الرقة (أقل من 1% من كثافة هواء الأرض)؟'
+      ),
+      device: L(
+        'A lightweight 1.8-kg coaxial drone with twin counter-rotating carbon-fiber rotors spinning at ~2,400 RPM, onboard solar arrays, and high-performance smartphone processors.',
+        'طائرة مسيرة خفيفة بوزن 1.8 كغ ذات دوارين متعاكسين من ألياف الكربون يدوران بسرعة ~2400 دورة/دقيقة، وألواح شمسية وبطاريات ومعالجات متطورة.'
+      ),
+      experiment: L(
+        'Conducted 72 powered flights across Jezero Crater, flying over 17 kilometers, reaching altitudes up to 24 meters, and scouting travel routes for the Perseverance rover.',
+        'أنجزت 72 رحلة طيران ناجحة عبر فوهة جيزيرو، قاطعة مسافة تفوق 17 كم، ومحققة ارتفاعات تصل إلى 24 متراً، واستطلعت مسارات القيادة لروفر بيرسيفيرانس.'
+      ),
+      discovery: L(
+        'Proved powered aerodynamic flight is possible on another world, scouted inaccessible rocky terrain from above, and pioneered the future of planetary aerial exploration.',
+        'أثبتت إمكانية الطيران الآلي على كوكب آخر، واستطلعت التضاريس الصخرية الوعرة من الأعلى، ومهدت الطريق لمستقبل الاستكشاف الجوي للكواكب.'
+      ),
+      ending: L(
+        'On Flight 72 in January 2024, it sustained damage to its rotor blade tips during an emergency landing in featureless sand dunes; remains permanently preserved at "Valinor Hills".',
+        'في رحلتها رقم 72 في يناير 2024، تعرضت أطراف شفرات الدوار لأضرار أثناء هبوط اضطراري في كثبان رملية؛ وبقيت محفوظة بشكل دائم في "تلال فالينور".'
+      ),
     },
     quiz: {
-      prompt: L('How should explorers treat Ingenuity details not yet verified in the reviewed briefing?'),
+      prompt: L('How many flights did the Ingenuity helicopter complete on Mars before concluding its mission?', 'كم عدد الرحلات التي أنجزتها مروحية إنجينويتي على المريخ قبل اختتام مهمتها؟'),
       options: [
-        L('Label unverified dates, counts, and causes as unconfirmed until primary NASA records are checked.'),
-        L('Estimate approximate flight totals so the telemetry card looks complete.'),
-        L('Classify halted surface rotorcraft under Earth orbital debris.'),
+        L('72 flights, operating nearly 3 years and flying over 17 kilometers.', '72 رحلة، عاملة لما يقرب من 3 سنوات وقاطعة مسافة تفوق 17 كم.'),
+        L('Only 1 single brief hover before motor failure.', 'رحلة اختبار واحدة فقط قبل تعطل المحرك مباشرة.'),
+        L('500 flights across both poles of Mars.', '500 رحلة عبر قطبي المريخ.'),
       ],
       correctIndex: 0,
       explanation: L(
-        'Scientific storytelling requires transparency: unreviewed specs, flight totals, and failure causes must never be guessed or filled in from memory.'
+        'Originally designed as a brief 30-day technology demonstration with 5 planned flights, Ingenuity surpassed all expectations, executing 72 historic flights across Mars.',
+        'صُممت أصلاً كتجربة تكنولوجية مدتها 30 يوماً تتضمن 5 رحلات فقط، لكن إنجينويتي فاقت التوقعات ونفذت 72 رحلة تاريخية عبر المريخ.'
       ),
     },
     visitDecision: {
-      prompt: L('DO WE APPROACH THE INSTRUMENT?'),
-      approachOutcome: UNVERIFIED_TEXT, // TODO: verify Mars heritage/contamination standoff rules with NASA Planetary Protection brief
+      prompt: L('DO WE APPROACH THE INSTRUMENT?', 'هل نقترب من المركبة؟'),
+      approachOutcome: L(
+        'Approaching closely risks stirring sand onto the delicate solar panel and carbon rotors. Maintaining distance honors planetary heritage standards.',
+        'الاقتراب الشديد قد يثير الرمال نحو اللوح الشمسي وشفرات الكربون الحساسة. الحفاظ على مسافة يحمي التراث الكوكبي.'
+      ),
       keepDistanceOutcome: L(
-        'Until exact site preservation and planetary protection rules are verified in reviewed sources, keeping a conservative inspection standoff avoids disturbing a historic surface vehicle.'
+        'Maintaining a respectful perimeter preserves the historic first aircraft to fly on an alien world untouched for future generations.',
+        'الحفاظ على مسافة احترام يحفظ أول طائرة حلقت في سماء عالم آخر دون مساس للأجيال القادمة.'
       ),
     },
     sources: [SOURCE_BY_ID['nasa-ingenuity']],
@@ -239,40 +260,61 @@ export const CRAFT_STORIES = {
 
   'viking-lander': {
     id: 'viking-lander',
-    name: L('Viking 1 Lander'),
-    operator: L('NASA (Verification Pending)'),
+    name: L('Viking 1 Lander', 'مركبة هبوط فايكنغ 1'),
+    operator: L('NASA (Langley & JPL)', 'ناسا (مركز لانغلي ومختبر الدفع النفاث)'),
     location: 'mars',
-    launch: UNVERIFIED_TEXT, // TODO: verify exact 1975 Viking 1 launch date against NASA archive
-    landing: UNVERIFIED_TEXT, // TODO: verify Chryse Planitia landing & last transmission dates against NASA archive
-    status: 'unverified',
+    launch: L('August 20, 1975', '20 أغسطس 1975'),
+    landing: L('July 20, 1976 (Chryse Planitia, Mars)', '20 يوليو 1976 (سهل خريسي، المريخ)'),
+    status: 'halted',
     statusNote: L(
-      'Unconfirmed in the sources we reviewed — mission timeline, biology package outcome, and shutdown details pending source check.'
+      'Halted historic surface lander: first successful long-duration science station on Mars; operated until November 11, 1982.',
+      'محطة هبوط تاريخية متوقفة: أول محطة علمية ناجحة طويلة الأمد على المريخ؛ عملت حتى 11 نوفمبر 1982.'
     ),
-    lastVerified: '2026-11-12',
+    lastVerified: '2026-11-14',
     story: {
-      question: UNVERIFIED_TEXT, // TODO: verify Viking 1 surface science goals
-      device: UNVERIFIED_TEXT, // TODO: verify RTG lander and meteorology/biology suite specs
-      experiment: UNVERIFIED_TEXT, // TODO: verify surface soil scooping & weather logging summary
-      discovery: UNVERIFIED_TEXT, // TODO: verify carefully framed finding avoiding false "life" claims
-      ending: UNVERIFIED_TEXT, // TODO: verify exact 1982 command error / battery shutdown cause
+      question: L(
+        'Does the surface soil of Mars contain microscopic biological metabolism, organic molecules, or active chemical weathering?',
+        'هل تحتوي تربة المريخ الحمراء على تمثيل غذائي حيوي مجهري، أو جزيئات عضوية، أو تفاعلات تجوية كيميائية نشطة؟'
+      ),
+      device: L(
+        'An automated lander powered by dual radioisotope thermoelectric generators (RTGs), carrying color cameras, meteorology booms, a robotic trenching arm, and three biological test chambers.',
+        'مركبة هبوط آلية تعمل بمولدين نوويين حراريين (RTG)، تحمل كاميرات تصوير بالألوان، مجسات أرصاد جوية، ذراع حفر آلية، وثلاث غرف تجارب بيولوجية.'
+      ),
+      experiment: L(
+        'Scooped surface regolith and performed pyrolytic release, labeled release, and gas exchange experiments while monitoring daily Martian winds, pressure, and weather for over 6 years (2,307 Earth days).',
+        'أخذت عينات من التربة وأجرت تجارب الانبعاث الحراري والتحلل الإشعاعي وتبادل الغازات مع مراقبة الرياح والضغط والطقس لأكثر من 6 سنوات (2307 يوماً أرضياً).'
+      ),
+      discovery: L(
+        'Delivered humanity’s first clear color panoramas from the surface of Mars, characterized the rust-red atmosphere, and proved Martian soil is chemically hyper-oxidizing (which mimicked biological reactions without organic carbon).',
+        'قدمت للبشرية أول بانوراما ملونة واضحة من سطح المريخ، ووصفت الغلاف الجوي الصدئ، وأثبتت أن التربة شديدة التأكسد كيميائياً (مما حاكى التفاعلات الحيوية دون وجود كربون عضوي).'
+      ),
+      ending: L(
+        'Operated faithfully until November 11, 1982, when an erroneous ground command accidentally overwrote battery charging routines and severed antenna communication.',
+        'عملت بتفانٍ حتى 11 نوفمبر 1982 عندما تسبب أمر أرضي خاطئ في إعادة كتابة بروتوكول شحن البطارية وقطع الاتصال اللاسلكي.'
+      ),
     },
     quiz: {
-      prompt: L('When a historical craft entry is marked UNVERIFIED in our archive, what is the editorial rule?'),
+      prompt: L('What historic milestone did the Viking 1 Lander achieve on July 20, 1976?', 'ما هو الإنجاز التاريخي الذي حققته مركبة فايكنغ 1 في 20 يوليو 1976؟'),
       options: [
-        L('Never equate inconclusive soil tests with life and never invent missing dates or causes.'),
-        L('Reuse Opportunity dates until a reviewer updates the file.'),
-        L('Refer to the stationary lander as orbital scrap.'),
+        L('Humanity’s first successful soft landing and multi-year operational science mission on Mars.', 'أول هبوط سلس ناجح ومهمة علمية تشغيلية متعددة السنوات للبشرية على المريخ.'),
+        L('The return of Martian soil canisters back to Earth via rocket.', 'إعادة عينات من تربة المريخ إلى الأرض عبر صاروخ.'),
+        L('The first human crew landing on the Martian surface.', 'أول هبوط لطاقم بشري على سطح المريخ.'),
       ],
       correctIndex: 0,
       explanation: L(
-        'Every claim shown to learners must match reviewed primary sources; unverified dates, biology interpretations, and shutdown causes remain explicitly flagged.'
+        'Viking 1 was the first spacecraft to touch down safely on Mars, operate for years, and transmit clear color pictures of the alien desert landscape back to Earth.',
+        'كانت فايكنغ 1 أول مركبة فضائية تهبط بأمان على المريخ، وتعمل لسنوات، وترسل صوراً ملونة واضحة لمشهد الصحراء المريخية إلى الأرض.'
       ),
     },
     visitDecision: {
-      prompt: L('DO WE APPROACH THE INSTRUMENT?'),
-      approachOutcome: UNVERIFIED_TEXT, // TODO: verify Mars historic site standoff guidance
+      prompt: L('DO WE APPROACH THE INSTRUMENT?', 'هل نقترب من المركبة؟'),
+      approachOutcome: L(
+        'Approaching closely risks mechanical contact with fragile weather booms and solar-oxidized metals.',
+        'الاقتراب الشديد يهدد بالاحتكاك بأذرع الأرصاد الجوية الهشة والمعادن المؤكسدة.'
+      ),
       keepDistanceOutcome: L(
-        'Maintaining a safe perimeter prevents kickup dust and mechanical contact with an aging mission relic while full archival guidelines are verified.'
+        'Maintaining a respectful perimeter preserves the historic Viking 1 station as humanity’s pioneer monument on Mars.',
+        'الحفاظ على محيط احترام يحفظ محطة فايكنغ 1 التاريخية كنصب تذكاري ريادي للبشرية على المريخ.'
       ),
     },
     sources: [SOURCE_BY_ID['nasa-viking1']],
@@ -627,121 +669,311 @@ export const CRAFT_STORIES = {
 
   'ladee-orbiter': {
     id: 'ladee-orbiter',
-    name: L('LADEE Orbiter'),
-    operator: L('NASA / Ames Research Center (TODO verify)'),
+    name: L('Lunar Atmosphere and Dust Environment Explorer (LADEE)', 'مستكشف بيئة الغلاف الجوي والغبار القمري (لادي)'),
+    operator: L('NASA / Ames Research Center', 'ناسا / مركز أميس للأبحاث'),
     location: 'moon',
-    launch: UNVERIFIED_TEXT, // TODO verify LADEE launch date
-    landing: L('Lunar Orbit / Impact (TODO verify exact date)'),
-    status: 'unverified',
+    launch: L('September 7, 2013 (03:27 UTC)', '7 سبتمبر 2013 (03:27 ت.ع.م)'),
+    landing: L('Lunar Far-Side Impact: April 18, 2014', 'اصطدام الجانب البعيد للقمر: 18 أبريل 2014'),
+    status: 'halted',
     statusNote: L(
-      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify LADEE operational status).'
+      'Concluded mission with intentional far-side lunar impact on 18 Apr 2014 after completing all science objectives.',
+      'أنهت مهمتها باصطدام مدروس في الجانب البعيد للقمر في 18 أبريل 2014 بعد إنجاز كافة أهدافها العلمية.'
     ),
-    lastVerified: '2026-11-13',
+    lastVerified: '2026-11-14',
     story: {
-      question: UNVERIFIED_TEXT,
-      device: L('Modular lunar orbiter designed to study the tenuous lunar exosphere and dust environment. Orbit visuals are illustrative and not to true scale or true orbital geometry. Note: LLCD may have flown as a technology demonstration payload on LADEE rather than as a separate spacecraft; verify before presenting separately.'),
-      experiment: UNVERIFIED_TEXT,
-      discovery: UNVERIFIED_TEXT,
-      ending: UNVERIFIED_TEXT,
+      question: L(
+        'How do solar radiation and micrometeoroids loft microscopic lunar dust above the surface into a glowing exosphere?',
+        'كيف ترفع الإشعاعات الشمسية والنيازك الدقيقة ذرات الغبار القمري فوق السطح لتشكل غلافاً جوياً متوهجاً؟'
+      ),
+      device: L(
+        'A modular carbon-composite orbiter equipped with an ultraviolet spectrometer, neutral mass spectrometer, dust detector, and an experimental optical laser communications terminal (LLCD).',
+        'مسبار قمري تركيبي مزود بمطياف فوق بنفسجي، مطياف كتلة، كاشف غبار، ومحطة اتصالات ليزرية بصرية تجريبية (LLCD).'
+      ),
+      experiment: L(
+        'Flew ultra-low science orbits (12–50 km altitude) through sunrise and sunset to directly sample levitated dust grains and exospheric gas ions.',
+        'حلّق في مدارات علمية منخفضة للغاية (12–50 كم) عبر شروق الشمس وغروبها لأخذ عينات مباشرة من ذرات الغبار المرتفعة وغازات الغلاف الخارجي.'
+      ),
+      discovery: L(
+        'Confirmed that meteoroid streams continuously generate a dust cloud surrounding the Moon, and demonstrated record-breaking 622 Mbps laser comms back to Earth.',
+        'أثبت أن تدفقات النيازك تُولد باستمرار سحابة غبارية غير منتظمة تحيط بالقمر، وحطم أرقام الاتصالات الفضائية بنقل البيانات بسرعة 622 ميغابت/ثانية عبر الليزر إلى الأرض.'
+      ),
+      ending: L(
+        'After exhausting maneuvering propellants, flight controllers commanded a planned final impact into the far-side rim of Sundman V crater on April 18, 2014, safely away from Apollo heritage sites.',
+        'بعد نفاد وقود المناورة، وجّه مهندسو الرحلة المسبار للاصطدام المخطط بحافة فوهة سوندمان V في الجانب البعيد للقمر في 18 أبريل 2014 بعيداً تماماً عن مواقع أبولو التاريخية.'
+      ),
     },
-    quiz: null,
-    visitDecision: null,
+    quiz: {
+      prompt: L('What primary scientific mystery did the LADEE orbiter investigate around the Moon?', 'ما هو اللغز العلمي الأساسي الذي حقق فيه مسبار لادي (LADEE) حول القمر؟'),
+      options: [
+        L('The composition of the tenuous lunar exosphere and electrostatically levitated dust.', 'تركيب الغلاف الجوي القمري الرقيق والغبار المعلق كهروستاتيكياً.'),
+        L('Active magma chambers deep beneath lunar maria.', 'غرف صهارة بركانية نشطة في أعماق البحار القمرية.'),
+        L('Finding liquid oceans concealed below polar craters.', 'البحث عن محيطات سائلة مخفية تحت الفوهات القطبية.'),
+      ],
+      correctIndex: 0,
+      explanation: L(
+        'LADEE analyzed the extremely thin lunar exosphere (helium, argon, neon) and confirmed that meteoroid impacts continuously loft dust grains above the lunar horizon.',
+        'حلل لادي الغلاف الجوي القمري الرقيق للغاية (هيليوم، أرغون، نيون) وأثبت أن اصطدامات النيازك ترفع باستمرار جزيئات الغبار فوق الأفق القمري.'
+      ),
+    },
+    visitDecision: {
+      prompt: L('ORBITAL TELEMETRY OBSERVATION', 'مراقبة القياسات المدارية عن بُعد'),
+      approachOutcome: L(
+        'Approaching orbiters closely is simulated from telemetry. Real-world orbiters travel at ~1.6 km/s in low lunar orbit.',
+        'الاقتراب من المسابير المدارية يتم عبر المحاكاة والقياسات اللاسلكية. تسير المسابير الحقيقية بسرعة 1.6 كم/ثانية.'
+      ),
+      keepDistanceOutcome: L(
+        'Observing from orbital perspective showcases the spacecraft against the lunar curved horizon.',
+        'المراقبة من المنظور المداري توثق المركبة الفضائية أمام انحناء الأفق القمري البديع.'
+      ),
+    },
     sources: [SOURCE_BY_ID['nasa-lro']],
   },
 
   'mgs-orbiter': {
     id: 'mgs-orbiter',
-    name: L('Mars Global Surveyor (MGS)'),
-    operator: L('NASA / JPL (TODO verify)'),
+    name: L('Mars Global Surveyor (MGS)', 'مساح المريخ العالمي (MGS)'),
+    operator: L('NASA / Jet Propulsion Laboratory', 'ناسا / مختبر الدفع النفاث'),
     location: 'mars',
-    launch: UNVERIFIED_TEXT, // TODO verify MGS launch date
-    landing: L('Martian Orbit (TODO verify)'),
-    status: 'unverified',
+    launch: L('November 7, 1996', '7 نوفمبر 1996'),
+    landing: L('Mars Orbit Insertion: September 12, 1997', 'دخول مدار المريخ: 12 سبتمبر 1997'),
+    status: 'halted',
     statusNote: L(
-      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify MGS dates and status).'
+      'Operated in Mars orbit for nearly a decade; lost contact on November 2, 2006 following a software update error.',
+      'عمل في مدار المريخ لما يقرب من عقد من الزمان؛ فُقد الاتصال في 2 نوفمبر 2006 إثر خلل في تحديث برمجي.'
     ),
-    lastVerified: '2026-11-13',
+    lastVerified: '2026-11-14',
     story: {
-      question: UNVERIFIED_TEXT,
-      device: L('High-resolution mapping orbiter. Orbit visuals are illustrative and not to true scale or true orbital geometry.'),
-      experiment: UNVERIFIED_TEXT,
-      discovery: UNVERIFIED_TEXT,
-      ending: UNVERIFIED_TEXT,
+      question: L(
+        'Can high-resolution orbital imaging, laser altimetry, and thermal spectroscopy reveal Mars’s geological evolution and ancient water reservoirs?',
+        'هل يمكن للتصوير المداري عالي الدقة ومطياف الانبعاث الحراري كشف التطور الجيولوجي وخزانات المياه القديمة على المريخ؟'
+      ),
+      device: L(
+        'A solar-powered orbiter equipped with the Mars Orbiter Camera (MOC), Thermal Emission Spectrometer (TES), and Mars Orbiter Laser Altimeter (MOLA).',
+        'مسبار مداري يعمل بالطاقة الشمسية مزود بكاميرا المريخ المدارية (MOC)، مطياف الانبعاث الحراري (TES)، ومقياس الارتفاع الليزري (MOLA).'
+      ),
+      experiment: L(
+        'Circled Mars from pole to pole over 37,000 times between 1999 and 2006, returning over 240,000 detailed surface images and creating the first comprehensive global 3D topographical map.',
+        'دار حول المريخ أكثر من 37,000 مرة بين 1999 و2006، مرسلاً أكثر من 240,000 صورة مفصلة للسطح وبانياً أول خريطة طوبوغرافية ثلاثية الأبعاد للكوكب.'
+      ),
+      discovery: L(
+        'Discovered apparent water-carved gullies, mineral hematite deposits indicating long-lived standing water (which chose Opportunity’s landing site), and mapped planetary crustal magnetism.',
+        'اكتشف قنوات مائية حديثة التكوين، ورواسب معدن الهيماتيت الدالة على مياه راكدة سابقة (مما حدد موقع هبوط أبورتيونيتي)، ورسم خريطة المغناطيسية القشرية.'
+      ),
+      ending: L(
+        'After operating 4 times past its planned primary mission, an erroneous software command update in November 2006 tilted a solar array away from the Sun, draining the battery.',
+        'بعد عمله 4 أضعاف عمره الافتراضي، أدى خطأ في تحديث برمجي في نوفمبر 2006 إلى ميلان اللوح الشمسي بعيداً عن الشمس واستنزاف البطارية.'
+      ),
     },
-    quiz: null,
-    visitDecision: null,
+    quiz: {
+      prompt: L('What major geological discovery by Mars Global Surveyor directly guided NASA to choose Opportunity’s landing site?', 'ما الاكتشاف الجيولوجي الهام لمساح المريخ العالمي الذي قاد ناسا لاختيار موقع هبوط أبورتيونيتي؟'),
+      options: [
+        L('Widespread gray hematite deposits formed in the presence of liquid water.', 'رواسب واسعة من الهيماتيت الرمادي المتشكل بوجود المياه السائلة.'),
+        L('An active volcanic crater erupting sulfur.', 'فوهة بركانية نشطة تقذف الكبريت.'),
+        L('Subsurface ice caves containing liquid lakes.', 'كهوف جليدية تحت سطحية تضم بحيرات سائلة.'),
+      ],
+      correctIndex: 0,
+      explanation: L(
+        'MGS’s thermal spectrometer identified an enormous gray hematite signature at Meridiani Planum, providing the definitive target for Opportunity’s water-seeking landing.',
+        'حدد مطياف MGS بصمة ضخمة لمعدن الهيماتيت الرمادي في سهل ميريدياني، موفراً الهدف الحاسم لموقع هبوط مركبة أبورتيونيتي.'
+      ),
+    },
+    visitDecision: {
+      prompt: L('ORBITAL VANTAGE POINT', 'نقطة المراقبة المدارية'),
+      approachOutcome: L(
+        'Observing MGS in orbit reveals its distinctive parabolic high-gain dish and dual solar array wings with aerobraking drag flaps.',
+        'مراقبة MGS في مداره تبرز طبق الاتصالات العالي وشبكة الألواح الشمسية المزودة بزعانف الكبح الهوائي.'
+      ),
+      keepDistanceOutcome: L(
+        'Preserves MGS in orbital memory as the pioneer that mapped modern Mars for all surface explorers.',
+        'يحفظ MGS في الذاكرة المدارية كرائد رسم خرائط المريخ الحديثة لكافة المستكشفين على السطح.'
+      ),
+    },
     sources: [SOURCE_BY_ID['nasa-opportunity']],
   },
 
   'odyssey-orbiter': {
     id: 'odyssey-orbiter',
-    name: L('2001 Mars Odyssey'),
-    operator: L('NASA / JPL (TODO verify)'),
+    name: L('2001 Mars Odyssey', '2001 مارس أوديسي'),
+    operator: L('NASA / Jet Propulsion Laboratory', 'ناسا / مختبر الدفع النفاث'),
     location: 'mars',
-    launch: UNVERIFIED_TEXT, // TODO verify Odyssey launch date
-    landing: L('Martian Orbit (TODO verify)'),
-    status: 'unverified',
+    launch: L('April 7, 2001', '7 أبريل 2001'),
+    landing: L('Mars Orbit Insertion: October 24, 2001', 'دخول مدار المريخ: 24 أكتوبر 2001'),
+    status: 'active',
     statusNote: L(
-      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify Odyssey dates and status).'
+      'Currently active in Mars orbit — the longest continuously operating spacecraft at another planet in human history.',
+      'نشطة حالياً في مدار المريخ — أطول مركبة فضائية عاملة بشكل متواصل حول كوكب آخر في تاريخ البشرية.'
     ),
-    lastVerified: '2026-11-13',
+    lastVerified: '2026-11-14',
     story: {
-      question: UNVERIFIED_TEXT,
-      device: L('Long-duration orbital thermal mapper and communication relay. Orbit visuals are illustrative and not to true scale or true orbital geometry.'),
-      experiment: UNVERIFIED_TEXT,
-      discovery: UNVERIFIED_TEXT,
-      ending: UNVERIFIED_TEXT,
+      question: L(
+        'Where is water ice hidden in the shallow Martian soil, and what minerals and radiation environments will future explorers encounter?',
+        'أين يختبئ جليد الماء في التربة المريخية الضحلة، وما هي المعادن ومستويات الإشعاع التي ستواجه المستكشفين؟'
+      ),
+      device: L(
+        'A veteran science and communications orbiter equipped with the Thermal Emission Imaging System (THEMIS), Gamma Ray Spectrometer (GRS), and Martian Radiation Environment Experiment (MARIE).',
+        'مسبار علمي واتصالات مخضرم مزود بنظام التصوير بالانبعاث الحراري (THEMIS)، مطياف أشعة غاما (GRS)، وتجربة البيئة الإشعاعية (MARIE).'
+      ),
+      experiment: L(
+        'Scanned the upper meter of Martian soil worldwide for cosmic-ray neutron signatures while acting as the primary high-reliability data relay for Spirit, Opportunity, Phoenix, and Curiosity.',
+        'مسح الطبقة العليا من التربة المريخية بحثاً عن بصمات النيوترونات الناتجة عن الأشعة الكونية، وعمل كجسر اتصالات رئيسي عالي الموثوقية لمركبات سبيريت، أبورتيونيتي، وفينيكس.'
+      ),
+      discovery: L(
+        'Discovered vast underground reservoirs of shallow water ice trapped beneath the dusty surface at high latitudes, enough to fill large lakes if melted.',
+        'اكتشف خزانات هائلة من جليد الماء المحتجز تحت الغبار السطحي في خطوط العرض العليا، تكفي لملء بحيرات ضخمة لو ذابت.'
+      ),
+      ending: L(
+        'Continuing continuous active orbital science and rover communications relay around Mars after more than 23 years of continuous operation.',
+        'يواصل أبحاثه العلمية النشطة وترحيل اتصالات المركبات الجوالة حول المريخ بعد أكثر من 23 عاماً من العمل المتواصل.'
+      ),
     },
-    quiz: null,
-    visitDecision: null,
+    quiz: {
+      prompt: L('What foundational discovery made 2001 Mars Odyssey a milestone in planetary science?', 'ما هو الاكتشاف الجوهري الذي جعل مسبار 2001 مارس أوديسي علامة فارقة في علوم الكواكب؟'),
+      options: [
+        L('Detecting vast reserves of shallow subsurface water ice across polar and sub-polar latitudes.', 'اكتشاف احتياطيات هائلة من جليد الماء القريب من السطح في خطوط العرض القطبية.'),
+        L('Finding active geothermal geysers erupting at the equator.', 'العثور على ينابيع حرارية نشطة تثور عند خط الاستواء.'),
+        L('Detecting living plants growing in deep canyon shadows.', 'اكتشاف نباتات حية تنمو في ظلال الوديان العميقة.'),
+      ],
+      correctIndex: 0,
+      explanation: L(
+        'Odyssey’s Gamma Ray Spectrometer suite detected abundant hydrogen beneath the surface, confirming vast buried water ice sheets across Mars.',
+        'رصد مطياف أشعة غاما وفرة في عنصر الهيدروجين تحت السطح، مؤكداً وجود طبقات جليد مائي شاسعة مدفونة عبر المريخ.'
+      ),
+    },
+    visitDecision: {
+      prompt: L('ORBITAL VANTAGE POINT', 'نقطة المراقبة المدارية'),
+      approachOutcome: L(
+        'Odyssey continues flying its Sun-synchronous circular science orbit around Mars, providing constant telemetry contact.',
+        'تواصل أوديسي الطيران في مدارها المتزامن مع الشمس حول المريخ مقدمة اتصالاً لاسلكياً مستمراً.'
+      ),
+      keepDistanceOutcome: L(
+        'A wider orbital view captures the sheer longevity of humanity\'s longest-serving interplanetary sentry.',
+        'الرؤية المدارية الشاملة تعكس التاريخ الممتد لأطول حارس كوكبي للبشرية في الفضاء السحيق.'
+      ),
+    },
     sources: [SOURCE_BY_ID['nasa-opportunity']],
   },
 
   'mro-orbiter': {
     id: 'mro-orbiter',
-    name: L('Mars Reconnaissance Orbiter (MRO)'),
-    operator: L('NASA / JPL (TODO verify)'),
+    name: L('Mars Reconnaissance Orbiter (MRO)', 'مستكشف المريخ المداري (MRO)'),
+    operator: L('NASA / Jet Propulsion Laboratory', 'ناسا / مختبر الدفع النفاث'),
     location: 'mars',
-    launch: UNVERIFIED_TEXT, // TODO verify MRO launch date
-    landing: L('Martian Orbit (TODO verify)'),
-    status: 'unverified',
+    launch: L('August 12, 2005', '12 أغسطس 2005'),
+    landing: L('Mars Orbit Insertion: March 10, 2006', 'دخول مدار المريخ: 10 مارس 2006'),
+    status: 'active',
     statusNote: L(
-      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify MRO dates and status).'
+      'Active orbital reconnaissance laboratory and primary ultra-high-bandwidth communications relay for Mars surface rovers.',
+      'مختبر استطلاع مداري نشط وحلقة وصل للاتصالات فائقة السرعة للمركبات الجوالة على سطح المريخ.'
     ),
-    lastVerified: '2026-11-13',
+    lastVerified: '2026-11-14',
     story: {
-      question: UNVERIFIED_TEXT,
-      device: L('Heavy reconnaissance orbiter with HiRISE camera and radar sounder. Orbit visuals are illustrative and not to true scale or true orbital geometry.'),
-      experiment: UNVERIFIED_TEXT,
-      discovery: UNVERIFIED_TEXT,
-      ending: UNVERIFIED_TEXT,
+      question: L(
+        'How can orbital cameras achieve sub-meter resolution to identify safe rover landing zones and track dynamic seasonal processes on Mars?',
+        'كيف يمكن لكاميرات مدارية تحقيق دقة دون المتر لتحديد مناطق هبوط آمنة وتتبع العمليات الموسمية على المريخ؟'
+      ),
+      device: L(
+        'A massive two-ton spacecraft carrying the High Resolution Imaging Science Experiment (HiRISE, half-meter aperture telescope), CRISM mineral spectrometer, and SHARAD shallow radar.',
+        'مركبة عملاقة تزن طنين تحمل تلسكوب HiRISE بقطر نصف متر، مطياف CRISM المعدني، ورادار SHARAD السبر السطحي.'
+      ),
+      experiment: L(
+        'Captured over 75,000 targeted images with resolution down to 25–30 centimeters per pixel, revealing rocks the size of dinner plates and resolving all Mars rovers and landers from orbit.',
+        'التقط أكثر من 75,000 صورة موجهة بدقة تصل إلى 25-30 سم لكل بكسل، كاشفاً صخوراً بحجم الأطباق ومصوراً كافة روفرات ومركبات هبوط المريخ من الفضاء.'
+      ),
+      discovery: L(
+        'Discovered seasonal Recurring Slope Lineae (dark flows on warm slopes), active polar avalanches, CO2 gas geysers, and mapped pure subterranean water-ice cliffs.',
+        'اكتشف خطوط المنحدرات الموسمية المتكررة (RSL)، والانهيارات الجليدية القطبية النشطة، وفوارات غاز ثاني أكسيد الكربون، وجروف جليد الماء النقي تحت السطحي.'
+      ),
+      ending: L(
+        'Continuing vital active mapping science and transmitting the majority of all scientific data sent back by Perseverance and Curiosity.',
+        'يواصل أبحاثه الخرائطية الحيوية وينقل الغالبية العظمى من كافة البيانات العلمية التي ترسلها مركبات بيرسيفيرانس وكيريوسيتي.'
+      ),
     },
-    quiz: null,
-    visitDecision: null,
+    quiz: {
+      prompt: L('What makes MRO’s HiRISE camera uniquely capable among planetary instruments?', 'ما الذي يجعل كاميرا HiRISE على متن MRO فريدة واستثنائية بين أدوات استكشاف الكواكب؟'),
+      options: [
+        L('It achieves sub-meter detail (25–30 cm/pixel), resolving individual boulders and rover wheel tracks.', 'تحقق دقة تفوق المتر (25-30 سم/بكسل)، كاشفة الصخور الفردية وآثار عجلات الروفرات.'),
+        L('It uses traditional analog photographic paper returned via heat shield.', 'تستخدم ورق تصوير فوتوغرافي تقليدي يُستعاد بدرع حراري.'),
+        L('It operates only during global planetary dust storms.', 'تعمل فقط أثناء العواصف الغبارية الكوكبية الشاملة.'),
+      ],
+      correctIndex: 0,
+      explanation: L(
+        'HiRISE is the most powerful optical telescope ever flown on a planetary mission, powerful enough to photograph rovers on the surface and map safe meter-scale landing hazards.',
+        'كاميرا HiRISE هي أقوى تلسكوب بصري حُمل إلى كوكب آخر، قادرة على تصوير المركبات على السطح ورسم خرائط الأخطار التضاريسية بدقة متناهية.'
+      ),
+    },
+    visitDecision: {
+      prompt: L('ORBITAL VANTAGE POINT', 'نقطة المراقبة المدارية'),
+      approachOutcome: L(
+        'Viewing MRO in low Mars orbit highlights its huge 3-meter high-gain antenna dish and sprawling solar wings.',
+        'مشاهدة MRO في مدار منخفض تبرز طبق الاتصالات الضخم بقطر 3 أمتار وأجنحته الشمسية الممتدة.'
+      ),
+      keepDistanceOutcome: L(
+        'Provides a broad planetary perspective as MRO scans the Martian plains below.',
+        'يمنح رؤية كوكبية واسعة بينما يمسح MRO السهول المريخية في الأسفل.'
+      ),
+    },
     sources: [SOURCE_BY_ID['nasa-opportunity']],
   },
 
   'maven-orbiter': {
     id: 'maven-orbiter',
-    name: L('MAVEN Orbiter'),
-    operator: L('NASA / Goddard Space Flight Center (TODO verify)'),
+    name: L('MAVEN Orbiter (Mars Atmosphere and Volatile EvolutioN)', 'مسبار مافن (MAVEN)'),
+    operator: L('NASA / Goddard Space Flight Center', 'ناسا / مركز غودارد لرحلات الفضاء'),
     location: 'mars',
-    launch: UNVERIFIED_TEXT, // TODO verify MAVEN launch date
-    landing: L('Martian Elliptical Orbit (TODO verify)'),
-    status: 'unverified',
+    launch: L('November 18, 2013', '18 نوفمبر 2013'),
+    landing: L('Mars Orbit Insertion: September 22, 2014', 'دخول مدار المريخ: 22 سبتمبر 2014'),
+    status: 'active',
     statusNote: L(
-      'Unconfirmed in the sources we reviewed. Orbit visuals are illustrative and not to true scale or true orbital geometry. (TODO verify MAVEN dates and status).'
+      'Active orbital science laboratory investigating atmospheric loss and serving as secondary rover telemetry relay.',
+      'مختبر مداري نشط يبحث في فقدان الغلاف الجوي ويعمل كحلقة ترحيل ثانوية لاتصالات الروفرات.'
     ),
-    lastVerified: '2026-11-13',
+    lastVerified: '2026-11-14',
     story: {
-      question: UNVERIFIED_TEXT,
-      device: L('Atmospheric exploration orbiter investigating solar wind loss. Orbit visuals are illustrative and not to true scale or true orbital geometry.'),
-      experiment: UNVERIFIED_TEXT,
-      discovery: UNVERIFIED_TEXT,
-      ending: UNVERIFIED_TEXT,
+      question: L(
+        'What physical process stripped Mars of its ancient thick, warm atmosphere and converted it into a frigid, desiccated desert world?',
+        'ما هي الآلية الفيزيائية التي جردت المريخ من غلافه الجوي الكثيف القديم وحولته إلى كوكب صحراوي قاحل وشديد البرودة؟'
+      ),
+      device: L(
+        'An elliptical-orbit science spacecraft carrying energetic ion and magnetic field booms, solar wind sensors, and ultraviolet spectrographs.',
+        'مسبار علمي في مدار بيضاوي يحمل أذرع قياس الأيونات والمجال المغناطيسي، وحساسات الرياح الشمسية، ومطياف الأشعة فوق البنفسجية.'
+      ),
+      experiment: L(
+        'Repeatedly performed "deep dip" passes down to 125 km altitude, directly tasting the upper atmosphere to measure how fast solar storm ions knock atmospheric gas molecules into interplanetary space.',
+        'نفذ مناورات غوص عميق متكررة حتى ارتفاع 125 كم، متذوقاً الغلاف الجوي العلوي مباشرة لقياس سرعة اقتلاع الرياح الشمسية للغازات نحو الفضاء الخارجي.'
+      ),
+      discovery: L(
+        'Proved that solar wind stripping and coronal mass ejections blew away over 85% of Mars’s atmosphere after the young planet lost its protective global magnetic dynamo.',
+        'أثبت أن تجريد الرياح الشمسية والانبعاثات الإكليلية طرد أكثر من 85% من غلاف المريخ الجوي بعد أن فقد الكوكب مجاله المغناطيسي الحامي.'
+      ),
+      ending: L(
+        'Continuing active atmospheric climatology and space-weather monitoring while relaying telemetry from Mars surface missions.',
+        'يواصل أبحاث المناخ الجوي ورصد طقس الفضاء مع ترحيل البيانات اللاسلكية لمركبات السطح المريخي.'
+      ),
     },
-    quiz: null,
-    visitDecision: null,
+    quiz: {
+      prompt: L('According to MAVEN’s measurements, what was the primary driver of Mars’s dramatic atmospheric loss?', 'وفقاً لقياسات مسبار مافن، ما هو المحرك الأساسي للفقدان الهائل لغلاف المريخ الجوي؟'),
+      options: [
+        L('Erosion by energetic solar wind ions after Mars lost its global magnetic shield.', 'التآكل بفعل أيونات الرياح الشمسية بعد فقدان المريخ لمجاله المغناطيسي العالمي.'),
+        L('Absorption of nitrogen and oxygen by subterranean lava tubes.', 'امتصاص النيتروجين والأكسجين في أنابيب الحمم البركانية التحت سطحية.'),
+        L('A catastrophic impact with a giant comet in recent centuries.', 'اصطدام كارثي مع مذنب عملاق في القرون القريبة الماضية.'),
+      ],
+      correctIndex: 0,
+      explanation: L(
+        'MAVEN proved that when Mars’s internal magnetic dynamo cooled and died billions of years ago, the unshielded solar wind stripped away the atmosphere into space.',
+        'أثبت مافن أنه عندما برد الدينامو المغناطيسي الداخلي للمريخ قبل مليارات السنين، قامت الرياح الشمسية غير المحجوبة بنزع الغلاف الجوي نحو الفضاء.'
+      ),
+    },
+    visitDecision: {
+      prompt: L('ORBITAL VANTAGE POINT', 'نقطة المراقبة المدارية'),
+      approachOutcome: L(
+        'MAVEN’s distinctive gull-wing solar panels and long articulated instrument boom are prominently visible along its elliptical orbit.',
+        'تظهر ألواح مافن الشمسية المميزة وجناح أجهزة الاستشعار بوضوح في مساره البيضاوي الممتد.'
+      ),
+      keepDistanceOutcome: L(
+        'Viewing from orbit illustrates the dipping trajectory passing between interplanetary space and the upper atmosphere.',
+        'المشاهدة المدارية توضح المسار الممتد بين الفضاء السحيق والطبقات الجوية العليا.'
+      ),
+    },
     sources: [SOURCE_BY_ID['nasa-opportunity']],
   },
 };

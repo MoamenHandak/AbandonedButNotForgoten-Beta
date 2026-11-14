@@ -642,11 +642,14 @@ export default function PlanetaryShowroom({
 
   // UX Redesign States (Tasks 1, 2, 3, 6)
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(true);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false); // Default hidden so 3D model is visible first
+  const [isDetailsLeaving, setIsDetailsLeaving] = useState(false); // Controls smooth slide-out exit animation
   const [detailTab, setDetailTab] = useState('info'); // 'info' | 'task' | 'quiz'
   const [quizState, setQuizState] = useState({});
   const [isOrbitalView, setIsOrbitalView] = useState(false);
   const [isOrbitTransitioning, setIsOrbitTransitioning] = useState(false);
+
+  const hotspotRef = useRef(null);
 
   const activeLang = useActiveLanguage();
   const storyUi = getStoryUiCopy(activeLang);
@@ -699,6 +702,11 @@ export default function PlanetaryShowroom({
   const currentVehicle = filteredVehicles[currentIndex] || filteredVehicles[0];
   const isMoon = currentVehicle?.destination === 'moon';
   const isDeepSpace = currentVehicle?.destination === 'deepspace';
+
+  const currentVehicleRef = useRef(currentVehicle);
+  useEffect(() => {
+    currentVehicleRef.current = currentVehicle;
+  }, [currentVehicle]);
 
   const easeInOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
@@ -754,7 +762,8 @@ export default function PlanetaryShowroom({
         setTimeout(() => {
           setIsOrbitalView(Boolean(vehicle.isOrbiter));
           setCurrentIndex(idx);
-          setIsDetailsOpen(true);
+          setIsDetailsOpen(false);
+          setIsDetailsLeaving(false);
 
           const s = threeRef.current;
           if (vehicle.isOrbiter) {
@@ -817,7 +826,8 @@ export default function PlanetaryShowroom({
       }
 
       setCurrentIndex(idx);
-      setIsDetailsOpen(true);
+      setIsDetailsOpen(false);
+      setIsDetailsLeaving(false);
 
       const s = threeRef.current;
       if (vehicle.isOrbiter) {
@@ -902,9 +912,24 @@ export default function PlanetaryShowroom({
 
   const isDialogVisible = isCraftDialogOpen && !isLoading3D && !loadError;
 
+  const handleOpenDetails = useCallback(() => {
+    dispatchAudioCue('camera_servo');
+    setIsDetailsLeaving(false);
+    setIsDetailsOpen(true);
+  }, []);
+
+  const handleCloseDetails = useCallback(() => {
+    setIsDetailsLeaving(true);
+    setTimeout(() => {
+      setIsDetailsOpen(false);
+      setIsDetailsLeaving(false);
+    }, 280);
+  }, []);
+
   const handleCraftDialogComplete = useCallback(() => {
     setIsCraftDialogOpen(false);
-    setIsDetailsOpen(true);
+    setIsDetailsOpen(false);
+    setIsDetailsLeaving(false);
     // Always transition to the first vehicle of the active destination
     // (Opportunity on Mars, Lunar Rover on Moon / All, Deep Space Probe on Deep Space).
     selectVehicleIndex(0, true, 'camera_servo');
@@ -1148,6 +1173,7 @@ export default function PlanetaryShowroom({
     const timer = new THREE.Timer();
     const prevCamPos = new THREE.Vector3().copy(camera.position);
     const prevTarget = new THREE.Vector3().copy(controls.target);
+    const _hotspotPos = new THREE.Vector3();
 
     const stopLoop = () => {
       if (threeRef.current.animFrameId !== null) {
@@ -1162,6 +1188,32 @@ export default function PlanetaryShowroom({
       renderer.render(scene, camera);
       prevCamPos.copy(camera.position);
       prevTarget.copy(controls.target);
+
+      if (hotspotRef.current) {
+        const cv = currentVehicleRef.current;
+        if (cv) {
+          let worldPos = null;
+          if (cv.isOrbiter && threeRef.current.orbitLayer) {
+            worldPos = threeRef.current.orbitLayer.getOrbiterPosition(cv.id);
+          }
+          if (!worldPos && controls) {
+            worldPos = controls.target;
+          }
+          if (worldPos) {
+            _hotspotPos.copy(worldPos);
+            _hotspotPos.y += cv.isOrbiter ? 1.5 : 1.15;
+            _hotspotPos.project(camera);
+            if (_hotspotPos.z < 1.0) {
+              const x = (_hotspotPos.x * 0.5 + 0.5) * window.innerWidth;
+              const y = (-(_hotspotPos.y * 0.5) + 0.5) * window.innerHeight;
+              hotspotRef.current.style.display = 'flex';
+              hotspotRef.current.style.transform = `translate(-50%, -50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+            } else {
+              hotspotRef.current.style.display = 'none';
+            }
+          }
+        }
+      }
     };
     threeRef.current.renderOnce = renderOnce;
 
@@ -1227,6 +1279,33 @@ export default function PlanetaryShowroom({
 
       prevCamPos.copy(s.camera.position);
       prevTarget.copy(s.controls.target);
+
+      if (hotspotRef.current && s.camera) {
+        const cv = currentVehicleRef.current;
+        if (cv) {
+          let worldPos = null;
+          if (cv.isOrbiter && s.orbitLayer) {
+            worldPos = s.orbitLayer.getOrbiterPosition(cv.id);
+          }
+          if (!worldPos && s.controls) {
+            worldPos = s.controls.target;
+          }
+          if (worldPos) {
+            _hotspotPos.copy(worldPos);
+            _hotspotPos.y += cv.isOrbiter ? 1.5 : 1.15;
+            _hotspotPos.project(s.camera);
+            if (_hotspotPos.z < 1.0) {
+              const x = (_hotspotPos.x * 0.5 + 0.5) * window.innerWidth;
+              const y = (-(_hotspotPos.y * 0.5) + 0.5) * window.innerHeight;
+              hotspotRef.current.style.display = 'flex';
+              hotspotRef.current.style.transform = `translate(-50%, -50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+            } else {
+              hotspotRef.current.style.display = 'none';
+            }
+          }
+        }
+      }
+
       s.renderer.render(s.scene, s.camera);
     };
 
@@ -2311,7 +2390,7 @@ export default function PlanetaryShowroom({
 
       {/* Task 3: Mission Details Panel with Info, Task, Quiz tabs */}
       {!isDialogVisible && isDetailsOpen && (
-        <aside className="showroom-details-panel" role="region" aria-label="Mission Details">
+        <aside className={`showroom-details-panel ${isDetailsLeaving ? 'is-leaving' : ''}`} role="region" aria-label="Mission Details">
           <div className="details-top-header">
             <div className="details-title-group">
               <p className="details-eyebrow">
@@ -2324,7 +2403,7 @@ export default function PlanetaryShowroom({
             <button
               type="button"
               className="details-close-btn"
-              onClick={() => setIsDetailsOpen(false)}
+              onClick={handleCloseDetails}
               aria-label="Close details and inspect 3D model"
               title="Close panel to inspect 3D model unobstructed"
             >
@@ -2535,12 +2614,33 @@ export default function PlanetaryShowroom({
         </aside>
       )}
 
+      {/* Interactive Floating 3D Model Beacon ("!" Hotspot) */}
+      {!isDialogVisible && !isDetailsOpen && (
+        <div
+          ref={hotspotRef}
+          className="showroom-model-hotspot"
+          onClick={handleOpenDetails}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') handleOpenDetails();
+          }}
+          aria-label={`Open mission dossier for ${currentVehicle.name}`}
+          title="Click to view mission details, tasks and quiz"
+        >
+          <div className="model-hotspot-badge">
+            <span className="model-hotspot-exclamation">!</span>
+          </div>
+          <span className="model-hotspot-label">{currentVehicle.name} • INSPECT</span>
+        </div>
+      )}
+
       {/* Floating Reopen Button if details closed */}
       {!isDialogVisible && !isDetailsOpen && (
         <button
           type="button"
           className="showroom-open-details-btn"
-          onClick={() => setIsDetailsOpen(true)}
+          onClick={handleOpenDetails}
           aria-label="Open mission details"
         >
           <Info size={16} />
