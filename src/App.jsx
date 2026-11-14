@@ -43,10 +43,20 @@ export default function App() {
   useEffect(() => {
     const normalized = readStoredSettings();
     setSettings(normalized);
+    const lang = normalized.language || 'en';
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     window.dispatchEvent(
       new CustomEvent('gameSettingsChange', { detail: { ...normalized }, bubbles: true })
     );
   }, []);
+
+  // Update HTML lang and dir whenever language changes
+  useEffect(() => {
+    const lang = settings?.language || 'en';
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }, [settings?.language]);
 
   // Save settings handler
   const handleSaveSettings = (newSettings) => {

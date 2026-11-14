@@ -54,6 +54,9 @@ class SurfaceAudioEngine {
     this.bed = [];
     this.crackleTimer = null;
     this.windGustTimer = null;
+    this.musicBed = [];
+    this.musicTimer = null;
+    this.musicType = null;
     this.installed = false;
   }
 
@@ -95,6 +98,7 @@ class SurfaceAudioEngine {
       window.removeEventListener('touchstart', unlock);
       window.removeEventListener('keydown', unlock);
       this.stopAmbience();
+      this.stopMusic();
       if (this.ctx) this.ctx.close();
       this.ctx = null;
       this.installed = false;
@@ -132,7 +136,16 @@ class SurfaceAudioEngine {
   handle(cue, detail = {}) {
     if (!cue) return;
     this.resume();
-    if (cue === 'surface_ambience') {
+    if (cue === 'menu_music') {
+      this.startMenuMusic();
+    } else if (cue === 'menu_music_stop') {
+      this.stopMusic();
+    } else if (cue === 'credits_music') {
+      this.startCreditsMusic();
+    } else if (cue === 'credits_music_stop') {
+      this.stopMusic();
+    } else if (cue === 'surface_ambience') {
+      this.stopMusic();
       this.startAmbience(detail.planet);
     } else if (cue === 'surface_ambience_stop') {
       this.stopAmbience();
@@ -150,11 +163,216 @@ class SurfaceAudioEngine {
     } else if (cue === 'part_unlock') {
       this.playBlip(0.06, 1200, 600);
     } else if (cue === 'start_journey') {
+      this.stopMusic();
       this.playServo('launch');
       this.playThruster('heavy');
     } else if (String(cue).startsWith('story_step_')) {
       this.playBlip(0.05, 800, 1200);
     }
+  }
+
+  /**
+   * Procedural Space Ambient Music for Main Menu (Item 7)
+   */
+  startMenuMusic() {
+    this.resume();
+    if (!this.ctx || this.musicType === 'menu') return;
+    this.stopMusic();
+    this.musicType = 'menu';
+
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // 1. Deep Space Sub-Bass Drone (A1: 55Hz & E2: 82.4Hz)
+    const drone1 = ctx.createOscillator();
+    drone1.type = 'sine';
+    drone1.frequency.value = 55;
+
+    const drone2 = ctx.createOscillator();
+    drone2.type = 'triangle';
+    drone2.frequency.value = 82.4;
+
+    const droneFilter = ctx.createBiquadFilter();
+    droneFilter.type = 'lowpass';
+    droneFilter.frequency.value = 140;
+
+    const droneGain = ctx.createGain();
+    droneGain.gain.setValueAtTime(0.0001, now);
+    droneGain.gain.linearRampToValueAtTime(0.18, now + 2.5);
+
+    drone1.connect(droneFilter);
+    drone2.connect(droneFilter);
+    droneFilter.connect(droneGain);
+    droneGain.connect(this.music);
+
+    drone1.start();
+    drone2.start();
+
+    // 2. Cosmic Pad Chords (Space harmony chords)
+    const padFilter = ctx.createBiquadFilter();
+    padFilter.type = 'lowpass';
+    padFilter.frequency.value = 450;
+    padFilter.Q.value = 1.2;
+
+    const padGain = ctx.createGain();
+    padGain.gain.setValueAtTime(0.0001, now);
+    padGain.gain.linearRampToValueAtTime(0.14, now + 3.0);
+    padFilter.connect(padGain);
+    padGain.connect(this.music);
+
+    const freqs = [130.81, 155.56, 196.0, 233.08];
+    const padOscs = freqs.map((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.value = f;
+      osc.detune.value = (i - 1.5) * 6;
+      osc.connect(padFilter);
+      osc.start();
+      return osc;
+    });
+
+    const padLfo = ctx.createOscillator();
+    padLfo.frequency.value = 0.08;
+    const padLfoGain = ctx.createGain();
+    padLfoGain.gain.value = 160;
+    padLfo.connect(padLfoGain);
+    padLfoGain.connect(padFilter.frequency);
+    padLfo.start();
+
+    this.musicBed.push(
+      { source: drone1, gain: droneGain },
+      { source: drone2, gain: null },
+      { source: padFilter, gain: padGain },
+      ...padOscs.map((o) => ({ source: o, gain: null })),
+      { source: padLfo, gain: padLfoGain }
+    );
+
+    // 3. Random celestial crystalline chime pings
+    const pentatonic = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
+    this.musicTimer = setInterval(() => {
+      if (!this.ctx || this.settings.mute || this.musicType !== 'menu') return;
+      const tNow = this.ctx.currentTime;
+      const noteFreq = pentatonic[Math.floor(Math.random() * pentatonic.length)];
+
+      const chime = this.ctx.createOscillator();
+      chime.type = 'sine';
+      chime.frequency.value = noteFreq;
+
+      const chimeGain = this.ctx.createGain();
+      chimeGain.gain.setValueAtTime(0.0001, tNow);
+      chimeGain.gain.exponentialRampToValueAtTime(0.06, tNow + 0.05);
+      chimeGain.gain.exponentialRampToValueAtTime(0.0001, tNow + 2.8);
+
+      chime.connect(chimeGain);
+      chimeGain.connect(this.music);
+
+      chime.start(tNow);
+      chime.stop(tNow + 3.0);
+    }, 5500);
+  }
+
+  /**
+   * Warm, reflective, emotional space music for Credits (Item 7)
+   */
+  startCreditsMusic() {
+    this.resume();
+    if (!this.ctx || this.musicType === 'credits') return;
+    this.stopMusic();
+    this.musicType = 'credits';
+
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    const bass = ctx.createOscillator();
+    bass.type = 'sine';
+    bass.frequency.value = 43.65;
+
+    const bassWarmth = ctx.createOscillator();
+    bassWarmth.type = 'triangle';
+    bassWarmth.frequency.value = 87.31;
+
+    const bassGain = ctx.createGain();
+    bassGain.gain.setValueAtTime(0.0001, now);
+    bassGain.gain.linearRampToValueAtTime(0.18, now + 2.0);
+
+    bass.connect(bassGain);
+    bassWarmth.connect(bassGain);
+    bassGain.connect(this.music);
+
+    bass.start();
+    bassWarmth.start();
+
+    const chordFreqs = [174.61, 220.0, 261.63, 329.63, 392.0];
+    const chordFilter = ctx.createBiquadFilter();
+    chordFilter.type = 'lowpass';
+    chordFilter.frequency.value = 600;
+
+    const chordGain = ctx.createGain();
+    chordGain.gain.setValueAtTime(0.0001, now);
+    chordGain.gain.linearRampToValueAtTime(0.12, now + 3.2);
+
+    chordFilter.connect(chordGain);
+    chordGain.connect(this.music);
+
+    const chordOscs = chordFreqs.map((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.value = f;
+      osc.detune.value = (i - 2) * 5;
+      osc.connect(chordFilter);
+      osc.start();
+      return osc;
+    });
+
+    this.musicBed.push(
+      { source: bass, gain: bassGain },
+      { source: bassWarmth, gain: null },
+      { source: chordFilter, gain: chordGain },
+      ...chordOscs.map((o) => ({ source: o, gain: null }))
+    );
+
+    const chimeNotes = [659.25, 783.99, 880.0, 987.77, 1046.5, 1318.5];
+    this.musicTimer = setInterval(() => {
+      if (!this.ctx || this.settings.mute || this.musicType !== 'credits') return;
+      const tNow = this.ctx.currentTime;
+      const freq = chimeNotes[Math.floor(Math.random() * chimeNotes.length)];
+
+      const bell = this.ctx.createOscillator();
+      bell.type = 'sine';
+      bell.frequency.value = freq;
+
+      const bellGain = this.ctx.createGain();
+      bellGain.gain.setValueAtTime(0.0001, tNow);
+      bellGain.gain.exponentialRampToValueAtTime(0.05, tNow + 0.04);
+      bellGain.gain.exponentialRampToValueAtTime(0.0001, tNow + 3.2);
+
+      bell.connect(bellGain);
+      bellGain.connect(this.music);
+
+      bell.start(tNow);
+      bell.stop(tNow + 3.4);
+    }, 4200);
+  }
+
+  stopMusic() {
+    this.musicType = null;
+    if (this.musicTimer) {
+      clearInterval(this.musicTimer);
+      this.musicTimer = null;
+    }
+    const now = this.ctx?.currentTime ?? 0;
+    this.musicBed.forEach((node) => {
+      try {
+        if (node.gain) {
+          node.gain.gain.cancelScheduledValues(now);
+          node.gain.gain.setTargetAtTime(0.0001, now, 0.12);
+        }
+        if (node.source?.stop) node.source.stop(now + 0.5);
+      } catch {
+        /* already stopped */
+      }
+    });
+    this.musicBed = [];
   }
 
   startAmbience(planet) {

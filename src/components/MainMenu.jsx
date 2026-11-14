@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Settings, Users, ShieldCheck } from 'lucide-react';
 import ModelPreviewCanvas from './ModelPreviewCanvas';
 import { prefetchGLB } from '../utils/modelCache';
+import { useActiveLanguage } from '../data/craftStories';
+import { getTranslations } from '../constants/translations';
 
 export default function MainMenu({
   isEntered,
@@ -13,8 +15,19 @@ export default function MainMenu({
   onOpenCredits,
   onOpenSources
 }) {
+  const activeLang = useActiveLanguage();
+  const t = getTranslations(activeLang).menu;
+
   // Stagger mounting the two menu tile WebGL canvases until after the splash->menu transition settles
   const [tileStage, setTileStage] = useState(0);
+
+  // Space Ambient Music for Main Menu (Item 7)
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'menu_music' } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'menu_music_stop' } }));
+    };
+  }, []);
 
   useEffect(() => {
     if (!isEntered) {
@@ -28,6 +41,7 @@ export default function MainMenu({
       clearTimeout(t2);
     };
   }, [isEntered]);
+
   // Warm light menu tile models quietly once splash is painted so tile reveal is instant
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -67,34 +81,38 @@ export default function MainMenu({
         id="nms-splash"
         className="nms-splash"
         aria-label="Title screen"
+        dir={activeLang === 'ar' ? 'rtl' : 'ltr'}
         onClick={() => {
           if (!isEntered) onEnter(false);
         }}
       >
-        <p className="nms-splash-kicker">A little space adventure</p>
+        <p className="nms-splash-kicker">{t.splashKicker}</p>
         <p className="nms-splash-title" role="heading" aria-level={1}>
-          ABANDONED BUT NOT FORGOTTEN
+          {t.splashTitle}
         </p>
         <p className="nms-splash-prompt">
-          <span className="nms-prompt-key">Press any key to continue</span>
-          <span className="nms-prompt-touch">Tap to continue</span>
+          <span className="nms-prompt-key">{t.pressKey}</span>
+          <span className="nms-prompt-touch">{t.tapToContinue}</span>
         </p>
-        <p className="nms-splash-foot">Every machine has a story</p>
+        <p className="nms-splash-foot">{t.splashFoot}</p>
       </section>
 
       {/* STEP 2: Main Navigation Menu */}
-      <header className="nms-header">
-        <h1 className="nms-title">ABANDONED BUT NOT FORGOTTEN</h1>
+      <header className="nms-header" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
+        <h1 className="nms-title">{t.splashTitle}</h1>
         <span className="nms-diamond" aria-hidden="true" />
       </header>
 
       {/* Two big tiles: Start Journey & Spacecrafts */}
-      <nav className="nms-tiles" aria-label="Main Navigation">
+      <nav className="nms-tiles" aria-label="Main Navigation" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
         <button
           id="btn-start-journey"
           type="button"
           className="nms-tile nms-tile-moon"
-          onClick={onStartJourney}
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'menu_music_stop' } }));
+            onStartJourney();
+          }}
         >
           <span className="nms-tile-art">
             {isEntered && tileStage >= 1 && (
@@ -111,8 +129,8 @@ export default function MainMenu({
           </span>
           <span className="nms-tile-pin" aria-hidden="true" />
           <span className="nms-tile-label">
-            <strong>Start Journey</strong>
-            <small>Open the logbook and find the forgotten machines</small>
+            <strong>{t.startJourney}</strong>
+            <small>{t.startJourneyDesc}</small>
           </span>
         </button>
 
@@ -137,14 +155,14 @@ export default function MainMenu({
           </span>
           <span className="nms-tile-pin" aria-hidden="true" />
           <span className="nms-tile-label">
-            <strong>Spacecrafts</strong>
-            <small>Inspect every rover and lander in 3D</small>
+            <strong>{t.spacecrafts}</strong>
+            <small>{t.spacecraftsDesc}</small>
           </span>
         </button>
       </nav>
 
       {/* Bottom-left small list */}
-      <ul className="nms-side-list">
+      <ul className="nms-side-list" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
         <li>
           <button
             id="btn-open-settings"
@@ -154,8 +172,8 @@ export default function MainMenu({
           >
             <Settings size={18} aria-hidden="true" />
             <span>
-              <strong>Settings</strong>
-              <small>Audio, graphics &amp; language</small>
+              <strong>{t.settings}</strong>
+              <small>{t.settingsDesc}</small>
             </span>
           </button>
         </li>
@@ -168,8 +186,8 @@ export default function MainMenu({
           >
             <Users size={18} aria-hidden="true" />
             <span>
-              <strong>Credits</strong>
-              <small>The crew behind the game</small>
+              <strong>{t.credits}</strong>
+              <small>{t.creditsDesc}</small>
             </span>
           </button>
         </li>
@@ -183,8 +201,8 @@ export default function MainMenu({
             >
               <ShieldCheck size={18} aria-hidden="true" />
               <span>
-                <strong>Sources</strong>
-                <small>Verified mission records &amp; notes</small>
+                <strong>{t.sources}</strong>
+                <small>{t.sourcesDesc}</small>
               </span>
             </button>
           </li>
@@ -192,9 +210,8 @@ export default function MainMenu({
       </ul>
 
       {/* Bottom-right keyboard navigation hint */}
-      <p className="nms-hint" aria-hidden="true">
-        <span className="nms-hint-key">Enter</span> to select and{' '}
-        <span className="nms-hint-key">Tab</span> to move
+      <p className="nms-hint" aria-hidden="true" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
+        <span className="nms-hint-key">Enter</span> {t.navHint}
       </p>
     </>
   );

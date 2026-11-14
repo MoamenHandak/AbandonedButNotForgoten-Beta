@@ -39,6 +39,7 @@ import {
   getEffectivePixelRatio
 } from '../constants/settings';
 import { getCraftStory, getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
+import { getTranslations } from '../constants/translations';
 import MissionBriefingDialog from './MissionBriefingDialog';
 import StatusBadge from './StatusBadge';
 import ShowroomStoryPanel from './ShowroomStoryPanel';
@@ -649,6 +650,7 @@ export default function PlanetaryShowroom({
 
   const activeLang = useActiveLanguage();
   const storyUi = getStoryUiCopy(activeLang);
+  const t = getTranslations(activeLang).showroom;
 
   const overlayPausedRef = useRef(false);
   overlayPausedRef.current = showStoryModal || moreEquipmentOpen || sourcesOpen || isPauseMenuOpen;
@@ -2116,7 +2118,7 @@ export default function PlanetaryShowroom({
 
       {/* Top Header HUD Bar — Clean layout with Back/Surface, Destination badge, Counter, and Accessible Pause Button (Task 1) */}
       {!isDialogVisible && (
-        <header className="showroom-top-bar" role="banner">
+        <header className="showroom-top-bar" role="banner" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isOrbitalView ? (
               <button
@@ -2127,7 +2129,7 @@ export default function PlanetaryShowroom({
                 title="Descend back to surface exploration view"
               >
                 <Compass size={15} />
-                <span className="btn-label">SURFACE VIEW</span>
+                <span className="btn-label">{t.surfaceView || 'SURFACE VIEW'}</span>
               </button>
             ) : (
               <button
@@ -2138,13 +2140,13 @@ export default function PlanetaryShowroom({
                 title={onBackToChoice ? 'Back to Destinations' : 'Back to Main Menu'}
               >
                 <ArrowLeft size={16} />
-                <span className="btn-label">BACK</span>
+                <span className="btn-label">{t.back || 'BACK'}</span>
               </button>
             )}
 
             <div className="showroom-destination-badge">
               {isMoon ? <Orbit size={16} /> : isDeepSpace ? <Radio size={16} /> : <Sparkles size={16} />}
-              <span>{isOrbitalView ? `${currentVehicle.planet} // ORBITAL SPACE` : currentVehicle.sector}</span>
+              <span>{isOrbitalView ? `${currentVehicle.planet} // ${t.orbitalSpace || 'ORBITAL SPACE'}` : currentVehicle.sector}</span>
             </div>
           </div>
 
@@ -2163,7 +2165,7 @@ export default function PlanetaryShowroom({
               title="Pause exploration (Esc or P)"
             >
               <Pause size={14} />
-              <span className="btn-label">PAUSE</span>
+              <span className="btn-label">{t.pause || 'PAUSE'}</span>
             </button>
           </div>
         </header>
@@ -2176,6 +2178,7 @@ export default function PlanetaryShowroom({
           role="dialog"
           aria-modal="true"
           aria-label="Exploration Paused"
+          dir={activeLang === 'ar' ? 'rtl' : 'ltr'}
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsPauseMenuOpen(false);
           }}
@@ -2195,7 +2198,7 @@ export default function PlanetaryShowroom({
               <span className="showroom-pause-eyebrow">
                 {currentVehicle.planet} // SIMULATION HALTED
               </span>
-              <h2 className="showroom-pause-title">EXPLORATION PAUSED</h2>
+              <h2 className="showroom-pause-title">{t.paused || 'EXPLORATION PAUSED'}</h2>
             </div>
 
             <div className="showroom-pause-actions">
@@ -2205,7 +2208,7 @@ export default function PlanetaryShowroom({
                 onClick={() => setIsPauseMenuOpen(false)}
               >
                 <Play size={18} />
-                <span>RESUME EXPLORATION</span>
+                <span>{t.resume || 'RESUME EXPLORATION'}</span>
               </button>
 
               <button
@@ -2217,7 +2220,7 @@ export default function PlanetaryShowroom({
                 }}
               >
                 <Layers size={18} />
-                <span>SPACECRAFTS BRIEFING</span>
+                <span>{t.spacecrafts || 'SPACECRAFTS'}</span>
               </button>
 
               <button
@@ -2230,7 +2233,7 @@ export default function PlanetaryShowroom({
                 }}
               >
                 <Archive size={18} />
-                <span>EQUIPMENT ARCHIVE</span>
+                <span>{t.moreEquipment || 'MORE EQUIPMENT'}</span>
               </button>
 
               <button
@@ -2255,7 +2258,7 @@ export default function PlanetaryShowroom({
                   }}
                 >
                   <RotateCcw size={18} />
-                  <span>CHANGE DESTINATION</span>
+                  <span>{t.changeDest || 'CHANGE DESTINATION'}</span>
                 </button>
               )}
 
@@ -2268,7 +2271,7 @@ export default function PlanetaryShowroom({
                 }}
               >
                 <X size={18} />
-                <span>EXIT TO MAIN MENU</span>
+                <span>{t.exitToMenu || 'EXIT TO MAIN MENU'}</span>
               </button>
             </div>
 
@@ -2314,7 +2317,7 @@ export default function PlanetaryShowroom({
               onClick={() => setDetailTab('info')}
             >
               <Info size={14} />
-              <span>INFO</span>
+              <span>{t.infoTab || 'INFO'}</span>
             </button>
             <button
               type="button"
@@ -2324,7 +2327,7 @@ export default function PlanetaryShowroom({
               onClick={() => setDetailTab('task')}
             >
               <CheckCircle2 size={14} />
-              <span>TASK</span>
+              <span>{t.taskTab || 'TASK'}</span>
             </button>
             <button
               type="button"
@@ -2334,7 +2337,7 @@ export default function PlanetaryShowroom({
               onClick={() => setDetailTab('quiz')}
             >
               <HelpCircle size={14} />
-              <span>QUIZ</span>
+              <span>{t.quizTab || 'QUIZ'}</span>
             </button>
           </nav>
 
@@ -2478,7 +2481,7 @@ export default function PlanetaryShowroom({
                   {isAnswered && (
                     <>
                       <div className={`details-quiz-feedback ${!isCorrect ? 'is-incorrect-banner' : ''}`}>
-                        <strong>{isCorrect ? '✓ VERIFIED KNOWLEDGE' : '⚠️ REVIEW THE ARCHIVE'}</strong>
+                        <strong>{isCorrect ? (t.verifiedKnowledge || '✓ VERIFIED KNOWLEDGE') : (t.reviewArchive || '⚠️ REVIEW THE ARCHIVE')}</strong>
                         <p style={{ margin: '6px 0 0' }}>{quiz.explanation}</p>
                       </div>
 
@@ -2493,7 +2496,7 @@ export default function PlanetaryShowroom({
                             }));
                           }}
                         >
-                          TRY AGAIN
+                          {t.tryAgain || 'TRY AGAIN'}
                         </button>
                       )}
                     </>
@@ -2520,59 +2523,56 @@ export default function PlanetaryShowroom({
 
       {/* 3D Camera Controls Hint */}
       {!isDialogVisible && (
-        <div className="showroom-controls-hint" aria-hidden="true">
+        <div className="showroom-controls-hint" aria-hidden="true" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
           <RotateCw size={14} />
-          <span>DRAG TO ORBIT • PINCH / SCROLL TO ZOOM • SELECT DOTS TO SWITCH CRAFT</span>
+          <span>{t.controlsHint || 'DRAG TO ORBIT • PINCH / SCROLL TO ZOOM • ARROWS TO SWITCH CRAFT'}</span>
         </div>
       )}
 
-      {/* Task 2: Minimal Clean Dot Indicators */}
+      {/* Side Navigation Arrows (Item 3, media_1794609980081_8ba58ad9) */}
       {!isDialogVisible && filteredVehicles.length > 1 && (
-        <footer className="showroom-dots-strip" role="navigation" aria-label="Vehicle Selector">
-          <div className="showroom-dots-wrapper">
-            <button
-              type="button"
-              className="showroom-dot-nav-btn"
-              onClick={handlePrev}
-              aria-label="Previous spacecraft"
-              title="Previous spacecraft"
-            >
-              <ChevronLeft size={18} />
-            </button>
+        <>
+          <button
+            type="button"
+            className="showroom-side-nav-btn showroom-side-nav-left"
+            onClick={handlePrev}
+            aria-label="Previous spacecraft"
+            title="Previous spacecraft"
+          >
+            <ChevronLeft size={22} aria-hidden="true" />
+          </button>
 
-            <div className="showroom-dots-track">
-              {filteredVehicles.map((v, idx) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  className="showroom-dot-target"
-                  onClick={() => selectVehicleIndex(idx, true)}
-                  aria-label={`Select ${v.name}${v.isOrbiter ? ' (Orbiter)' : ''}`}
-                  title={`${v.name}${v.isOrbiter ? ' [Orbiter]' : ''}`}
-                >
-                  <span
-                    className={`showroom-dot-shape ${
-                      idx === currentIndex ? 'is-active' : ''
-                    } ${v.isOrbiter ? 'is-orbiter' : ''} ${!isMoon ? 'is-mars' : ''}`}
-                  />
-                </button>
-              ))}
-            </div>
+          <button
+            type="button"
+            className="showroom-side-nav-btn showroom-side-nav-right"
+            onClick={handleNext}
+            aria-label="Next spacecraft"
+            title="Next spacecraft"
+          >
+            <ChevronRight size={22} aria-hidden="true" />
+          </button>
+        </>
+      )}
 
-            <button
-              type="button"
-              className="showroom-dot-nav-btn"
-              onClick={handleNext}
-              aria-label="Next spacecraft"
-              title="Next spacecraft"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          <span className="showroom-dot-active-name">
+      {/* Bottom Center Vehicle Title & Minimal Dots (Item 3, media_1794609980081_8ba58ad9) */}
+      {!isDialogVisible && filteredVehicles.length > 1 && (
+        <footer className="showroom-bottom-dock" role="navigation" aria-label="Vehicle Selector">
+          <span className="showroom-dock-title">
             {currentVehicle.name} {currentVehicle.isOrbiter ? '• ORBITER' : ''}
           </span>
+
+          <div className="showroom-dock-dots" role="tablist">
+            {filteredVehicles.map((v, idx) => (
+              <button
+                key={v.id}
+                type="button"
+                className={`showroom-dock-dot ${idx === currentIndex ? 'is-active' : ''}`}
+                onClick={() => selectVehicleIndex(idx, true)}
+                aria-label={`Select ${v.name}${v.isOrbiter ? ' (Orbiter)' : ''}`}
+                title={`${v.name}${v.isOrbiter ? ' [Orbiter]' : ''}`}
+              />
+            ))}
+          </div>
         </footer>
       )}
 

@@ -13,18 +13,20 @@ import {
 import ModelPreviewCanvas from './ModelPreviewCanvas';
 import { prefetchGLB, preloadImage } from '../utils/modelCache';
 import { getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
+import { getTranslations } from '../constants/translations';
 import '../styles/story.css';
 
 const loadShowroom = () => import('./PlanetaryShowroom');
 const PlanetaryShowroom = lazy(loadShowroom);
 
-function ShowroomLoadingOverlay() {
+function ShowroomLoadingOverlay({ activeLang = 'en' }) {
+  const t = getTranslations(activeLang).story;
   return (
     <div className="launch-loading-screen" role="status" aria-live="polite">
       <div className="launch-loading-card">
         <Orbit className="launch-loading-icon spin-slow" size={42} aria-hidden="true" />
-        <p className="launch-loading-eyebrow">INITIALIZING SURFACE MODULE</p>
-        <h1 className="initial-loading-title">LOADING PLANETARY SHOWROOM</h1>
+        <p className="launch-loading-eyebrow">{t.initializing}</p>
+        <h1 className="initial-loading-title">{t.loadingShowroom}</h1>
       </div>
     </div>
   );
@@ -174,6 +176,7 @@ export default function StoryGame({ onBackToMenu }) {
   const [craftBrowse, setCraftBrowse] = useState(false);
   const activeLang = useActiveLanguage();
   const storyUi = getStoryUiCopy(activeLang);
+  const t = getTranslations(activeLang).story;
 
   // Progressive scene-by-scene warming: pre-warm Choice globes during Scene 1/2,
   // and only warm PlanetaryShowroom JS code when reaching Choice
@@ -295,12 +298,12 @@ export default function StoryGame({ onBackToMenu }) {
             ================================================================ */}
         {currentScene === 'book' && (
           <StoryDialogueBox
-            chapter="PROLOGUE // THE ARCHIVE UNSEALED"
+            chapter={t.scene1Chapter}
             bgImage="/assets/story/scene1_book.jpg"
             bgAlt="Young girl in her room opening a magical glowing NASA space exploration book"
-            lines={SCENE_1_LINES}
+            lines={t.scene1Lines}
             onComplete={() => goToScene('drift')}
-            completeLabel="ENTER THE BOOK"
+            completeLabel={t.continue}
             completeIcon={ChevronRight}
           />
         )}
@@ -310,12 +313,12 @@ export default function StoryGame({ onBackToMenu }) {
             ================================================================ */}
         {currentScene === 'drift' && (
           <StoryDialogueBox
-            chapter="CHAPTER I // THE COSMIC ARCHIVE"
+            chapter={t.scene2Chapter}
             bgImage="/assets/story/scene2_drift.jpg"
             bgAlt="The girl weightlessly drifting through celestial nebulae and space"
-            lines={SCENE_2_LINES}
+            lines={t.scene2Lines}
             onComplete={() => goToScene('choice')}
-            completeLabel="MAKE A CHOICE"
+            completeLabel={t.openLogbook}
             completeIcon={Compass}
           />
         )}
@@ -324,22 +327,22 @@ export default function StoryGame({ onBackToMenu }) {
             SCENE 3: THE CHOICE ("WHERE DO YOU WANT TO GO?" + 3D Moon & Mars)
             ================================================================ */}
         {currentScene === 'choice' && (
-          <section className="story-choice-view" aria-label="Destination Selection">
+          <section className="story-choice-view" aria-label="Destination Selection" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
             <div className="choice-hud-header">
-              <h2 className="choice-title">WHERE DO YOU WANT TO GO?</h2>
+              <h2 className="choice-title">{t.choiceTitle}</h2>
               <p className="story-logbook-note is-centered">
                 <BookOpen size={14} aria-hidden="true" />
                 <span>{storyUi.logbookNotes.choice}</span>
               </p>
               <p className="choice-subtitle">
-                Select a celestial destination to investigate halted rovers, landers, and deep-space probes
+                {t.exploringDesc}
               </p>
             </div>
 
             <div className="choice-destinations-grid choice-grid-2">
               {/* Destination 1: 3D MOON */}
               <article className="planet-choice-card moon-choice-card">
-                <span className="card-hud-badge">TARGET // SECTOR 01</span>
+                <span className="card-hud-badge">{t.targetSector1}</span>
 
                 <div className="planet-3d-viewport">
                   <ModelPreviewCanvas
@@ -353,9 +356,9 @@ export default function StoryGame({ onBackToMenu }) {
                   />
                 </div>
 
-                <h3 className="planet-choice-name">THE MOON</h3>
+                <h3 className="planet-choice-name">{t.theMoon}</h3>
                 <p className="planet-telemetry">
-                  Distance: 384,400 km • Vacuum surface • Silent landing modules and historic rovers.
+                  {t.moonDesc}
                 </p>
 
                 <button
@@ -364,13 +367,13 @@ export default function StoryGame({ onBackToMenu }) {
                   onClick={() => goToScene('moon')}
                 >
                   <Orbit size={16} />
-                  <span>GO TO THE MOON</span>
+                  <span>{t.goToMoon}</span>
                 </button>
               </article>
 
               {/* Destination 2: 3D MARS */}
               <article className="planet-choice-card mars-choice-card">
-                <span className="card-hud-badge">TARGET // SECTOR 02</span>
+                <span className="card-hud-badge">{t.targetSector2}</span>
 
                 <div className="planet-3d-viewport">
                   <ModelPreviewCanvas
@@ -384,9 +387,9 @@ export default function StoryGame({ onBackToMenu }) {
                   />
                 </div>
 
-                <h3 className="planet-choice-name">MARS</h3>
+                <h3 className="planet-choice-name">{t.mars}</h3>
                 <p className="planet-telemetry">
-                  Distance: 225,000,000 km • Red dust plains • Tire tracks preserved under thin skies.
+                  {t.marsDesc}
                 </p>
 
                 <button
@@ -395,23 +398,20 @@ export default function StoryGame({ onBackToMenu }) {
                   onClick={() => goToScene('mars')}
                 >
                   <Sparkles size={16} />
-                  <span>GO TO MARS</span>
+                  <span>{t.goToMars}</span>
                 </button>
               </article>
             </div>
 
             {/* Character below the grid */}
             <div className="choice-character-row">
-              <div className="character-bubble" aria-hidden="true">
-                ?
-              </div>
               <img
                 src="/assets/story/girl_thinking.png"
                 alt="Young explorer pondering destination choice"
                 className="character-thinking-img"
               />
               <p className="character-prompt">
-                "Two frontiers... the Moon or Mars: which forgotten story will we uncover first?"
+                "{t.girlPrompt}"
               </p>
             </div>
           </section>
@@ -421,7 +421,7 @@ export default function StoryGame({ onBackToMenu }) {
             SCENE 4: PLANETARY SURFACE & SPACECRAFTS SHOWROOM
             ================================================================ */}
         {isExploring && (
-          <Suspense fallback={<ShowroomLoadingOverlay />}>
+          <Suspense fallback={<ShowroomLoadingOverlay activeLang={activeLang} />}>
             <PlanetaryShowroom
               isOpen={true}
               initialDestination={currentScene}

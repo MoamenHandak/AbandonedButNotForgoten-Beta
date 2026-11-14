@@ -254,3 +254,34 @@ NASA hackton/
 
 - **Optimization Pipeline**: `npm run optimize:models` verified against untouched originals in `models/` generating all 10 `public/models/*-opt.glb` runtime assets cleanly.
 - **Production Build & Browser Verification**: Verify with `npm run build` (`vite build`) and live headless browser profiling against `vite preview` before shipping changes.
+
+---
+
+## 10. Unified UI, Multi-Language & Audio Architecture (Update)
+
+### 10.1 Unified Design Template
+- **Dialogue Boxes**: Standardized to rounded black cards (`rgba(0, 0, 0, 0.95)`, `1px solid #ffffff`, `12px` border radius, `0 16px 48px rgba(0, 0, 0, 0.85)` elevation). The character name is embedded cleanly within the top of the box in bold white text, followed by high-contrast dialogue text.
+- **Settings & Modals**: Features a clean black card with a 1px solid white border, diamond-thumb volume slider, boxed `<` and `>` arrow buttons, and solid white rectangular action buttons (`[ Graphics: ... ]`, `[ Audio: ... ]`, `[ Back ]`) with black text.
+- **Floating Artifact Removal**: The unneeded `?` circular bubble over the choice character prompt was eliminated cleanly from the DOM and CSS.
+
+### 10.2 Showroom Inspection UI
+- **Side Screen Navigation**: Left (`<`) and right (`>`) navigation arrows are positioned on the far screen edges (vertically centered, 44px square boxes with thin white borders, black background, and hover transitions).
+- **Bottom Center Dock**: Displays the current spacecraft name and status cleanly at bottom-center, with minimal circular dots (`● ○ ○ ○`) spaced evenly beneath it, replacing the cramped pill layout.
+
+### 10.3 Universal Minimalist White Scrollbars
+- Custom cross-browser scrollbars styled globally (`scrollbar-width: thin`, `::-webkit-scrollbar` with white thumb `rgba(255, 255, 255, 0.6)` and semi-transparent track `rgba(255, 255, 255, 0.05)`).
+- Eliminates native grey Windows scrollbars across all modals (`SourcesModal`, `MoreEquipmentModal`, `SettingsModal`, `CreditsModal`), dossier drawers, and scrollable panels.
+
+### 10.4 Multilingual System (EN, AR, FR, ES)
+- **Centralized Dictionary (`src/constants/translations.js`)**: Complete translations across all 4 supported languages covering:
+  - Main Menu (splash kickers, titles, nav buttons, hints)
+  - Prologue & Story cutscenes (Luna and Mission Logbook dialogue)
+  - Destination Choice Screen (Sector 01 Moon, Sector 02 Mars, descriptions, prompts)
+  - Planetary Showroom (top bar, tabs, telemetry, quiz feedback, pause menu)
+  - Settings & Credits
+- **Arabic RTL Stabilization**: `.ui-lang` locked with `direction: ltr !important` and `transform: none` on stepper arrow buttons, ensuring `<` is always on the left and `>` is always on the right regardless of document direction.
+
+### 10.5 Procedural Space Soundtrack Engine (`src/audio/surfaceAudio.js`)
+- **Main Menu Ambient Music (`menu_music`)**: Web Audio API synthesis generating a deep space sub-bass drone (55Hz / 82.4Hz), ethereal pad chord swells (C minor / Eb major space harmony) with sweeping lowpass LFO filters, and random crystalline pentatonic chime pings (523Hz–1046Hz).
+- **Credits Space Music (`credits_music`)**: Warm reflective soundtrack honoring the machines, featuring foundational F-bass drones, lush F-maj9 chord swells, and gentle starfield bell chimes.
+- Seamlessly loops without external network downloads or audio assets, respecting global volume sliders and mute toggles.

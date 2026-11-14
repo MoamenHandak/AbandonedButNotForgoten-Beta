@@ -7,6 +7,7 @@ import {
   normalizeSettings,
   normalizeGraphicsQuality,
 } from '../constants/settings';
+import { getTranslations } from '../constants/translations';
 import { getDeviceQualityProfile } from '../utils/modelCache';
 
 export { LANGUAGES, DEFAULT_SETTINGS };
@@ -45,6 +46,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onSaveSetting
     LANGUAGES.findIndex((l) => l.code === localSettings.language)
   );
   const currentLang = LANGUAGES[currentLangIndex] || LANGUAGES[0];
+  const t = getTranslations(currentLang.code).settings;
   const selectedQuality = normalizeGraphicsQuality(localSettings.graphicsQuality);
   const selectedPreset = GRAPHICS_PRESETS[selectedQuality];
 
@@ -114,11 +116,11 @@ export default function SettingsModal({ isOpen, onClose, settings, onSaveSetting
       }}
     >
       <div className="ui-panel">
-        <h2 id="setTitle">SETTINGS</h2>
+        <h2 id="setTitle">{t.title}</h2>
 
         <div className="ui-group">
           <label className="ui-label" htmlFor="volumeSlider">
-            MASTER VOLUME
+            {t.volume}
           </label>
           <div className="ui-controls">
             <input
@@ -136,58 +138,11 @@ export default function SettingsModal({ isOpen, onClose, settings, onSaveSetting
           </div>
         </div>
 
-        <div className="ui-group">
-          <div className="ui-label-row">
-            <span className="ui-label" id="lblGraphics">
-              GRAPHICS QUALITY
-            </span>
-            {deviceProfile.isConstrained && (
-              <span className="ui-device-hint" title="Hardware capability suggestion">
-                Performance suggested
-              </span>
-            )}
-          </div>
-          <div
-            className="ui-segmented"
-            role="radiogroup"
-            aria-labelledby="lblGraphics"
-            onKeyDown={handleGraphicsKeyDown}
-          >
-            {GRAPHICS_PRESET_ORDER.map((presetId) => {
-              const preset = GRAPHICS_PRESETS[presetId];
-              const isSelected = selectedQuality === preset.id;
-              return (
-                <button
-                  key={preset.id}
-                  ref={(el) => {
-                    graphicsBtnRefs.current[preset.id] = el;
-                  }}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  tabIndex={isSelected ? 0 : -1}
-                  className={`ui-seg-btn${isSelected ? ' is-active' : ''}`}
-                  data-preset={preset.id}
-                  onClick={() => handleGraphicsChange(preset.id)}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="ui-preset-desc" aria-live="polite">
-            {selectedPreset.description}
-          </p>
-          <p className="ui-preset-note">
-            Resolution, shadows &amp; stars update live; antialiasing applies on next 3D view.
-          </p>
-        </div>
-
         <div className="ui-group" role="group" aria-labelledby="lblLang">
           <span className="ui-label" id="lblLang">
-            LANGUAGE
+            {t.language}
           </span>
-          <div className="ui-lang">
+          <div className="ui-lang" dir="ltr">
             <button
               className="ui-arrow"
               type="button"
@@ -210,14 +165,42 @@ export default function SettingsModal({ isOpen, onClose, settings, onSaveSetting
           </div>
         </div>
 
-        <button
-          className="ui-btn"
-          id="setBack"
-          type="button"
-          onClick={handleClose}
-        >
-          BACK
-        </button>
+        {/* Unified Action Buttons matching template (media_1794609689865_544d7e8b) */}
+        <div className="ui-settings-actions">
+          <button
+            type="button"
+            className="ui-btn ui-action-btn"
+            onClick={() => {
+              const currentIdx = GRAPHICS_PRESET_ORDER.indexOf(selectedQuality);
+              const nextPreset = GRAPHICS_PRESET_ORDER[(currentIdx + 1) % GRAPHICS_PRESET_ORDER.length];
+              handleGraphicsChange(nextPreset);
+            }}
+          >
+            {t.graphicsBtn || 'Graphics'}: {t.presets?.[selectedQuality]?.label || selectedPreset.label}
+          </button>
+
+          <button
+            type="button"
+            className="ui-btn ui-action-btn"
+            onClick={() => {
+              const nextMute = !localSettings.muteAudio;
+              const updated = { ...localSettings, muteAudio: nextMute };
+              setLocalSettings(updated);
+              onSaveSettings(updated);
+            }}
+          >
+            {t.audioBtn || 'Audio'}: {localSettings.muteAudio ? 'Muted' : `${localSettings.masterVolume}%`}
+          </button>
+
+          <button
+            className="ui-btn ui-action-btn"
+            id="setBack"
+            type="button"
+            onClick={handleClose}
+          >
+            {t.back}
+          </button>
+        </div>
       </div>
     </div>
   );

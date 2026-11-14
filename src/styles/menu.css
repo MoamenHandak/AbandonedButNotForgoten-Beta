@@ -52,6 +52,39 @@ html, body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* ==========================================================================
+   Clean Minimal White Scrollbar matching Dark Space UI (Item 4)
+   ========================================================================== */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.55) rgba(255, 255, 255, 0.06);
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #ffffff;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 .app-root {
     position: relative;
     width: 100%;
@@ -646,6 +679,35 @@ html, body {
     text-align: center;
 }
 
+/* Unified Settings Template Buttons (media_1794609689865_544d7e8b) */
+.ui-settings-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.ui-action-btn {
+    width: 100% !important;
+    padding: 12px 22px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    border-radius: 6px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    text-transform: none !important;
+    text-align: start !important;
+    transition: background-color 0.2s ease, transform 0.15s ease !important;
+    cursor: pointer;
+}
+
+.ui-action-btn:hover {
+    background: #e4e4e4 !important;
+    transform: translateY(-1px);
+}
+
 .ui-arrow {
     width: 40px;
     height: 35px;
@@ -665,14 +727,15 @@ html, body {
     color: #000000;
 }
 
-[dir="rtl"] .ui-arrow {
-    transform: scaleX(-1);
-}
-
 .ui-lang {
     display: flex;
     align-items: center;
     gap: 15px;
+    direction: ltr !important; /* Keep < [Language] > in standard LTR stepper order */
+}
+
+.ui-lang .ui-arrow {
+    transform: none !important; /* Never flip the stepper arrow icons */
 }
 
 .ui-lang span {
@@ -1344,6 +1407,29 @@ html, body {
     flex: 1 1 auto;
     overflow-y: auto;
     padding: 16px 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.6) rgba(255, 255, 255, 0.08);
+}
+
+.story-archive-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.story-archive-scroll::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.story-archive-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.story-archive-scroll::-webkit-scrollbar-thumb:hover {
+    background: #ffffff;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
 }
 
 .story-hud-modal-footer {
