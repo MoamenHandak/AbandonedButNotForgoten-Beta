@@ -25,7 +25,13 @@ import {
   Eye,
   FileText,
   Lock,
-  Rocket
+  Rocket,
+  Settings,
+  Menu,
+  Search,
+  Calendar,
+  MapPin,
+  Quote
 } from 'lucide-react';
 import { dispatchAudioCue, playServo } from '../audio/surfaceAudio';
 import {
@@ -45,7 +51,9 @@ import {
 import {
   readStoredSettings,
   resolveGraphicsProfile,
-  getEffectivePixelRatio
+  getEffectivePixelRatio,
+  normalizeSettings,
+  SETTINGS_STORAGE_KEY
 } from '../constants/settings';
 import { getCraftStory, getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
 import { getTranslations } from '../constants/translations';
@@ -57,6 +65,28 @@ import '../styles/spacecraft.css';
 
 const MoreEquipmentModal = lazy(() => import('./MoreEquipmentModal'));
 const SourcesModal = lazy(() => import('./SourcesModal'));
+const SettingsModal = lazy(() => import('./SettingsModal'));
+
+function NasaMeatballLogo({ size = 32 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="NASA Logo">
+      <circle cx="60" cy="60" r="56" fill="#0B3D91" />
+      <circle cx="28" cy="38" r="1.5" fill="#FFFFFF" />
+      <circle cx="34" cy="54" r="1.2" fill="#FFFFFF" />
+      <circle cx="42" cy="24" r="1.5" fill="#FFFFFF" />
+      <circle cx="48" cy="36" r="1" fill="#FFFFFF" />
+      <circle cx="72" cy="22" r="1.5" fill="#FFFFFF" />
+      <circle cx="86" cy="32" r="1.2" fill="#FFFFFF" />
+      <circle cx="92" cy="48" r="1.5" fill="#FFFFFF" />
+      <circle cx="82" cy="78" r="1.2" fill="#FFFFFF" />
+      <circle cx="74" cy="94" r="1.5" fill="#FFFFFF" />
+      <circle cx="32" cy="82" r="1.2" fill="#FFFFFF" />
+      <path d="M16 66 L60 20 L66 28 L36 68 L104 56 L68 76 L28 72 Z" fill="#FC3D21" />
+      <ellipse cx="60" cy="60" rx="46" ry="16" transform="rotate(-28 60 60)" stroke="#FFFFFF" strokeWidth="2.5" fill="none" opacity="0.9" />
+      <text x="60" y="67" textAnchor="middle" fill="#FFFFFF" fontFamily="sans-serif" fontWeight="900" fontSize="23" letterSpacing="2">NASA</text>
+    </svg>
+  );
+}
 
 /* ==========================================================================
    SPACECRAFT CONFIGURATION & CALIBRATED HOTSPOTS
@@ -676,12 +706,23 @@ export default function PlanetaryShowroom({
 
   // UX Redesign States (Tasks 1, 2, 3, 6)
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false); // Default hidden so 3D model is visible first
   const [isDetailsLeaving, setIsDetailsLeaving] = useState(false); // Controls smooth slide-out exit animation
   const [detailTab, setDetailTab] = useState('info'); // 'info' | 'task' | 'quiz'
   const [quizState, setQuizState] = useState({});
   const [isOrbitalView, setIsOrbitalView] = useState(false);
   const [isOrbitTransitioning, setIsOrbitTransitioning] = useState(false);
+
+  const handleSaveSettings = useCallback((newSettings) => {
+    const normalized = normalizeSettings(newSettings);
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
+    } catch (err) {
+      console.warn('Failed to save settings:', err);
+    }
+    window.dispatchEvent(new CustomEvent('gameSettingsChange', { detail: normalized }));
+  }, []);
 
   const hotspotRef = useRef(null);
 
@@ -690,7 +731,7 @@ export default function PlanetaryShowroom({
   const t = getTranslations(activeLang).showroom;
 
   const overlayPausedRef = useRef(false);
-  overlayPausedRef.current = showStoryModal || moreEquipmentOpen || sourcesOpen || isPauseMenuOpen;
+  overlayPausedRef.current = showStoryModal || moreEquipmentOpen || sourcesOpen || isPauseMenuOpen || settingsOpen;
 
   const threeRef = useRef({
     scene: null,
@@ -993,7 +1034,7 @@ export default function PlanetaryShowroom({
   useEffect(() => {
     threeRef.current.orbitLayer?.setPaused(overlayPausedRef.current);
     threeRef.current.syncRenderLoop?.();
-  }, [isCraftDialogOpen, showStoryModal, moreEquipmentOpen, sourcesOpen, isLoading3D, isPauseMenuOpen]);
+  }, [isCraftDialogOpen, showStoryModal, moreEquipmentOpen, sourcesOpen, isLoading3D, isPauseMenuOpen, settingsOpen]);
 
   // Audio pause/resume effect for pause menu (Task 1)
   useEffect(() => {
@@ -2285,11 +2326,17 @@ export default function PlanetaryShowroom({
         </div>
       )}
 
-      {/* Top Header HUD Bar — Clean layout with Back/Surface, Destination badge, Counter, and Accessible Pause Button (Task 1) */}
+      {/* Top Header HUD Bar — NASA Branding, Project Title, Settings & Menu buttons */}
       {!isDialogVisible && (
         <header className="showroom-top-bar" role="banner" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isOrbitalView ? (
+          <div className="showroom-branding">
+            <div className="showroom-branding-logo" aria-hidden="true">
+              <NasaMeatballLogo size={36} />
+            </div>
+            <span className="showroom-branding-sep" aria-hidden="true" />
+            <span className="showroom-branding-title">ABANDONED BUT NOT FORGOTTEN</span>
+
+            {isOrbitalView && (
               <button
                 type="button"
                 className="showroom-surface-return-btn"
@@ -2297,44 +2344,37 @@ export default function PlanetaryShowroom({
                 aria-label="Return to surface exploration"
                 title="Descend back to surface exploration view"
               >
-                <Compass size={15} />
+                <Compass size={14} />
                 <span className="btn-label">{t.surfaceView || 'SURFACE VIEW'}</span>
               </button>
-            ) : (
-              <button
-                type="button"
-                className="showroom-back-btn"
-                onClick={onBackToChoice || onClose}
-                aria-label={onBackToChoice ? 'Back to Destinations' : 'Back to Main Menu'}
-                title={onBackToChoice ? 'Back to Destinations' : 'Back to Main Menu'}
-              >
-                <ArrowLeft size={16} />
-                <span className="btn-label">{t.back || 'BACK'}</span>
-              </button>
             )}
-
-            <div className="showroom-destination-badge">
-              {isMoon ? <Orbit size={16} /> : isDeepSpace ? <Radio size={16} /> : <Sparkles size={16} />}
-              <span>{isOrbitalView ? `${currentVehicle.planet} // ${t.orbitalSpace || 'ORBITAL SPACE'}` : currentVehicle.sector}</span>
-            </div>
           </div>
 
-          <div className="showroom-center-indicator">
-            <span className="indicator-number">
-              VEHICLE 0{currentIndex + 1} // 0{filteredVehicles.length}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="showroom-hdr-actions">
             <button
               type="button"
-              className="showroom-pause-btn"
-              onClick={() => setIsPauseMenuOpen(true)}
-              aria-label="Open exploration pause menu"
-              title="Pause exploration (Esc or P)"
+              className="showroom-hdr-icon-btn"
+              onClick={() => {
+                playServo('click');
+                setSettingsOpen(true);
+              }}
+              aria-label="Settings"
+              title="Settings"
             >
-              <Pause size={14} />
-              <span className="btn-label">{t.pause || 'PAUSE'}</span>
+              <Settings size={18} />
+            </button>
+
+            <button
+              type="button"
+              className="showroom-hdr-icon-btn"
+              onClick={() => {
+                playServo('click');
+                setIsPauseMenuOpen(true);
+              }}
+              aria-label="Menu"
+              title="Menu"
+            >
+              <Menu size={18} />
             </button>
           </div>
         </header>
@@ -2768,113 +2808,144 @@ export default function PlanetaryShowroom({
         </div>
       )}
 
-      {/* Floating Reopen Button if details closed */}
-      {!isDialogVisible && !isDetailsOpen && (
-        <button
-          type="button"
-          className="showroom-open-details-btn"
-          onClick={handleOpenDetails}
-          aria-label="Open mission details"
-        >
-          <Info size={16} />
-          <span>MISSION DETAILS [INFO • TASK • QUIZ]</span>
-        </button>
+      {/* Opposite Sides Navigation Chevrons */}
+      {!isDialogVisible && filteredVehicles.length > 1 && (
+        <>
+          <button
+            type="button"
+            className="showroom-inspect-nav-btn is-prev"
+            onClick={handlePrev}
+            aria-label="Previous spacecraft"
+            title="Previous spacecraft (←)"
+          >
+            <ChevronLeft size={24} aria-hidden="true" />
+          </button>
+
+          {(() => {
+            const nextIdx = (currentIndex + 1) % filteredVehicles.length;
+            const nextVehicle = filteredVehicles[nextIdx];
+            const isNextLocked = nextVehicle && !isCraftUnlocked(nextVehicle.id, filteredVehicles, progression);
+
+            return (
+              <button
+                type="button"
+                className={`showroom-inspect-nav-btn is-next ${isNextLocked ? 'is-locked' : ''}`}
+                onClick={handleNext}
+                aria-label={isNextLocked ? 'Next spacecraft (Locked)' : 'Next spacecraft'}
+                title={
+                  isNextLocked
+                    ? `${nextVehicle.name} is locked (Solve quiz to unlock)`
+                    : 'Next spacecraft (→)'
+                }
+              >
+                {isNextLocked ? <Lock size={20} aria-hidden="true" /> : <ChevronRight size={24} aria-hidden="true" />}
+              </button>
+            );
+          })()}
+        </>
       )}
 
-      {/* 3D Camera Controls Hint */}
-      {!isDialogVisible && (
-        <div className="showroom-controls-hint" aria-hidden="true" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
-          <RotateCw size={14} />
-          <span>{t.controlsHint || 'DRAG TO ORBIT • PINCH / SCROLL TO ZOOM • ARROWS TO SWITCH CRAFT'}</span>
+      {/* Pagination Dots beneath Spacecraft in 3D inspection area */}
+      {!isDialogVisible && filteredVehicles.length > 1 && (
+        <div className="showroom-inspect-dots-wrap" role="tablist" aria-label="Vehicle selection">
+          {filteredVehicles.map((v, idx) => {
+            const isAccessible = isCraftUnlocked(v.id, filteredVehicles, progression);
+            const isSolved = Boolean(progression.completedQuizzes?.[v.id]);
+
+            return (
+              <button
+                key={v.id}
+                type="button"
+                className={`showroom-inspect-dot ${idx === currentIndex ? 'is-active' : ''} ${
+                  !isAccessible ? 'is-locked' : isSolved ? 'is-solved' : ''
+                }`}
+                onClick={() => {
+                  if (!isAccessible) {
+                    playServo('click');
+                    showToast(
+                      activeLang === 'ar'
+                        ? `🔒 ${v.name} مقفلة! قم بحل اختبار ${currentVehicle.name} أولاً.`
+                        : `🔒 ${v.name} is locked! Solve ${currentVehicle.name}'s quiz to unlock.`,
+                      activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
+                      () => {
+                        handleOpenDetails();
+                        setDetailTab('quiz');
+                      }
+                    );
+                    return;
+                  }
+                  selectVehicleIndex(idx, true);
+                }}
+                aria-label={`Select ${v.name}${v.isOrbiter ? ' (Orbiter)' : ''}`}
+                title={`${v.name}${!isAccessible ? ' [Locked]' : isSolved ? ' [Completed]' : ''}`}
+              />
+            );
+          })}
         </div>
       )}
 
-      {/* Bottom Center Carousel Dock (Docked Prev / Title / Next + Dots + Navigation Hint) */}
-      {!isDialogVisible && filteredVehicles.length > 1 && (
-        <footer
-          className={`showroom-bottom-dock ${isDetailsOpen ? 'has-sheet-open' : ''}`}
-          role="navigation"
-          aria-label="Vehicle Carousel"
-        >
-          <div className="showroom-dock-row">
+      {/* Mission Information Panel — Right column on desktop, beneath 3D scene on mobile */}
+      {!isDialogVisible && !isDetailsOpen && (
+        <aside className="showroom-mission-panel" role="complementary" aria-label="Mission Information" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
+          <div className="mission-panel-card">
+            <div className="mission-panel-header">
+              <span className="mission-panel-status-dot" aria-hidden="true" />
+              <div className="mission-panel-title-wrap">
+                <h2 className="mission-panel-title">{currentVehicle.name}</h2>
+                <span className="mission-panel-subtitle">{currentVehicle.role || currentVehicle.codename}</span>
+              </div>
+            </div>
+
+            <div className="mission-panel-divider" aria-hidden="true" />
+
+            <p className="mission-panel-desc">{currentVehicle.description}</p>
+
+            <div className="mission-meta-list">
+              <div className="mission-meta-item">
+                <div className="mission-meta-label-group">
+                  <Calendar size={15} className="mission-meta-icon" aria-hidden="true" />
+                  <span className="mission-meta-label">{activeLang === 'ar' ? 'تاريخ المهمة' : 'Mission Date'}</span>
+                </div>
+                <span className="mission-meta-value">{currentVehicle.launchDate}</span>
+              </div>
+
+              <div className="mission-meta-item">
+                <div className="mission-meta-label-group">
+                  <MapPin size={15} className="mission-meta-icon" aria-hidden="true" />
+                  <span className="mission-meta-label">{activeLang === 'ar' ? 'الموقع' : 'Location'}</span>
+                </div>
+                <span className="mission-meta-value">{currentVehicle.landingSite}</span>
+              </div>
+
+              <div className="mission-meta-item">
+                <div className="mission-meta-label-group">
+                  <CheckCircle2 size={15} className="mission-meta-icon is-status" aria-hidden="true" />
+                  <span className="mission-meta-label">{activeLang === 'ar' ? 'الحالة' : 'Status'}</span>
+                </div>
+                <span className="mission-meta-value is-status">
+                  {currentVehicle.status}
+                </span>
+              </div>
+            </div>
+
+            {currentVehicle.tagline && (
+              <blockquote className="mission-panel-quote">
+                <Quote size={13} className="mission-quote-icon" aria-hidden="true" />
+                <span>{currentVehicle.tagline}</span>
+              </blockquote>
+            )}
+
             <button
               type="button"
-              className="showroom-nav-arrow showroom-nav-prev"
-              onClick={handlePrev}
-              aria-label="Previous spacecraft"
-              title="Previous spacecraft (←)"
+              className="mission-view-details-btn"
+              onClick={handleOpenDetails}
+              aria-label="View Details"
             >
-              <ChevronLeft size={22} aria-hidden="true" />
+              <Search size={15} aria-hidden="true" />
+              <span>{activeLang === 'ar' ? 'عرض التفاصيل' : 'View Details'}</span>
             </button>
-
-            <span className="showroom-dock-title">
-              {currentVehicle.name} {currentVehicle.isOrbiter ? '• ORBITER' : ''}
-            </span>
-
-            {(() => {
-              const nextIdx = (currentIndex + 1) % filteredVehicles.length;
-              const nextVehicle = filteredVehicles[nextIdx];
-              const isNextLocked = nextVehicle && !isCraftUnlocked(nextVehicle.id, filteredVehicles, progression);
-
-              return (
-                <button
-                  type="button"
-                  className={`showroom-nav-arrow showroom-nav-next ${isNextLocked ? 'is-locked' : ''}`}
-                  onClick={handleNext}
-                  aria-label={isNextLocked ? 'Next spacecraft (Locked)' : 'Next spacecraft'}
-                  title={
-                    isNextLocked
-                      ? `${nextVehicle.name} is locked (Solve quiz to unlock)`
-                      : 'Next spacecraft (→)'
-                  }
-                >
-                  {isNextLocked ? <Lock size={18} aria-hidden="true" /> : <ChevronRight size={22} aria-hidden="true" />}
-                </button>
-              );
-            })()}
           </div>
-
-          <div className="showroom-dock-subrow">
-            <div className="showroom-dock-dots" role="tablist" aria-label="Vehicle selection">
-              {filteredVehicles.map((v, idx) => {
-                const isAccessible = isCraftUnlocked(v.id, filteredVehicles, progression);
-                const isSolved = Boolean(progression.completedQuizzes?.[v.id]);
-
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    className={`showroom-dock-dot ${idx === currentIndex ? 'is-active' : ''} ${
-                      !isAccessible ? 'is-locked' : isSolved ? 'is-solved' : ''
-                    }`}
-                    onClick={() => {
-                      if (!isAccessible) {
-                        playServo('click');
-                        showToast(
-                          activeLang === 'ar'
-                            ? `🔒 ${v.name} مقفلة! قم بحل اختبار ${currentVehicle.name} أولاً.`
-                            : `🔒 ${v.name} is locked! Solve ${currentVehicle.name}'s quiz to unlock.`,
-                          activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
-                          () => {
-                            handleOpenDetails();
-                            setDetailTab('quiz');
-                          }
-                        );
-                        return;
-                      }
-                      selectVehicleIndex(idx, true);
-                    }}
-                    aria-label={`Select ${v.name}${v.isOrbiter ? ' (Orbiter)' : ''}`}
-                    title={`${v.name}${!isAccessible ? ' [Locked]' : isSolved ? ' [Completed]' : ''}`}
-                  />
-                );
-              })}
-            </div>
-            <span className="showroom-dock-hint" aria-hidden="true">
-              ← → to navigate
-            </span>
-          </div>
-        </footer>
+        </aside>
       )}
 
       {/* Task 6: Surface <-> Orbit Dark Transition Fade Overlay */}
@@ -2919,6 +2990,17 @@ export default function PlanetaryShowroom({
             isOpen={sourcesOpen}
             onClose={() => setSourcesOpen(false)}
             lang={activeLang}
+          />
+        </Suspense>
+      )}
+
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsModal
+            isOpen={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+            settings={readStoredSettings()}
+            onSaveSettings={handleSaveSettings}
           />
         </Suspense>
       )}

@@ -2216,18 +2216,20 @@
    ========================================================================== */
 
 .showroom-details-panel {
-    position: absolute;
-    top: 68px;
-    left: 24px;
-    width: min(420px, calc(100vw - 48px));
-    max-height: calc(100vh - 140px);
+    position: fixed;
+    top: calc(74px + env(safe-area-inset-top, 0px));
+    right: clamp(20px, 2.5vw, 40px);
+    left: auto;
+    width: clamp(340px, 26vw, 420px);
+    max-height: calc(100vh - 96px);
     z-index: 110;
     display: flex;
     flex-direction: column;
     background: rgba(0, 0, 0, 0.92);
     border: 1px solid #ffffff;
-    border-radius: 10px;
+    border-radius: 12px;
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
     overflow: hidden;
     overflow-y: auto;
@@ -2240,13 +2242,13 @@
 }
 
 @keyframes detailsSlideIn {
-    from { opacity: 0; transform: translateX(-40px); }
+    from { opacity: 0; transform: translateX(40px); }
     to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes detailsSlideOut {
     from { opacity: 1; transform: translateX(0); }
-    to { opacity: 0; transform: translateX(-40px); }
+    to { opacity: 0; transform: translateX(40px); }
 }
 
 .details-top-header {
@@ -2795,7 +2797,466 @@
     transform: scale(1.02) !important;
 }
 
-@media (max-width: 800px) {
+/* ==========================================================================
+   SHOWROOM TOP HEADER (NASA Logo, Branding, Settings & Menu Buttons)
+   ========================================================================== */
+
+.showroom-branding {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.showroom-branding-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+}
+
+.showroom-branding-sep {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.35);
+    margin: 0 2px;
+}
+
+.showroom-branding-title {
+    font-family: var(--hud-theme-font-head, 'NMSGeoSans', sans-serif);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #ffffff;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.showroom-surface-return-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid #ffffff;
+    border-radius: 6px;
+    color: #ffffff;
+    font-family: var(--hud-theme-font, 'NMSFuturaProBook', sans-serif);
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-left: 12px;
+    transition: all 0.2s ease;
+}
+
+.showroom-surface-return-btn:hover {
+    background: #ffffff;
+    color: #000000;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+}
+
+.showroom-hdr-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.showroom-hdr-icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.showroom-hdr-icon-btn:hover {
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.35);
+}
+
+/* ==========================================================================
+   SPACECRAFT INSPECTION CONTROLS (Framing Chevrons & Pagination Dots)
+   ========================================================================== */
+
+.showroom-inspect-nav-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, color 0.2s ease;
+    z-index: 95;
+    padding: 0;
+}
+
+.showroom-inspect-nav-btn:hover {
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: 0 0 18px rgba(255, 255, 255, 0.45);
+}
+
+.showroom-inspect-nav-btn.is-prev {
+    left: clamp(18px, 3vw, 44px);
+}
+
+.showroom-inspect-nav-btn.is-next {
+    right: calc(clamp(340px, 26vw, 420px) + clamp(24px, 3vw, 44px));
+}
+
+.showroom-inspect-nav-btn.is-locked {
+    opacity: 0.65;
+    border-color: rgba(255, 170, 85, 0.6);
+    color: #ffaa55;
+    cursor: not-allowed;
+}
+
+.showroom-inspect-nav-btn.is-locked:hover {
+    background: rgba(35, 18, 10, 0.85);
+    color: #ffaa55;
+    border-color: #ffaa55;
+    transform: translateY(-50%);
+    box-shadow: 0 0 12px rgba(255, 170, 85, 0.35);
+}
+
+/* Centered Pagination Dots Beneath Spacecraft in 3D Area */
+.showroom-inspect-dots-wrap {
+    position: fixed;
+    bottom: clamp(24px, 4vh, 42px);
+    left: calc((100vw - clamp(340px, 26vw, 420px) - clamp(20px, 2.5vw, 40px)) / 2);
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 95;
+    pointer-events: auto;
+}
+
+.showroom-inspect-dot {
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.65);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.showroom-inspect-dot:hover {
+    transform: scale(1.3);
+    border-color: #ffffff;
+}
+
+.showroom-inspect-dot.is-active {
+    background: #ffffff;
+    border-color: #ffffff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.85);
+}
+
+.showroom-inspect-dot.is-locked {
+    border-color: rgba(255, 170, 85, 0.45);
+    background: transparent;
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.showroom-inspect-dot.is-solved {
+    border-color: #55ff99;
+    box-shadow: 0 0 6px rgba(85, 255, 153, 0.35);
+}
+
+.showroom-inspect-dot.is-solved.is-active {
+    background: #55ff99;
+    box-shadow: 0 0 10px rgba(85, 255, 153, 0.85);
+}
+
+/* ==========================================================================
+   MISSION INFORMATION PANEL (Right Column Desktop / Below 3D on Mobile)
+   ========================================================================== */
+
+.showroom-mission-panel {
+    position: fixed;
+    top: calc(74px + env(safe-area-inset-top, 0px));
+    right: clamp(20px, 2.5vw, 40px);
+    width: clamp(340px, 26vw, 420px);
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    z-index: 100;
+    pointer-events: auto;
+    animation: missionPanelFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes missionPanelFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.mission-panel-card {
+    background: rgba(0, 0, 0, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    color: #ffffff;
+}
+
+.mission-panel-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.mission-panel-status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #55ff99;
+    box-shadow: 0 0 8px rgba(85, 255, 153, 0.8);
+    margin-top: 6px;
+    flex-shrink: 0;
+}
+
+.mission-panel-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.mission-panel-title {
+    font-family: var(--hud-theme-font-head, 'NMSGeoSans', sans-serif);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.25;
+}
+
+.mission-panel-subtitle {
+    font-family: var(--hud-theme-font, 'NMSFuturaProBook', sans-serif);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.5px;
+}
+
+.mission-panel-divider {
+    height: 1px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0;
+}
+
+.mission-panel-desc {
+    font-family: var(--hud-theme-font, 'NMSFuturaProBook', sans-serif);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+}
+
+.mission-meta-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.mission-meta-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12.5px;
+}
+
+.mission-meta-label-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.mission-meta-icon {
+    color: rgba(255, 255, 255, 0.7);
+    flex-shrink: 0;
+}
+
+.mission-meta-icon.is-status {
+    color: #55ff99;
+}
+
+.mission-meta-label {
+    font-family: var(--hud-theme-font, 'NMSFuturaProBook', sans-serif);
+    font-size: 12px;
+    text-transform: capitalize;
+}
+
+.mission-meta-value {
+    font-family: var(--font-hud, monospace);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #ffffff;
+    text-align: end;
+}
+
+.mission-meta-value.is-status {
+    color: #55ff99;
+    font-weight: 600;
+}
+
+.mission-panel-quote {
+    margin: 0;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 0 6px 6px 0;
+    font-family: var(--hud-theme-font, 'NMSFuturaProBook', sans-serif);
+    font-size: 12.5px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.45;
+}
+
+[dir="rtl"] .mission-panel-quote {
+    border-left: none;
+    border-right: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 6px 0 0 6px;
+}
+
+.mission-quote-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.mission-view-details-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 18px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #ffffff;
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: var(--hud-theme-font-head, 'NMSGeoSans', sans-serif);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 4px;
+}
+
+.mission-view-details-btn:hover {
+    background: #ffffff;
+    color: #000000;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+@media (max-width: 960px) {
+    .showroom-inspect-nav-btn {
+        width: 42px;
+        height: 42px;
+        top: 24vh;
+    }
+
+    .showroom-inspect-nav-btn.is-prev {
+        left: 14px;
+    }
+
+    .showroom-inspect-nav-btn.is-next {
+        right: 14px;
+    }
+
+    .showroom-inspect-dots-wrap {
+        top: calc(48vh - 28px);
+        bottom: auto;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .showroom-mission-panel {
+        top: 48vh;
+        left: 16px;
+        right: 16px;
+        width: auto;
+        max-height: calc(52vh - 16px);
+        bottom: 16px;
+    }
+
+    .mission-panel-card {
+        padding: 16px 18px;
+        gap: 12px;
+    }
+
+    .mission-panel-title {
+        font-size: 17px;
+    }
+
+    .mission-panel-desc {
+        font-size: 12.5px;
+    }
+
+    .mission-meta-list {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+    .mission-view-details-btn {
+        padding: 10px 14px;
+        font-size: 12px;
+    }
+
     .showroom-details-panel {
         top: auto;
         bottom: 0;
@@ -2803,13 +3264,13 @@
         right: 0;
         width: 100%;
         max-width: 100%;
-        max-height: 40vh;
+        max-height: 72vh;
         border-radius: 16px 16px 0 0;
         border-left: none;
         border-right: none;
         border-bottom: none;
         border-top: 1px solid #ffffff;
-        z-index: 110;
+        z-index: 120;
     }
 
     @keyframes detailsSlideIn {
@@ -2822,13 +3283,6 @@
         to { opacity: 0; transform: translateY(40px); }
     }
 
-    .showroom-open-details-btn {
-        bottom: 84px;
-        left: 14px;
-        padding: 7px 12px;
-        font-size: 11px;
-    }
-
     .showroom-pause-modal {
         padding: 22px 18px 18px;
         max-width: 92vw;
@@ -2839,27 +3293,25 @@
         padding: 12px 14px;
         font-size: 13px;
     }
+}
 
-    .showroom-bottom-dock {
-        bottom: 20px;
-        transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+@media (max-width: 600px) {
+    .showroom-branding-title {
+        font-size: 10.5px;
+        letter-spacing: 1px;
     }
 
-    .showroom-bottom-dock.has-sheet-open {
-        bottom: calc(40vh + 16px);
+    .showroom-branding {
+        gap: 8px;
     }
 
-    .showroom-dock-row {
-        gap: 12px;
+    .showroom-branding-sep {
+        height: 16px;
     }
 
-    .showroom-dock-title {
-        font-size: 16px;
-    }
-
-    .showroom-nav-arrow {
-        width: 38px;
-        height: 38px;
+    .showroom-hdr-icon-btn {
+        width: 34px;
+        height: 34px;
     }
 }
 
