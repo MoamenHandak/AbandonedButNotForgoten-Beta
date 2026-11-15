@@ -2896,35 +2896,39 @@
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(4, 12, 24, 0.78);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    border: 1.5px solid rgba(0, 229, 255, 0.45);
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65), 0 0 15px rgba(0, 229, 255, 0.15);
     transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, color 0.2s ease;
     z-index: 95;
     padding: 0;
 }
 
 .showroom-inspect-nav-btn:hover {
-    background: #ffffff;
-    color: #000000;
-    border-color: #ffffff;
-    transform: translateY(-50%) scale(1.08);
-    box-shadow: 0 0 18px rgba(255, 255, 255, 0.45);
+    background: rgba(8, 24, 48, 0.9);
+    color: #00e5ff;
+    border-color: #00e5ff;
+    transform: translateY(-50%) scale(1.06);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.45);
+}
+
+.showroom-inspect-nav-btn:active {
+    transform: translateY(-50%) scale(0.98);
 }
 
 .showroom-inspect-nav-btn.is-prev {
-    left: clamp(18px, 3vw, 44px);
+    left: clamp(20px, 2.5vw, 40px);
 }
 
 .showroom-inspect-nav-btn.is-next {
-    right: calc(clamp(340px, 26vw, 420px) + clamp(24px, 3vw, 44px));
+    right: calc(clamp(340px, 26vw, 420px) + clamp(20px, 2.5vw, 40px) + clamp(20px, 2.5vw, 40px));
 }
 
 .showroom-inspect-nav-btn.is-locked {
@@ -2951,18 +2955,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
+    padding: 6px 14px;
+    background: rgba(3, 8, 20, 0.72);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 229, 255, 0.15);
     z-index: 95;
     pointer-events: auto;
 }
 
 .showroom-inspect-dot {
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
     padding: 0;
     margin: 0;
     background: transparent;
-    border: 1.5px solid rgba(255, 255, 255, 0.65);
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
     border-radius: 50%;
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -2970,13 +2981,14 @@
 
 .showroom-inspect-dot:hover {
     transform: scale(1.3);
-    border-color: #ffffff;
+    border-color: #00e5ff;
 }
 
 .showroom-inspect-dot.is-active {
-    background: #ffffff;
-    border-color: #ffffff;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.85);
+    background: #00e5ff;
+    border-color: #00e5ff;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.9);
+    transform: scale(1.2);
 }
 
 .showroom-inspect-dot.is-locked {
@@ -3148,29 +3160,29 @@
 .mission-panel-quote {
     margin: 0;
     padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border-left: 2px solid rgba(255, 255, 255, 0.5);
-    border-radius: 0 6px 6px 0;
+    background: rgba(4, 18, 36, 0.55);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    border-radius: 8px;
     font-family: var(--hud-theme-font, 'NMSFuturaProBook', sans-serif);
     font-size: 12.5px;
     font-style: italic;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(230, 245, 255, 0.9);
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: 10px;
     line-height: 1.45;
 }
 
 [dir="rtl"] .mission-panel-quote {
-    border-left: none;
-    border-right: 2px solid rgba(255, 255, 255, 0.5);
-    border-radius: 6px 0 0 6px;
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    border-radius: 8px;
 }
 
 .mission-quote-icon {
     flex-shrink: 0;
-    margin-top: 2px;
-    color: rgba(255, 255, 255, 0.6);
+    margin-top: 1px;
+    color: #00e5ff;
+    fill: #00e5ff;
 }
 
 .mission-view-details-btn {
@@ -3179,25 +3191,26 @@
     justify-content: center;
     gap: 10px;
     width: 100%;
-    padding: 12px 18px;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #ffffff;
-    border-radius: 8px;
+    padding: 11px 20px;
+    background: rgba(4, 18, 36, 0.65);
+    border: 1.5px solid rgba(0, 229, 255, 0.6);
+    border-radius: 22px;
     color: #ffffff;
     font-family: var(--hud-theme-font-head, 'NMSGeoSans', sans-serif);
     font-size: 13px;
     font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    letter-spacing: 1.2px;
     cursor: pointer;
     transition: all 0.2s ease;
     margin-top: 4px;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
 }
 
 .mission-view-details-btn:hover {
-    background: #ffffff;
+    background: #00e5ff;
     color: #000000;
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+    border-color: #00e5ff;
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.55);
     transform: translateY(-1px);
 }
 

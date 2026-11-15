@@ -442,29 +442,22 @@
     min-height: 52px;
 }
 
-/* Bold keyword highlights */
-.markup-bold {
-    color: #38e1ff;
-    font-weight: 700;
-    text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
-}
-
+/* Bold keyword highlights (Single color: bold + white glow, no multi-color) */
+.markup-bold,
 .story-dialogue-box.is-logbook .markup-bold {
-    color: #ffd680;
-    text-shadow: 0 0 12px rgba(255, 180, 50, 0.45);
+    color: #ffffff;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.85), 0 0 20px rgba(255, 255, 255, 0.4);
 }
 
 /* Typewriter cursor */
-.typewriter-cursor {
+.typewriter-cursor,
+.story-dialogue-box.is-logbook .typewriter-cursor {
     display: inline-block;
-    color: var(--color-accent-cyan, #00e5ff);
+    color: #ffffff;
     animation: cursorBlink 0.75s infinite;
     margin-left: 2px;
     font-weight: 700;
-}
-
-.story-dialogue-box.is-logbook .typewriter-cursor {
-    color: #ffb84d;
 }
 
 @keyframes cursorBlink {
@@ -487,19 +480,16 @@
     color: rgba(255, 255, 255, 0.45);
 }
 
-.dialogue-advance-prompt {
+.dialogue-advance-prompt,
+.story-dialogue-box.is-logbook .dialogue-advance-prompt {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: var(--color-accent-cyan, #00e5ff);
+    color: rgba(255, 255, 255, 0.75);
     animation: promptBlink 1.4s infinite;
-}
-
-.story-dialogue-box.is-logbook .dialogue-advance-prompt {
-    color: #ffb84d;
 }
 
 @keyframes promptBlink {
@@ -510,23 +500,25 @@
 .dialogue-complete-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    background: #00e5ff;
+    background: #ffffff;
     color: #000000;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 18px;
+    border: 1px solid #ffffff;
+    border-radius: 8px;
+    padding: 10px 24px;
     font-family: var(--font-display, 'Tajawal', sans-serif);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .dialogue-complete-btn:hover {
-    transform: scale(1.04);
-    box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+    background: #f0f0f0;
+    box-shadow: 0 0 18px rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
 }
 
 /* Mobile Responsiveness for Dialogue Box */

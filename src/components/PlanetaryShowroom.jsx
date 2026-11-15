@@ -434,10 +434,10 @@ export const VEHICLES_DATA = [
     sector: 'AEROBRAKING ORBIT // ARCHIVE',
     modelSrc: '/models/mgs-opt.glb',
     alt: '3D model of Mars Global Surveyor orbiter',
-    scale: 0.020,
+    scale: 0.065,
     position: [50.8, 0.5, 8.2],
     rotation: [0.1, 0.35, 0],
-    focusCamPos: [55.6, 1.8, 9.6],
+    focusCamPos: [54.0, 1.3, 9.2],
     focusLookAt: [50.8, 0.5, 8.2],
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
@@ -475,10 +475,10 @@ export const VEHICLES_DATA = [
     sector: 'CIRCULAR POLAR ORBIT // ACTIVE',
     modelSrc: '/models/odyssey-opt.glb',
     alt: '3D model of Mars Odyssey 2001 spacecraft',
-    scale: 0.011,
+    scale: 0.045,
     position: [0.4, 18.5, 53.2],
     rotation: [0.2, 0.4, 0],
-    focusCamPos: [0.8, 20.2, 58.8],
+    focusCamPos: [0.7, 19.6, 56.6],
     focusLookAt: [0.4, 18.5, 53.2],
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
@@ -516,10 +516,10 @@ export const VEHICLES_DATA = [
     sector: 'LOW MARTIAN ORBIT // HI-RES',
     modelSrc: '/models/mro-opt.glb',
     alt: '3D model of Mars Reconnaissance Orbiter with large dish',
-    scale: 0.026,
+    scale: 0.065,
     position: [-51.4, 41.5, -12.1],
     rotation: [0.1, 0.5, 0],
-    focusCamPos: [-55.8, 44.8, -13.2],
+    focusCamPos: [-54.4, 43.8, -12.8],
     focusLookAt: [-51.4, 41.5, -12.1],
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
@@ -557,10 +557,10 @@ export const VEHICLES_DATA = [
     sector: 'ELLIPTICAL SCIENCE ORBIT',
     modelSrc: '/models/maven-opt.glb',
     alt: '3D model of MAVEN Mars orbiter',
-    scale: 0.175,
+    scale: 0.42,
     position: [10.5, -28.2, -61.8],
     rotation: [0.15, 0.45, 0],
-    focusCamPos: [11.8, -30.5, -67.2],
+    focusCamPos: [11.4, -29.8, -65.2],
     focusLookAt: [10.5, -28.2, -61.8],
     contactShadowRadius: 0,
     agency: 'NASA / Goddard / Lockheed Martin',
@@ -893,7 +893,7 @@ export default function PlanetaryShowroom({
             if (curPos) {
               targetLook = [curPos.x, curPos.y, curPos.z];
               const norm = curPos.clone().normalize();
-              const camVec = curPos.clone().add(norm.clone().multiplyScalar(4.6)).add(new THREE.Vector3(0, 1.2, 0));
+              const camVec = curPos.clone().add(norm.clone().multiplyScalar(3.2)).add(new THREE.Vector3(0, 0.8, 0));
               targetCam = [camVec.x, camVec.y, camVec.z];
             }
           }
@@ -941,6 +941,9 @@ export default function PlanetaryShowroom({
     },
     [filteredVehicles, currentIndex, triggerCameraFly]
   );
+
+  const selectVehicleIndexRef = useRef(selectVehicleIndex);
+  selectVehicleIndexRef.current = selectVehicleIndex;
 
   const handleReturnToSurface = useCallback(() => {
     // Prefer surface vehicle on current planet first, otherwise any surface vehicle
@@ -1183,6 +1186,21 @@ export default function PlanetaryShowroom({
         : MOON_VISTA_CAM;
     camera.position.set(...initVista.pos);
     threeRef.current.camera = camera;
+
+    const applyCameraOffset = (w, h) => {
+      camera.aspect = w / h;
+      if (w > 960) {
+        // Desktop widescreen: align optical center midway between left edge and the right info panel
+        const panelW = Math.min(420, Math.max(340, w * 0.26));
+        const panelMargin = Math.min(40, Math.max(20, w * 0.025));
+        const totalPanelOccupied = panelW + panelMargin;
+        camera.setViewOffset(w, h, totalPanelOccupied / 2, 0, w, h);
+      } else {
+        camera.clearViewOffset();
+      }
+      camera.updateProjectionMatrix();
+    };
+    applyCameraOffset(width, height);
 
     renderer.setPixelRatio(getEffectivePixelRatio(activeQuality));
     renderer.setSize(width, height);
@@ -2160,9 +2178,8 @@ export default function PlanetaryShowroom({
 
     threeRef.current.loadPlanetScene = loadPlanetScene;
     loadPlanetScene(dest, () => {
-      const initialCraft = filteredVehicles[0];
-      if (initialCraft && threeRef.current.applyVehicleState) {
-        threeRef.current.applyVehicleState(initialCraft, false);
+      if (selectVehicleIndexRef.current) {
+        selectVehicleIndexRef.current(0, false);
       }
     });
 
@@ -2170,8 +2187,7 @@ export default function PlanetaryShowroom({
       if (isDisposed || !containerRef.current) return;
       const w = containerRef.current.clientWidth || window.innerWidth;
       const h = containerRef.current.clientHeight || window.innerHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
+      applyCameraOffset(w, h);
       renderer.setPixelRatio(getEffectivePixelRatio(activeQuality));
       renderer.setSize(w, h);
       renderOnce();

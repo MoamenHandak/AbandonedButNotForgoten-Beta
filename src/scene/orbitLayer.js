@@ -76,8 +76,8 @@ const ORBIT_CONFIGS = {
       inclination: [0.55, 0.25, 0.1],
       speed: 0.14,
       initialAngle: 0.4,
-      ambientScale: 0.009, // Native span 115.88m -> ambient span ~1.04 units
-      heroScale: 0.020, // Hero inspection span ~2.32 units
+      ambientScale: 0.024,
+      heroScale: 0.065,
       stationedPos: [50.8, 0.5, 8.2],
       color: 0x00e5ff,
     },
@@ -91,8 +91,8 @@ const ORBIT_CONFIGS = {
       inclination: [-0.42, 0.35, 0.2],
       speed: 0.12,
       initialAngle: 1.9,
-      ambientScale: 0.005, // Native span 215.92m -> ambient span ~1.08 units
-      heroScale: 0.011, // Hero inspection span ~2.37 units
+      ambientScale: 0.016,
+      heroScale: 0.045,
       stationedPos: [0.4, 18.5, 53.2],
       color: 0x64d2ff,
     },
@@ -103,11 +103,11 @@ const ORBIT_CONFIGS = {
       orbitRadiusA: 68.0,
       orbitRadiusB: 64.0,
       center: [0, 0, 0],
-      inclination: [1.5, -0.25, 0.15], // Hi-res polar reconnaissance
+      inclination: [1.5, -0.25, 0.15],
       speed: 0.10,
       initialAngle: 3.6,
-      ambientScale: 0.011, // Native span 89.74m -> ambient span ~0.99 units
-      heroScale: 0.026, // Hero inspection span ~2.33 units
+      ambientScale: 0.025,
+      heroScale: 0.065,
       stationedPos: [-51.4, 41.5, -12.1],
       color: 0x00e5ff,
     },
@@ -118,11 +118,11 @@ const ORBIT_CONFIGS = {
       orbitRadiusA: 82.0,
       orbitRadiusB: 58.0,
       center: [6.0, 0, -6.0],
-      inclination: [-0.65, 0.45, 0.35], // Dipping elliptical atmosphere science orbit
+      inclination: [-0.65, 0.45, 0.35],
       speed: 0.08,
       initialAngle: 5.1,
-      ambientScale: 0.075, // Native span 13.44m -> ambient span ~1.01 units
-      heroScale: 0.175, // Hero inspection span ~2.35 units
+      ambientScale: 0.16,
+      heroScale: 0.42,
       stationedPos: [10.5, -28.2, -61.8],
       color: 0xffcc73,
     },
@@ -626,9 +626,9 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       const up = new THREE.Vector3().crossVectors(norm, tangent).normalize();
 
       const camPos = curPos.clone()
-        .add(norm.clone().multiplyScalar(4.6))
-        .add(up.clone().multiplyScalar(1.2))
-        .sub(tangent.clone().multiplyScalar(3.0));
+        .add(norm.clone().multiplyScalar(3.2))
+        .add(up.clone().multiplyScalar(0.8))
+        .sub(tangent.clone().multiplyScalar(2.2));
 
       return {
         camPos: [camPos.x, camPos.y, camPos.z],
