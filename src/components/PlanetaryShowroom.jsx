@@ -957,8 +957,9 @@ export default function PlanetaryShowroom({
     const elapsed = performance.now() - touchStartTRef.current;
     touchStartXRef.current = null;
 
-    const flicked = elapsed < 360 && Math.abs(deltaX) > 85 && Math.abs(deltaX) > Math.abs(deltaY) * 2.2;
-    if (!flicked || filteredVehicles.length < 2) return;
+    // Optional horizontal swipe on canvas (80px threshold)
+    const swiped = elapsed < 500 && Math.abs(deltaX) >= 80 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4;
+    if (!swiped || filteredVehicles.length < 2) return;
     if (deltaX > 0) handlePrev();
     else handleNext();
   };
@@ -969,6 +970,12 @@ export default function PlanetaryShowroom({
 
     const handleKeyDown = (e) => {
       if (e.defaultPrevented) return;
+
+      // Don't fire shortcuts while typing in inputs (e.g. the quiz)
+      const target = e.target;
+      const tag = target?.tagName?.toLowerCase();
+      const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || target?.isContentEditable;
+      if (isTyping) return;
 
       if (sourcesOpen || moreEquipmentOpen) {
         return;
@@ -2637,49 +2644,55 @@ export default function PlanetaryShowroom({
         </div>
       )}
 
-      {/* Side Navigation Arrows (Item 3, media_1794609980081_8ba58ad9) */}
+      {/* Bottom Center Carousel Dock (Docked Prev / Title / Next + Dots + Navigation Hint) */}
       {!isDialogVisible && filteredVehicles.length > 1 && (
-        <>
-          <button
-            type="button"
-            className="showroom-side-nav-btn showroom-side-nav-left"
-            onClick={handlePrev}
-            aria-label="Previous spacecraft"
-            title="Previous spacecraft"
-          >
-            <ChevronLeft size={22} aria-hidden="true" />
-          </button>
+        <footer
+          className={`showroom-bottom-dock ${isDetailsOpen ? 'has-sheet-open' : ''}`}
+          role="navigation"
+          aria-label="Vehicle Carousel"
+        >
+          <div className="showroom-dock-row">
+            <button
+              type="button"
+              className="showroom-nav-arrow showroom-nav-prev"
+              onClick={handlePrev}
+              aria-label="Previous spacecraft"
+              title="Previous spacecraft (←)"
+            >
+              <ChevronLeft size={22} aria-hidden="true" />
+            </button>
 
-          <button
-            type="button"
-            className="showroom-side-nav-btn showroom-side-nav-right"
-            onClick={handleNext}
-            aria-label="Next spacecraft"
-            title="Next spacecraft"
-          >
-            <ChevronRight size={22} aria-hidden="true" />
-          </button>
-        </>
-      )}
+            <span className="showroom-dock-title">
+              {currentVehicle.name} {currentVehicle.isOrbiter ? '• ORBITER' : ''}
+            </span>
 
-      {/* Bottom Center Vehicle Title & Minimal Dots (Item 3, media_1794609980081_8ba58ad9) */}
-      {!isDialogVisible && filteredVehicles.length > 1 && (
-        <footer className="showroom-bottom-dock" role="navigation" aria-label="Vehicle Selector">
-          <span className="showroom-dock-title">
-            {currentVehicle.name} {currentVehicle.isOrbiter ? '• ORBITER' : ''}
-          </span>
+            <button
+              type="button"
+              className="showroom-nav-arrow showroom-nav-next"
+              onClick={handleNext}
+              aria-label="Next spacecraft"
+              title="Next spacecraft (→)"
+            >
+              <ChevronRight size={22} aria-hidden="true" />
+            </button>
+          </div>
 
-          <div className="showroom-dock-dots" role="tablist">
-            {filteredVehicles.map((v, idx) => (
-              <button
-                key={v.id}
-                type="button"
-                className={`showroom-dock-dot ${idx === currentIndex ? 'is-active' : ''}`}
-                onClick={() => selectVehicleIndex(idx, true)}
-                aria-label={`Select ${v.name}${v.isOrbiter ? ' (Orbiter)' : ''}`}
-                title={`${v.name}${v.isOrbiter ? ' [Orbiter]' : ''}`}
-              />
-            ))}
+          <div className="showroom-dock-subrow">
+            <div className="showroom-dock-dots" role="tablist" aria-label="Vehicle selection">
+              {filteredVehicles.map((v, idx) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  className={`showroom-dock-dot ${idx === currentIndex ? 'is-active' : ''}`}
+                  onClick={() => selectVehicleIndex(idx, true)}
+                  aria-label={`Select ${v.name}${v.isOrbiter ? ' (Orbiter)' : ''}`}
+                  title={`${v.name}${v.isOrbiter ? ' [Orbiter]' : ''}`}
+                />
+              ))}
+            </div>
+            <span className="showroom-dock-hint" aria-hidden="true">
+              ← → to navigate
+            </span>
           </div>
         </footer>
       )}

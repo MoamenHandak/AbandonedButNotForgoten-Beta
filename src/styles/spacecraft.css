@@ -2292,9 +2292,9 @@
     position: absolute;
     top: 68px;
     left: 24px;
-    bottom: 84px;
     width: min(420px, calc(100vw - 48px));
-    z-index: 90;
+    max-height: calc(100vh - 140px);
+    z-index: 110;
     display: flex;
     flex-direction: column;
     background: rgba(0, 0, 0, 0.92);
@@ -2303,6 +2303,7 @@
     backdrop-filter: blur(16px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
     overflow: hidden;
+    overflow-y: auto;
     animation: detailsSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -2867,14 +2868,21 @@
     transform: scale(1.02) !important;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 800px) {
     .showroom-details-panel {
         top: auto;
-        bottom: 78px;
-        left: 12px;
-        right: 12px;
-        width: auto;
-        max-height: 52vh;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        max-height: 40vh;
+        border-radius: 16px 16px 0 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        border-top: 1px solid #ffffff;
+        z-index: 110;
     }
 
     @keyframes detailsSlideIn {
@@ -2888,7 +2896,7 @@
     }
 
     .showroom-open-details-btn {
-        bottom: 74px;
+        bottom: 84px;
         left: 14px;
         padding: 7px 12px;
         font-size: 11px;
@@ -2904,71 +2912,107 @@
         padding: 12px 14px;
         font-size: 13px;
     }
+
+    .showroom-bottom-dock {
+        bottom: 20px;
+        transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .showroom-bottom-dock.has-sheet-open {
+        bottom: calc(40vh + 16px);
+    }
+
+    .showroom-dock-row {
+        gap: 12px;
+    }
+
+    .showroom-dock-title {
+        font-size: 16px;
+    }
+
+    .showroom-nav-arrow {
+        width: 38px;
+        height: 38px;
+    }
 }
 
-/* Side Navigation Arrows (Item 3, media_1794609980081_8ba58ad9) */
-.showroom-side-nav-btn {
-    position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 100;
-    width: 44px;
-    height: 44px;
-    background: rgba(0, 0, 0, 0.75);
-    border: 1px solid #ffffff;
-    border-radius: 4px;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
-}
+/* ==========================================================================
+   BOTTOM CENTER CAROUSEL DOCK (Prev / Title / Next + Dots + Nav Hint)
+   Clean, unified navigation dock pinned to the bottom viewport center
+   ========================================================================== */
 
-.showroom-side-nav-btn:hover {
-    background: #ffffff;
-    color: #000000;
-    transform: translateY(-50%) scale(1.05);
-}
-
-.showroom-side-nav-left {
-    left: 24px;
-}
-
-.showroom-side-nav-right {
-    right: 24px;
-}
-
-/* Bottom Center Title & Minimal Dots (Item 3, media_1794609980081_8ba58ad9) */
 .showroom-bottom-dock {
     position: fixed;
-    bottom: 24px;
+    bottom: 28px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    pointer-events: none;
+    user-select: none;
+}
+
+.showroom-dock-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
     pointer-events: auto;
 }
 
+.showroom-nav-arrow {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
+}
+
+.showroom-nav-arrow:hover {
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+    transform: scale(1.08);
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+}
+
 .showroom-dock-title {
-    font-family: var(--ui-head);
+    font-family: var(--ui-head, 'Orbitron', 'Space Grotesk', sans-serif);
     font-size: 20px;
     font-weight: 500;
     letter-spacing: 0.5px;
     color: #ffffff;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 0, 0, 0.7);
     text-align: center;
+    white-space: nowrap;
+}
+
+.showroom-dock-subrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    pointer-events: auto;
 }
 
 .showroom-dock-dots {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 14px;
+    gap: 12px;
 }
 
 .showroom-dock-dot {
@@ -2992,5 +3036,16 @@
     background: #ffffff;
     border-color: #ffffff;
     box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+.showroom-dock-hint {
+    font-family: var(--font-ui, 'Tajawal', sans-serif);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+    pointer-events: none;
+    line-height: 1;
 }
 
