@@ -37,7 +37,6 @@ import { dispatchAudioCue, playServo } from '../audio/surfaceAudio';
 import {
   getStoryProgression,
   isCraftUnlocked,
-  isCraftViewableInArcade,
   recordQuizCompleted,
   getOppositeArea,
   resetStoryProgression
@@ -60,7 +59,6 @@ import {
 } from '../constants/settings';
 import { getCraftStory, getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
 import { getTranslations } from '../constants/translations';
-import MissionBriefingDialog from './MissionBriefingDialog';
 import StatusBadge from './StatusBadge';
 import ShowroomStoryPanel from './ShowroomStoryPanel';
 import { createOrbitLayer } from '../scene/orbitLayer';
@@ -673,7 +671,6 @@ export default function PlanetaryShowroom({
 }) {
   const containerRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isCraftDialogOpen, setIsCraftDialogOpen] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showStoryModal, setShowStoryModal] = useState(false);
   const [moreEquipmentOpen, setMoreEquipmentOpen] = useState(false);
@@ -776,23 +773,9 @@ export default function PlanetaryShowroom({
   );
 
   const isArcadeMode = initialDestination === 'all';
-  const unlockedArcadeCrafts = filteredVehicles.filter((v) => isCraftViewableInArcade(v.id, progression));
-  const isArcadeEmpty = isArcadeMode && unlockedArcadeCrafts.length === 0;
-
   const currentVehicle = filteredVehicles[currentIndex] || filteredVehicles[0];
   const isMoon = currentVehicle?.destination === 'moon';
   const isDeepSpace = currentVehicle?.destination === 'deepspace';
-  const isCurrentCraftLockedInArcade = isArcadeMode && !isCraftViewableInArcade(currentVehicle?.id, progression);
-
-  // If in Arcade mode and current craft is locked but others are unlocked, snap to first unlocked craft
-  useEffect(() => {
-    if (isArcadeMode && unlockedArcadeCrafts.length > 0 && isCurrentCraftLockedInArcade) {
-      const firstIdx = filteredVehicles.findIndex((v) => isCraftViewableInArcade(v.id, progression));
-      if (firstIdx !== -1 && firstIdx !== currentIndex) {
-        selectVehicleIndex(firstIdx, false);
-      }
-    }
-  }, [isArcadeMode, unlockedArcadeCrafts.length, isCurrentCraftLockedInArcade, currentIndex, filteredVehicles, progression, selectVehicleIndex]);
 
   const currentVehicleRef = useRef(currentVehicle);
   useEffect(() => {
@@ -990,23 +973,11 @@ export default function PlanetaryShowroom({
   }, []);
 
   const handleNext = useCallback(() => {
-    if (isArcadeMode) {
-      if (unlockedArcadeCrafts.length === 0) return;
-      let nextIdx = (currentIndex + 1) % filteredVehicles.length;
-      let steps = 0;
-      while (!isCraftViewableInArcade(filteredVehicles[nextIdx].id, progression) && steps < filteredVehicles.length) {
-        nextIdx = (nextIdx + 1) % filteredVehicles.length;
-        steps++;
-      }
-      selectVehicleIndex(nextIdx, true);
-      return;
-    }
-
     const nextIdx = (currentIndex + 1) % filteredVehicles.length;
     const targetV = filteredVehicles[nextIdx];
     if (!targetV) return;
 
-    if (!isCraftUnlocked(targetV.id, filteredVehicles, progression)) {
+    if (!isArcadeMode && !isCraftUnlocked(targetV.id, filteredVehicles, progression)) {
       playServo('click');
       showToast(
         activeLang === 'ar'
@@ -1022,26 +993,14 @@ export default function PlanetaryShowroom({
     }
 
     selectVehicleIndex(nextIdx, true);
-  }, [isArcadeMode, unlockedArcadeCrafts.length, currentIndex, filteredVehicles, progression, currentVehicle, activeLang, selectVehicleIndex, showToast, handleOpenDetails]);
+  }, [isArcadeMode, currentIndex, filteredVehicles, progression, currentVehicle, activeLang, selectVehicleIndex, showToast, handleOpenDetails]);
 
   const handlePrev = useCallback(() => {
-    if (isArcadeMode) {
-      if (unlockedArcadeCrafts.length === 0) return;
-      let prevIdx = (currentIndex - 1 + filteredVehicles.length) % filteredVehicles.length;
-      let steps = 0;
-      while (!isCraftViewableInArcade(filteredVehicles[prevIdx].id, progression) && steps < filteredVehicles.length) {
-        prevIdx = (prevIdx - 1 + filteredVehicles.length) % filteredVehicles.length;
-        steps++;
-      }
-      selectVehicleIndex(prevIdx, true);
-      return;
-    }
-
     const prevIdx = (currentIndex - 1 + filteredVehicles.length) % filteredVehicles.length;
     const targetV = filteredVehicles[prevIdx];
     if (!targetV) return;
 
-    if (!isCraftUnlocked(targetV.id, filteredVehicles, progression)) {
+    if (!isArcadeMode && !isCraftUnlocked(targetV.id, filteredVehicles, progression)) {
       playServo('click');
       showToast(
         activeLang === 'ar'
@@ -1057,7 +1016,7 @@ export default function PlanetaryShowroom({
     }
 
     selectVehicleIndex(prevIdx, true);
-  }, [isArcadeMode, unlockedArcadeCrafts.length, currentIndex, filteredVehicles, progression, activeLang, selectVehicleIndex, showToast, handleOpenDetails]);
+  }, [isArcadeMode, currentIndex, filteredVehicles, progression, activeLang, selectVehicleIndex, showToast, handleOpenDetails]);
 
   const handleRetryLoad = useCallback(() => {
     const s = threeRef.current;
@@ -1065,31 +1024,13 @@ export default function PlanetaryShowroom({
     s.loadPlanetScene?.(planet);
   }, [initialDestination]);
 
-  const isDialogVisible = isCraftDialogOpen && !isLoading3D && !loadError;
-
-  const handleCraftDialogComplete = useCallback(() => {
-    setIsCraftDialogOpen(false);
-    setIsDetailsOpen(false);
-    setIsDetailsLeaving(false);
-    // Always transition to the first vehicle of the active destination
-    // (Opportunity on Mars, Lunar Rover on Moon / All, Deep Space Probe on Deep Space).
-    selectVehicleIndex(0, true, 'camera_servo');
-  }, [selectVehicleIndex]);
-
-  const handleOpenCraftDialog = useCallback(() => {
-    const s = threeRef.current;
-    const planet = s.currentPlanet || (initialDestination === 'mars' ? 'mars' : initialDestination === 'deepspace' ? 'deepspace' : 'moon');
-    const vista = planet === 'mars' ? MARS_VISTA_CAM : planet === 'deepspace' ? DEEPSPACE_VISTA_CAM : MOON_VISTA_CAM;
-    s.orbitLayer?.release();
-    setIsCraftDialogOpen(true);
-    triggerCameraFly(vista.pos, vista.lookAt, 1100, 'camera_servo');
-  }, [initialDestination, triggerCameraFly]);
+  const isDialogVisible = false;
 
   // Wake/pause render loop when overlay modals open/close
   useEffect(() => {
     threeRef.current.orbitLayer?.setPaused(overlayPausedRef.current);
     threeRef.current.syncRenderLoop?.();
-  }, [isCraftDialogOpen, showStoryModal, moreEquipmentOpen, sourcesOpen, isLoading3D, isPauseMenuOpen, settingsOpen]);
+  }, [showStoryModal, moreEquipmentOpen, sourcesOpen, isLoading3D, isPauseMenuOpen, settingsOpen]);
 
   // Audio pause/resume effect for pause menu (Task 1)
   useEffect(() => {
@@ -1193,7 +1134,6 @@ export default function PlanetaryShowroom({
     if (!isOpen || !containerRef.current) return;
 
     setCurrentIndex(0);
-    setIsCraftDialogOpen(true);
     setLoadError(null);
 
     if (!isWebGLAvailable()) {
@@ -2484,7 +2424,6 @@ export default function PlanetaryShowroom({
                 className="pause-action-btn"
                 onClick={() => {
                   setIsPauseMenuOpen(false);
-                  handleOpenCraftDialog();
                 }}
               >
                 <Layers size={18} />
@@ -2890,56 +2829,6 @@ export default function PlanetaryShowroom({
         </aside>
       )}
 
-      {/* Arcade Mode Locked & Empty States */}
-      {isArcadeEmpty && (
-        <div className="arcade-locked-overlay">
-          <div className="arcade-locked-card">
-            <Lock size={42} className="arcade-lock-icon" />
-            <h2 className="arcade-locked-title">{t.arcadeEmptyTitle || 'NO SPACECRAFTS UNLOCKED YET'}</h2>
-            <p className="arcade-locked-desc">
-              {t.arcadeEmptyDesc || 'All telemetry records are locked in deep archive. Journey through Story Mode to discover each explorer!'}
-            </p>
-            <button
-              type="button"
-              className="arcade-start-story-btn"
-              onClick={() => {
-                onClose();
-                window.dispatchEvent(new CustomEvent('requestStoryStart'));
-              }}
-            >
-              <Rocket size={16} />
-              <span>{t.arcadeStartStory || 'START STORY MODE'}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!isArcadeEmpty && isCurrentCraftLockedInArcade && (
-        <div className="arcade-locked-overlay">
-          <div className="arcade-locked-card">
-            <Lock size={36} className="arcade-lock-icon" />
-            <span className="card-hud-badge is-locked" style={{ margin: '0' }}>
-              {t.arcadeLockedBadge || 'Finish in Story Mode'}
-            </span>
-            <h3 className="arcade-locked-title">{currentVehicle.name}</h3>
-            <p className="arcade-locked-desc">
-              {t.arcadeLockedSubtitle || 'Complete this spacecraft’s mission quiz in Story Mode to unlock its full 3D telemetry.'}
-            </p>
-            <button
-              type="button"
-              className="arcade-start-story-btn"
-              onClick={() => {
-                onClose();
-                window.dispatchEvent(new CustomEvent('requestStoryStart'));
-              }}
-            >
-              <Rocket size={15} />
-              <span>{t.arcadeStartStory || 'START STORY MODE'}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Opposite Sides Navigation Chevrons */}
       {!isDialogVisible && filteredVehicles.length > 1 && (
         <>
@@ -2956,9 +2845,7 @@ export default function PlanetaryShowroom({
           {(() => {
             const nextIdx = (currentIndex + 1) % filteredVehicles.length;
             const nextVehicle = filteredVehicles[nextIdx];
-            const isNextLocked = isArcadeMode
-              ? unlockedArcadeCrafts.length <= 1
-              : nextVehicle && !isCraftUnlocked(nextVehicle.id, filteredVehicles, progression);
+            const isNextLocked = !isArcadeMode && nextVehicle && !isCraftUnlocked(nextVehicle.id, filteredVehicles, progression);
 
             return (
               <button
@@ -2983,9 +2870,7 @@ export default function PlanetaryShowroom({
       {!isDialogVisible && filteredVehicles.length > 1 && (
         <div className="showroom-inspect-dots-wrap" role="tablist" aria-label="Vehicle selection">
           {filteredVehicles.map((v, idx) => {
-            const isAccessible = isArcadeMode
-              ? isCraftViewableInArcade(v.id, progression)
-              : isCraftUnlocked(v.id, filteredVehicles, progression);
+            const isAccessible = isArcadeMode || isCraftUnlocked(v.id, filteredVehicles, progression);
             const isSolved = Boolean(progression.completedQuizzes?.[v.id]);
 
             return (
@@ -2998,29 +2883,16 @@ export default function PlanetaryShowroom({
                 onClick={() => {
                   if (!isAccessible) {
                     playServo('click');
-                    if (isArcadeMode) {
-                      showToast(
-                        activeLang === 'ar'
-                          ? `🔒 ${v.name} مشفرة! أكمل مهمتها في طور القصة لفتحها.`
-                          : `🔒 ${v.name} is encrypted! Complete its mission in Story Mode to unlock.`,
-                        activeLang === 'ar' ? 'ابدأ القصة' : 'START STORY',
-                        () => {
-                          onClose();
-                          window.dispatchEvent(new CustomEvent('requestStoryStart'));
-                        }
-                      );
-                    } else {
-                      showToast(
-                        activeLang === 'ar'
-                          ? `🔒 ${v.name} مقفلة! قم بحل اختبار ${currentVehicle.name} أولاً.`
-                          : `🔒 ${v.name} is locked! Solve ${currentVehicle.name}'s quiz to unlock.`,
-                        activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
-                        () => {
-                          handleOpenDetails();
-                          setDetailTab('quiz');
-                        }
-                      );
-                    }
+                    showToast(
+                      activeLang === 'ar'
+                        ? `🔒 ${v.name} مقفلة! قم بحل اختبار ${currentVehicle.name} أولاً.`
+                        : `🔒 ${v.name} is locked! Solve ${currentVehicle.name}'s quiz to unlock.`,
+                      activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
+                      () => {
+                        handleOpenDetails();
+                        setDetailTab('quiz');
+                      }
+                    );
                     return;
                   }
                   selectVehicleIndex(idx, true);
@@ -3101,24 +2973,6 @@ export default function PlanetaryShowroom({
       <div
         className={`showroom-orbital-fade ${isOrbitTransitioning ? 'is-active' : ''}`}
         aria-hidden="true"
-      />
-
-      {/* Bottom Typewriter Briefing Dialog — transitions directly to first spacecraft */}
-      <MissionBriefingDialog
-        isOpen={isDialogVisible}
-        onComplete={handleCraftDialogComplete}
-        lines={SHOWROOM_BRIEFINGS[activePlanet] || SHOWROOM_BRIEFINGS.all}
-        speaker="MISSION CONTROL"
-        ariaLabel="Spacecraft Mission Briefing"
-        overlayClassName="ui-overlay briefing-overlay showroom-briefing-overlay"
-        secondaryAction={{
-          label: storyUi.moreEquipmentBtn,
-          onClick: () => {
-            playServo('fly');
-            setIsCraftDialogOpen(false);
-            setMoreEquipmentOpen(true);
-          },
-        }}
       />
 
       {/* Lazy-loaded Task 5 Archive Modal & Task 7 Sources Modal */}

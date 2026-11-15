@@ -69,7 +69,7 @@ function StoryDialogueBox({
     return () => window.removeEventListener('keydown', handleKey);
   }, [currentLine, isLastLine]);
 
-  const currentBg = line.bgImage || '/assets/story/shot1.png';
+  const currentBg = line.bgImage || '/assets/story/room_bg.jpg';
   const expression = line.expression || 'curious';
   const isArabic = activeLang === 'ar';
 
@@ -100,7 +100,16 @@ function StoryDialogueBox({
         />
       </div>
 
-      {/* Dialogue Box (Centered bottom glass panel) */}
+      {/* Open Glowing NASA Hologram Book Cut-Out (Opposite side of dialogue box from Luna) */}
+      <div className={`story-book-cutout ${line.isLogbook ? 'is-active' : ''}`} aria-hidden="true">
+        <img
+          src={resolveAssetUrl('/assets/story/nasa_book_open.png')}
+          alt="Glowing open NASA logbook"
+          className="story-book-cutout-img"
+        />
+      </div>
+
+      {/* Dialogue Box (Centered bottom glass panel matching user template) */}
       <div className="story-dialogue-wrapper">
         <div
           className={`story-dialogue-box ${line.isLogbook ? 'is-logbook' : ''}`}
@@ -109,10 +118,10 @@ function StoryDialogueBox({
           tabIndex={0}
           aria-label={isArabic ? 'انقر أو اضغط مسافة للمتابعة' : 'Click or press Space to advance dialogue'}
         >
-          {/* Docked Speaker Name Tag */}
-          <div className={`dialogue-nameplate ${line.isLogbook ? 'is-logbook' : ''}`}>
-            <span className="nameplate-name">{line.speaker}</span>
-            <span className="nameplate-role">// {line.role}</span>
+          {/* Character Name inside top of the box (Template match) */}
+          <div className={`dialogue-character-name ${line.isLogbook ? 'is-logbook' : ''}`}>
+            <span className="character-name-text">{line.speaker}</span>
+            {line.role && <span className="character-role-text"> // {line.role}</span>}
           </div>
 
           {/* Word/Grapheme safe Typewriter body */}
@@ -180,11 +189,9 @@ export default function StoryGame({ onBackToMenu }) {
       const id = setTimeout(() => {
         prefetchGLB('/models/moon-opt.glb');
         prefetchGLB('/models/mars-opt.glb');
-        preloadImage('/assets/story/shot1.png');
-        preloadImage('/assets/story/shot2.jpg');
-        preloadImage('/assets/story/shot3.jpg');
-        preloadImage('/assets/story/shot4.jpg');
-        preloadImage('/assets/story/shot5.jpg');
+        preloadImage('/assets/story/room_bg.jpg');
+        preloadImage('/assets/story/space_bg.jpg');
+        preloadImage('/assets/story/nasa_book_open.png');
         preloadImage('/assets/story/luna/luna_curious.webp');
         preloadImage('/assets/story/luna/luna_reading.webp');
         preloadImage('/assets/story/luna/luna_surprised.webp');

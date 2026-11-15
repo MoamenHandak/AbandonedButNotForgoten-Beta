@@ -16,20 +16,17 @@ const loadShowroom = () => import('./components/PlanetaryShowroom');
 const loadSettingsModal = () => import('./components/SettingsModal');
 const loadCreditsModal = () => import('./components/CreditsModal');
 const loadSourcesModal = () => import('./components/SourcesModal');
-const loadBriefingDialog = () => import('./components/MissionBriefingDialog');
 
 const StoryGame = lazy(loadStoryGame);
 const PlanetaryShowroom = lazy(loadShowroom);
 const SettingsModal = lazy(loadSettingsModal);
 const CreditsModal = lazy(loadCreditsModal);
 const SourcesModal = lazy(loadSourcesModal);
-const MissionBriefingDialog = lazy(loadBriefingDialog);
 
 export default function App() {
   const [activeModal, setActiveModal] = useState(null); // 'settings' | 'credits' | 'sources' | 'spacecraft' | null
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchError, setLaunchError] = useState(null);
-  const [isBriefingOpen, setIsBriefingOpen] = useState(false);
   const [inGame, setInGame] = useState(false);
   const [settings, setSettings] = useState(() => readStoredSettings());
   const [loadProgress, setLoadProgress] = useState(0);
@@ -173,7 +170,7 @@ export default function App() {
               }, 900);
             }
           }}
-          onStartJourney={() => setIsBriefingOpen(true)}
+          onStartJourney={handleStartJourney}
           onOpenSettings={() => setActiveModal('settings')}
           onOpenCredits={() => setActiveModal('credits')}
           onOpenSources={() => setActiveModal('sources')}
@@ -183,19 +180,6 @@ export default function App() {
         {/* Cinematic Warp Curtain */}
         <div className="cinematic-curtain" aria-hidden="true" />
       </main>
-
-      {/* Mission Control Typewriter Briefing Dialog (Lazy-loaded on demand) */}
-      {isBriefingOpen && (
-        <Suspense fallback={null}>
-          <MissionBriefingDialog
-            isOpen={isBriefingOpen}
-            onComplete={() => {
-              setIsBriefingOpen(false);
-              handleStartJourney();
-            }}
-          />
-        </Suspense>
-      )}
 
       {isLaunching && (
         <div
