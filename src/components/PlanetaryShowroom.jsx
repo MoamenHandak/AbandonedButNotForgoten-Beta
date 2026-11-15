@@ -753,146 +753,121 @@ export default function PlanetaryShowroom({
       if (!vehicle) return;
 
       const currentV = filteredVehicles[currentIndex];
+      const s = threeRef.current;
+      const isPlanetChanging = s.currentPlanet !== vehicle.destination;
       const isSwitchingOrbit = currentV && Boolean(currentV.isOrbiter) !== Boolean(vehicle.isOrbiter);
-
-      if (isSwitchingOrbit) {
-        setIsOrbitTransitioning(true);
-        if (cue) dispatchAudioCue(cue);
-
-        setTimeout(() => {
-          setIsOrbitalView(Boolean(vehicle.isOrbiter));
-          setCurrentIndex(idx);
-          setIsDetailsOpen(false);
-          setIsDetailsLeaving(false);
-
-          const s = threeRef.current;
-          if (vehicle.isOrbiter) {
-            if (s.terrainGroup) s.terrainGroup.visible = false;
-            if (s.vehiclesGroup) s.vehiclesGroup.visible = false;
-            s.orbitLayer?.setOrbitalMode(true);
-            s.orbitLayer?.select(vehicle.id);
-            if (s.scene) {
-              s.scene.fog = null;
-            }
-            if (s.controls) {
-              s.controls.maxPolarAngle = Math.PI;
-              s.controls.maxDistance = 350.0;
-              s.controls.minDistance = 0.5;
-            }
-          } else {
-            if (s.terrainGroup) s.terrainGroup.visible = true;
-            if (s.vehiclesGroup) s.vehiclesGroup.visible = true;
-            s.orbitLayer?.setOrbitalMode(false);
-            s.orbitLayer?.release();
-            if (s.scene) {
-              if (vehicle.destination === 'mars') {
-                s.scene.fog = new THREE.FogExp2(0x1e0b07, 0.014);
-              } else {
-                s.scene.fog = new THREE.Fog(0x020409, 3500, 7500);
-              }
-            }
-            if (s.controls) {
-              s.controls.maxPolarAngle = Math.PI / 2 - 0.02;
-              s.controls.maxDistance = 45.0;
-              s.controls.minDistance = 1.5;
-            }
-          }
-
-          let targetCam = vehicle.focusCamPos;
-          let targetLook = vehicle.focusLookAt;
-          if (vehicle.isOrbiter && s.orbitLayer) {
-            const curPos = s.orbitLayer.getOrbiterPosition(vehicle.id);
-            if (curPos) {
-              targetLook = [curPos.x, curPos.y, curPos.z];
-              const norm = curPos.clone().normalize();
-              const camVec = curPos.clone().add(norm.clone().multiplyScalar(4.0)).add(new THREE.Vector3(0, 1.5, 0));
-              targetCam = [camVec.x, camVec.y, camVec.z];
-            }
-          }
-
-          if (s.camera && s.controls) {
-            s.camera.position.set(...targetCam);
-            s.controls.target.set(...targetLook);
-            s.controls.update();
-            s.renderOnce?.();
-          }
-
-          setTimeout(() => {
-            setIsOrbitTransitioning(false);
-          }, 450);
-        }, 400);
-
-        return;
-      }
 
       setCurrentIndex(idx);
       setIsDetailsOpen(false);
       setIsDetailsLeaving(false);
 
-      const s = threeRef.current;
-      if (vehicle.isOrbiter) {
-        if (s.terrainGroup) s.terrainGroup.visible = false;
-        if (s.vehiclesGroup) s.vehiclesGroup.visible = false;
-        s.orbitLayer?.setOrbitalMode(true);
-        s.orbitLayer?.select(vehicle.id);
-        if (s.scene) {
-          s.scene.fog = null;
-        }
-        if (s.controls) {
-          s.controls.maxPolarAngle = Math.PI;
-          s.controls.maxDistance = 350.0;
-          s.controls.minDistance = 0.5;
-        }
-      } else {
-        if (s.terrainGroup) s.terrainGroup.visible = true;
-        if (s.vehiclesGroup) s.vehiclesGroup.visible = true;
-        s.orbitLayer?.setOrbitalMode(false);
-        s.orbitLayer?.release();
-        if (s.scene) {
-          if (vehicle.destination === 'mars') {
-            s.scene.fog = new THREE.FogExp2(0x1e0b07, 0.014);
-          } else {
-            s.scene.fog = new THREE.Fog(0x020409, 3500, 7500);
+      const applyVehicleState = (targetVehicle, shouldFly = true) => {
+        const state = threeRef.current;
+        if (!state.scene || !targetVehicle) return;
+
+        const isOrbiter = Boolean(targetVehicle.isOrbiter);
+        setIsOrbitalView(isOrbiter);
+
+        if (isOrbiter) {
+          if (state.terrainGroup) state.terrainGroup.visible = false;
+          if (state.vehiclesGroup) state.vehiclesGroup.visible = false;
+          state.orbitLayer?.setOrbitalMode(true);
+          state.orbitLayer?.select(targetVehicle.id);
+          if (state.scene) state.scene.fog = null;
+          if (state.controls) {
+            state.controls.maxPolarAngle = Math.PI;
+            state.controls.maxDistance = 350.0;
+            state.controls.minDistance = 0.5;
+          }
+        } else {
+          if (state.terrainGroup) state.terrainGroup.visible = true;
+          if (state.vehiclesGroup) state.vehiclesGroup.visible = true;
+          state.orbitLayer?.setOrbitalMode(false);
+          state.orbitLayer?.release();
+          if (state.scene) {
+            if (targetVehicle.destination === 'mars') {
+              state.scene.fog = new THREE.FogExp2(0x1e0b07, 0.014);
+            } else if (targetVehicle.destination === 'moon') {
+              state.scene.fog = new THREE.Fog(0x020409, 3500, 7500);
+            } else {
+              state.scene.fog = null;
+            }
+          }
+          if (state.controls) {
+            state.controls.maxPolarAngle = Math.PI / 2 - 0.02;
+            state.controls.maxDistance = 45.0;
+            state.controls.minDistance = 1.5;
           }
         }
-        if (s.controls) {
-          s.controls.maxPolarAngle = Math.PI / 2 - 0.02;
-          s.controls.maxDistance = 45.0;
-          s.controls.minDistance = 1.5;
-        }
-      }
 
-      let targetFlyCam = vehicle.focusCamPos;
-      let targetFlyLook = vehicle.focusLookAt;
-      if (vehicle.isOrbiter && s.orbitLayer) {
-        const curPos = s.orbitLayer.getOrbiterPosition(vehicle.id);
-        if (curPos) {
-          targetFlyLook = [curPos.x, curPos.y, curPos.z];
-          const norm = curPos.clone().normalize();
-          const camVec = curPos.clone().add(norm.clone().multiplyScalar(4.0)).add(new THREE.Vector3(0, 1.5, 0));
-          targetFlyCam = [camVec.x, camVec.y, camVec.z];
-        }
-      }
-
-      if (s.currentPlanet !== vehicle.destination && s.loadPlanetScene) {
-        s.loadPlanetScene(vehicle.destination, () => {
-          if (autoFly) {
-            triggerCameraFly(targetFlyCam, targetFlyLook, 1600, cue);
+        let targetCam = targetVehicle.focusCamPos;
+        let targetLook = targetVehicle.focusLookAt;
+        if (isOrbiter && state.orbitLayer) {
+          const curPos = state.orbitLayer.getOrbiterPosition(targetVehicle.id);
+          if (curPos) {
+            targetLook = [curPos.x, curPos.y, curPos.z];
+            const norm = curPos.clone().normalize();
+            const camVec = curPos.clone().add(norm.clone().multiplyScalar(4.0)).add(new THREE.Vector3(0, 1.5, 0));
+            targetCam = [camVec.x, camVec.y, camVec.z];
           }
-        });
-      } else if (autoFly) {
-        triggerCameraFly(targetFlyCam, targetFlyLook, 1600, cue);
+        }
+
+        if (shouldFly && !isPlanetChanging) {
+          triggerCameraFly(targetCam, targetLook, 1600, cue);
+        } else if (state.camera && state.controls) {
+          state.camera.position.set(...targetCam);
+          state.controls.target.set(...targetLook);
+          state.controls.update();
+          state.renderOnce?.();
+        }
+      };
+
+      if (isPlanetChanging) {
+        setIsOrbitTransitioning(true);
+        if (cue) dispatchAudioCue(cue);
+        if (s.loadPlanetScene) {
+          s.loadPlanetScene(vehicle.destination, () => {
+            applyVehicleState(vehicle, false);
+            setTimeout(() => {
+              setIsOrbitTransitioning(false);
+            }, 350);
+          });
+        }
+        return;
       }
+
+      if (isSwitchingOrbit) {
+        setIsOrbitTransitioning(true);
+        if (cue) dispatchAudioCue(cue);
+        setTimeout(() => {
+          applyVehicleState(vehicle, false);
+          setTimeout(() => {
+            setIsOrbitTransitioning(false);
+          }, 450);
+        }, 400);
+        return;
+      }
+
+      applyVehicleState(vehicle, autoFly);
     },
     [filteredVehicles, currentIndex, triggerCameraFly]
   );
 
   const handleReturnToSurface = useCallback(() => {
-    const surfaceIdx = filteredVehicles.findIndex((v) => !v.isOrbiter);
-    if (surfaceIdx !== -1) {
-      selectVehicleIndex(surfaceIdx, true, 'camera_servo');
+    // Prefer surface vehicle on current planet first, otherwise any surface vehicle
+    const currentPlanet = currentVehicle?.destination;
+    const samePlanetSurfaceIdx = filteredVehicles.findIndex(
+      (v) => !v.isOrbiter && v.destination === currentPlanet
+    );
+    if (samePlanetSurfaceIdx !== -1) {
+      selectVehicleIndex(samePlanetSurfaceIdx, true, 'camera_servo');
+    } else {
+      const surfaceIdx = filteredVehicles.findIndex((v) => !v.isOrbiter);
+      if (surfaceIdx !== -1) {
+        selectVehicleIndex(surfaceIdx, true, 'camera_servo');
+      }
     }
-  }, [filteredVehicles, selectVehicleIndex]);
+  }, [filteredVehicles, currentVehicle, selectVehicleIndex]);
 
   const handleNext = useCallback(() => {
     const nextIdx = (currentIndex + 1) % filteredVehicles.length;
@@ -1197,17 +1172,20 @@ export default function PlanetaryShowroom({
             worldPos = threeRef.current.orbitLayer.getOrbiterPosition(cv.id);
           }
           if (!worldPos && controls) {
-            worldPos = controls.target;
+            if (cv.vistaAnchor && !cv.isOrbiter) {
+              worldPos = _hotspotPos.set(...cv.vistaAnchor);
+            } else {
+              worldPos = controls.target;
+            }
           }
           if (worldPos) {
             _hotspotPos.copy(worldPos);
-            _hotspotPos.y += cv.isOrbiter ? 1.5 : 1.15;
             _hotspotPos.project(camera);
             if (_hotspotPos.z < 1.0) {
               const x = (_hotspotPos.x * 0.5 + 0.5) * window.innerWidth;
               const y = (-(_hotspotPos.y * 0.5) + 0.5) * window.innerHeight;
               hotspotRef.current.style.display = 'flex';
-              hotspotRef.current.style.transform = `translate(-50%, -50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+              hotspotRef.current.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%) translateY(-14px)`;
             } else {
               hotspotRef.current.style.display = 'none';
             }
@@ -1288,17 +1266,20 @@ export default function PlanetaryShowroom({
             worldPos = s.orbitLayer.getOrbiterPosition(cv.id);
           }
           if (!worldPos && s.controls) {
-            worldPos = s.controls.target;
+            if (cv.vistaAnchor && !cv.isOrbiter) {
+              worldPos = _hotspotPos.set(...cv.vistaAnchor);
+            } else {
+              worldPos = s.controls.target;
+            }
           }
           if (worldPos) {
             _hotspotPos.copy(worldPos);
-            _hotspotPos.y += cv.isOrbiter ? 1.5 : 1.15;
             _hotspotPos.project(s.camera);
             if (_hotspotPos.z < 1.0) {
               const x = (_hotspotPos.x * 0.5 + 0.5) * window.innerWidth;
               const y = (-(_hotspotPos.y * 0.5) + 0.5) * window.innerHeight;
               hotspotRef.current.style.display = 'flex';
-              hotspotRef.current.style.transform = `translate(-50%, -50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+              hotspotRef.current.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%) translateY(-14px)`;
             } else {
               hotspotRef.current.style.display = 'none';
             }

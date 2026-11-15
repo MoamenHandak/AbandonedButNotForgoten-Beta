@@ -2038,17 +2038,17 @@
 }
 
 .showroom-pause-modal {
-    background: rgba(3, 6, 20, 0.96);
-    border: 1px solid rgba(0, 229, 255, 0.35);
-    border-radius: 12px;
-    box-shadow: 0 0 45px rgba(0, 0, 0, 0.95), 0 0 25px rgba(0, 229, 255, 0.12);
+    background: rgba(0, 0, 0, 0.94);
+    border: 1px solid #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
     width: 100%;
     max-width: 440px;
-    padding: 28px 24px 24px;
+    padding: 26px 24px 22px;
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 16px;
     animation: pauseModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -2061,46 +2061,46 @@
     position: absolute;
     top: 14px;
     right: 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    width: 34px;
-    height: 34px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 5px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.7);
+    color: #ffffff;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.25s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .showroom-pause-close-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
-    border-color: #00e5ff;
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
 }
 
 .showroom-pause-header {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
     padding-bottom: 12px;
 }
 
 .showroom-pause-eyebrow {
-    font-family: 'NMSFuturaProBook', 'Tajawal', sans-serif;
+    font-family: var(--font-ui, 'Tajawal', sans-serif);
     font-size: 11px;
     letter-spacing: 0.14em;
-    color: #00e5ff;
+    color: rgba(255, 255, 255, 0.65);
     text-transform: uppercase;
 }
 
 .showroom-pause-title {
     margin: 0;
-    font-family: 'NMSGeoSans', 'Tajawal', sans-serif;
+    font-family: var(--ui-head, 'Orbitron', 'Space Grotesk', sans-serif);
     font-size: 24px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     color: #ffffff;
     font-weight: 400;
 }
@@ -2108,7 +2108,7 @@
 .showroom-pause-actions {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 9px;
 }
 
 .pause-action-btn {
@@ -2116,49 +2116,51 @@
     align-items: center;
     gap: 12px;
     width: 100%;
-    min-height: 48px;
-    padding: 12px 18px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.04);
+    min-height: 46px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.7);
     color: #ffffff;
-    font-family: 'NMSGeoSans', 'Tajawal', sans-serif;
-    font-size: 13.5px;
+    font-family: var(--font-ui, 'Tajawal', sans-serif);
+    font-size: 13px;
+    font-weight: 700;
     letter-spacing: 0.08em;
     text-align: left;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.25s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
 .pause-action-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: #00e5ff;
-    color: #00e5ff;
-    transform: translateX(3px);
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #000000;
+    transform: scale(1.01);
 }
 
 .pause-action-btn.is-primary {
-    background: #00e5ff;
-    border-color: #00e5ff;
-    color: #020409;
-    font-weight: 600;
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #000000;
+    font-weight: 700;
 }
 
 .pause-action-btn.is-primary:hover {
-    background: #4deeff;
-    color: #020409;
-    box-shadow: 0 0 16px rgba(0, 229, 255, 0.5);
-    transform: none;
+    background: rgba(255, 255, 255, 0.88);
+    color: #000000;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.45);
+    transform: scale(1.01);
 }
 
 .pause-action-btn.is-danger {
-    border-color: rgba(255, 107, 107, 0.35);
-    color: rgba(255, 200, 200, 0.9);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #ffffff;
 }
 
 .pause-action-btn.is-danger:hover {
     border-color: #ff6b6b;
-    background: rgba(255, 107, 107, 0.15);
+    background: rgba(255, 107, 107, 0.2);
     color: #ffffff;
 }
 
@@ -2258,17 +2260,17 @@
     width: 24px;
     height: 8px;
     border-radius: 9999px;
-    background: #00e5ff;
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.8), 0 0 3px #00e5ff;
+    background: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.7), 0 0 3px #ffffff;
 }
 
 .showroom-dot-shape.is-active.is-mars {
-    background: #ff7952;
-    box-shadow: 0 0 10px rgba(255, 121, 82, 0.8), 0 0 3px #ff7952;
+    background: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.7), 0 0 3px #ffffff;
 }
 
 .showroom-dot-shape.is-orbiter {
-    outline: 1.5px solid rgba(0, 229, 255, 0.6);
+    outline: 1.5px solid rgba(255, 255, 255, 0.75);
     outline-offset: 2.5px;
 }
 
@@ -2726,101 +2728,96 @@
     display: none; /* Managed dynamically via screen projection in requestAnimationFrame */
     flex-direction: column;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     cursor: pointer;
     pointer-events: auto;
     user-select: none;
-    transform: translate(-50%, -50%);
     transition: opacity 0.2s ease;
     animation: hotspotFadeIn 0.3s ease-out;
 }
 
 @keyframes hotspotFadeIn {
-    from { opacity: 0; transform: translate(-50%, -40%); }
-    to { opacity: 1; transform: translate(-50%, -50%); }
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .model-hotspot-badge {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.88);
-    border: 2px solid #ffffff;
+    background: rgba(0, 0, 0, 0.92);
+    border: 1.5px solid #ffffff;
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.65), 0 4px 18px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), 0 0 10px rgba(255, 255, 255, 0.35);
     position: relative;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, color 0.2s ease, box-shadow 0.25s ease;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .model-hotspot-badge::before {
     content: '';
     position: absolute;
-    inset: -7px;
+    inset: -6px;
     border-radius: 50%;
-    border: 1.5px solid rgba(255, 255, 255, 0.65);
-    animation: hotspotPulseRing 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    animation: hotspotPulseRing 2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
 }
 
 @keyframes hotspotPulseRing {
     0% {
-        transform: scale(0.8);
-        opacity: 0.95;
+        transform: scale(0.85);
+        opacity: 0.9;
     }
     100% {
-        transform: scale(1.65);
+        transform: scale(1.5);
         opacity: 0;
     }
 }
 
 .model-hotspot-exclamation {
-    font-family: var(--ui-head, 'Orbitron', 'Space Grotesk', sans-serif);
-    font-size: 22px;
-    font-weight: 800;
+    font-family: var(--ui-head, 'Tajawal', sans-serif);
+    font-size: 20px;
+    font-weight: 700;
     line-height: 1;
     color: #ffffff;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
-    transition: color 0.2s ease, text-shadow 0.2s ease;
+    transition: color 0.2s ease;
 }
 
 .model-hotspot-label {
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.92);
     border: 1px solid #ffffff;
     border-radius: 4px;
     color: #ffffff;
     font-family: var(--font-ui, 'Tajawal', sans-serif);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    padding: 3px 9px;
+    padding: 3px 8px;
     white-space: nowrap;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.8);
     pointer-events: none;
-    opacity: 0.92;
-    transition: all 0.2s ease;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .showroom-model-hotspot:hover .model-hotspot-badge {
     background: #ffffff;
     color: #000000;
-    transform: scale(1.15);
-    box-shadow: 0 0 24px rgba(255, 255, 255, 0.95);
+    transform: scale(1.1);
+    box-shadow: 0 0 18px rgba(255, 255, 255, 0.8);
 }
 
 .showroom-model-hotspot:hover .model-hotspot-exclamation {
     color: #000000;
-    text-shadow: none;
 }
 
 .showroom-model-hotspot:hover .model-hotspot-label {
     opacity: 1;
-    transform: translateY(-2px);
-    background: #ffffff;
-    color: #000000;
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.5);
+    transform: translateY(0);
 }
 
 /* ==========================================================================
@@ -2846,24 +2843,28 @@
 .showroom-surface-return-btn {
     display: inline-flex !important;
     align-items: center !important;
-    gap: 6px !important;
-    padding: 6px 12px !important;
+    gap: 7px !important;
+    padding: 6px 14px !important;
     min-height: 38px !important;
-    background: rgba(0, 229, 255, 0.15) !important;
-    border: 1px solid #00e5ff !important;
-    border-radius: 6px !important;
-    color: #00e5ff !important;
-    font-family: 'NMSGeoSans', 'Tajawal', sans-serif !important;
-    font-size: 11.5px !important;
-    letter-spacing: 0.08em !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    border: 1px solid #ffffff !important;
+    border-radius: 5px !important;
+    color: #ffffff !important;
+    font-family: var(--font-ui, 'Tajawal', sans-serif) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
     cursor: pointer !important;
-    transition: all 0.2s ease !important;
+    transition: background-color 0.25s ease, color 0.2s ease, transform 0.2s ease !important;
 }
 
 .showroom-surface-return-btn:hover {
-    background: #00e5ff !important;
-    color: #020409 !important;
-    box-shadow: 0 0 14px rgba(0, 229, 255, 0.4) !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.45) !important;
+    transform: scale(1.02) !important;
 }
 
 @media (max-width: 768px) {
