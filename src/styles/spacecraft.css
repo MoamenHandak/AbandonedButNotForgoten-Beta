@@ -2279,13 +2279,13 @@
 .details-main-title {
     margin: 0;
     font-family: var(--ui-head, 'Orbitron', 'Space Grotesk', sans-serif);
-    font-size: 24px;
+    font-size: clamp(18px, 2vw, 24px);
     letter-spacing: 1px;
     color: #ffffff;
-    font-weight: 400;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-weight: 500;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.15;
 }
 
 .details-subtitle {

@@ -25,11 +25,11 @@ const PLANET_CONFIGS = {
     roughness: 0.92,
   },
   mars: {
-    radius: 13.5,
+    radius: 38.0, // Scale Mars at least twice as big as the Moon (18.0 * 2 = 36.0+)
     modelSrc: '/models/mars-opt.glb',
-    spinSpeed: 0.016,
-    fallbackColor: 0xb25232,
-    roughness: 0.88,
+    spinSpeed: 0.014,
+    fallbackColor: 0xc45532,
+    roughness: 0.85,
   },
 };
 
@@ -46,7 +46,8 @@ const ORBIT_CONFIGS = {
       inclination: [1.45, 0.2, 0.1], // Near-polar mapping orbit ~85 deg
       speed: 0.18, // rad/s
       initialAngle: 0.85,
-      craftScale: 0.038, // Scaled down for balanced Moon orbit
+      ambientScale: 0.12,
+      heroScale: 0.85, // Hero inspection span ~3.57 units
       color: 0x00e5ff,
     },
     {
@@ -59,7 +60,8 @@ const ORBIT_CONFIGS = {
       inclination: [0.35, 0.45, 0.2],
       speed: 0.14,
       initialAngle: 2.7,
-      craftScale: 0.014, // Scaled down for balanced Moon orbit
+      ambientScale: 0.18,
+      heroScale: 1.45, // Hero inspection span ~3.48 units
       color: 0x8de1ff,
     },
   ],
@@ -68,56 +70,60 @@ const ORBIT_CONFIGS = {
       id: 'mgs-orbiter',
       name: 'MGS',
       modelSrc: '/models/mgs-opt.glb',
-      orbitRadiusA: 17.5,
-      orbitRadiusB: 16.5,
+      orbitRadiusA: 52.0,
+      orbitRadiusB: 48.0,
       center: [0, 0, 0],
       inclination: [0.55, 0.25, 0.1],
-      speed: 0.16,
+      speed: 0.14,
       initialAngle: 0.4,
-      craftScale: 0.024, // Native span 102.45m -> scaled to ~2.46 units
-      stationedPos: [17.13, 0.19, 2.77],
+      ambientScale: 0.05,
+      heroScale: 0.35, // Hero inspection span ~3.68 units
+      stationedPos: [50.8, 0.5, 8.2],
       color: 0x00e5ff,
     },
     {
       id: 'odyssey-orbiter',
       name: 'Odyssey',
       modelSrc: '/models/odyssey-opt.glb',
-      orbitRadiusA: 20.0,
-      orbitRadiusB: 18.8,
+      orbitRadiusA: 60.0,
+      orbitRadiusB: 56.0,
       center: [0, 0, 0],
       inclination: [-0.42, 0.35, 0.2],
-      speed: 0.13,
+      speed: 0.12,
       initialAngle: 1.9,
-      craftScale: 0.065, // Native span 36.81m -> scaled to ~2.40 units
-      stationedPos: [0.15, 6.53, 17.77],
+      ambientScale: 0.07,
+      heroScale: 0.44, // Hero inspection span ~3.61 units
+      stationedPos: [0.4, 18.5, 53.2],
       color: 0x64d2ff,
     },
     {
       id: 'mro-orbiter',
       name: 'MRO',
       modelSrc: '/models/mro-opt.glb',
-      orbitRadiusA: 23.0,
-      orbitRadiusB: 21.5,
+      orbitRadiusA: 68.0,
+      orbitRadiusB: 64.0,
       center: [0, 0, 0],
       inclination: [1.5, -0.25, 0.15], // Hi-res polar reconnaissance
-      speed: 0.11,
+      speed: 0.10,
       initialAngle: 3.6,
-      craftScale: 0.26, // Native span 9.11m -> scaled to ~2.37 units
-      stationedPos: [-17.41, 14.01, -4.08],
+      ambientScale: 0.007,
+      heroScale: 0.040, // Hero inspection span ~3.58 units
+      stationedPos: [-51.4, 41.5, -12.1],
       color: 0x00e5ff,
     },
     {
       id: 'maven-orbiter',
       name: 'MAVEN',
       modelSrc: '/models/maven-opt.glb',
-      orbitRadiusA: 28.0,
-      orbitRadiusB: 19.5,
-      center: [2.5, 0, -2.5],
+      orbitRadiusA: 82.0,
+      orbitRadiusB: 58.0,
+      center: [6.0, 0, -6.0],
       inclination: [-0.65, 0.45, 0.35], // Dipping elliptical atmosphere science orbit
       speed: 0.08,
       initialAngle: 5.1,
-      craftScale: 0.18, // Native span 13.46m -> scaled to ~2.42 units
-      stationedPos: [3.6, -9.57, -21.08],
+      ambientScale: 0.045,
+      heroScale: 0.27, // Hero inspection span ~3.64 units
+      stationedPos: [10.5, -28.2, -61.8],
       color: 0xffcc73,
     },
   ],
@@ -228,7 +234,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
   layerGroup.add(planetGroup);
 
   // Instant procedural fallback sphere so there is zero pop-in delay
-  const sphereGeo = new THREE.SphereGeometry(pConfig.radius, 48, 48);
+  const sphereGeo = new THREE.SphereGeometry(pConfig.radius, 64, 64);
   const sphereMat = new THREE.MeshStandardMaterial({
     color: pConfig.fallbackColor,
     roughness: pConfig.roughness,
@@ -248,9 +254,17 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         return;
       }
       const model = gltf.scene;
-      // Unit sphere GLB scaled to planet radius
-      model.scale.setScalar(pConfig.radius);
-      model.position.set(0, 0, 0);
+
+      // Fix issue 3: Accurately measure model's bounding sphere so planet scales to exact pConfig.radius
+      // regardless of internal node transformations (e.g. node scale 100 in mars-opt.glb)
+      model.updateMatrixWorld(true);
+      const bbox = new THREE.Box3().setFromObject(model);
+      const bsphere = bbox.getBoundingSphere(new THREE.Sphere());
+      const rawRadius = bsphere.radius > 0.001 ? bsphere.radius : 1.0;
+      const scaleFactor = pConfig.radius / rawRadius;
+      model.scale.setScalar(scaleFactor);
+      model.position.set(-bsphere.center.x * scaleFactor, -bsphere.center.y * scaleFactor, -bsphere.center.z * scaleFactor);
+
       model.traverse((child) => {
         if (child.isMesh) {
           child.castShadow = false;
@@ -258,8 +272,12 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
           if (child.material) {
             child.material.roughness = pConfig.roughness;
             child.material.metalness = 0.04;
-            child.material.envMapIntensity = 0.28;
+            child.material.envMapIntensity = 0.45;
             child.material.fog = false;
+            if (child.material.color) {
+              child.material.color.setHex(0xffffff);
+            }
+            child.material.needsUpdate = true;
           }
         }
       });
@@ -280,15 +298,15 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
   // and sharp specular reflections on spacecraft gold foil and solar arrays.
   // =========================================================================
   const orbitSunLight = new THREE.DirectionalLight(0xfffaee, 2.8);
-  orbitSunLight.position.set(45, 30, 35);
+  orbitSunLight.position.set(75, 45, 55);
   layerGroup.add(orbitSunLight);
 
-  const orbitRimLight = new THREE.DirectionalLight(0x4080c0, 0.65);
-  orbitRimLight.position.set(-40, -20, -35);
+  const orbitRimLight = new THREE.DirectionalLight(0x4080c0, 0.75);
+  orbitRimLight.position.set(-60, -30, -50);
   layerGroup.add(orbitRimLight);
 
   // Soft orbital fill light to ensure the shadowed hemisphere has subtle visibility
-  const orbitAmbient = new THREE.AmbientLight(0xffffff, 0.35);
+  const orbitAmbient = new THREE.AmbientLight(0xffffff, 0.4);
   layerGroup.add(orbitAmbient);
 
   // Pre-allocated temporary vectors
@@ -329,6 +347,8 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       modelGroup: new THREE.Group(),
       loadedModel: null,
       isSelected: false,
+      currentScale: cfg.ambientScale || 0.05,
+      targetScale: cfg.ambientScale || 0.05,
       trailLine: null,
       trailGeo: null,
       trailBuffer: null,
@@ -341,7 +361,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
     calculateOrbitPosition(cfg, cfg.initialAngle + 0.05, _tmpTangentPos);
     orbiterState.modelGroup.lookAt(_tmpTangentPos);
 
-    orbiterState.modelGroup.scale.setScalar(cfg.craftScale);
+    orbiterState.modelGroup.scale.setScalar(orbiterState.currentScale);
     layerGroup.add(orbiterState.modelGroup);
 
     // Pre-allocated trail buffer (Quality preset)
@@ -417,13 +437,13 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
   // 3. MARTIAN MOONS (Phobos & Deimos)
   // =========================================================================
   if (destination === 'mars') {
-    const phobosMesh = createMartianMoonMesh(1.3, 1.4);
-    const deimosMesh = createMartianMoonMesh(0.85, 3.8);
+    const phobosMesh = createMartianMoonMesh(2.4, 1.4);
+    const deimosMesh = createMartianMoonMesh(1.6, 3.8);
 
     const phobosState = {
       mesh: phobosMesh,
-      radiusA: 36.0,
-      radiusB: 33.0,
+      radiusA: 96.0,
+      radiusB: 90.0,
       angle: 1.1,
       speed: 0.04,
       rotationSpeed: 0.05,
@@ -432,8 +452,8 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
 
     const deimosState = {
       mesh: deimosMesh,
-      radiusA: 48.0,
-      radiusB: 45.0,
+      radiusA: 132.0,
+      radiusB: 125.0,
       angle: 4.2,
       speed: 0.025,
       rotationSpeed: 0.03,
@@ -480,7 +500,16 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         calculateOrbitPosition(o.cfg, o.angle + 0.05, _tmpTangentPos);
         o.modelGroup.lookAt(_tmpTangentPos);
 
-        // Dynamic camera tracking: when inspecting this orbiter, translate camera and controls target
+        // Smooth scale transition between ambientScale and heroScale
+        const targetScale = o.isSelected ? (o.cfg.heroScale || 0.4) : (o.cfg.ambientScale || 0.05);
+        if (Math.abs(o.currentScale - targetScale) > 0.0001) {
+          o.currentScale = THREE.MathUtils.lerp(o.currentScale, targetScale, Math.min(step * 4.5, 1.0));
+        } else {
+          o.currentScale = targetScale;
+        }
+        o.modelGroup.scale.setScalar(o.currentScale);
+
+        // Dynamic camera tracking: when inspecting this orbiter, camera smoothly rides along in orbit
         if (o.isSelected && camera && controls) {
           const dx = o.currentPos.x - prevX;
           const dy = o.currentPos.y - prevY;
@@ -500,12 +529,10 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
                 animTargets.targetCamPos.z += dz;
               }
             } else if (!isAnimating) {
-              controls.target.x += dx;
-              controls.target.y += dy;
-              controls.target.z += dz;
-              camera.position.x += dx;
-              camera.position.y += dy;
-              camera.position.z += dz;
+              // Lock target directly onto orbiter position with zero drift
+              const relOffset = camera.position.clone().sub(controls.target);
+              controls.target.copy(o.currentPos);
+              camera.position.copy(o.currentPos).add(relOffset);
             }
           }
         }
@@ -559,14 +586,18 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       isOrbitalMode = true;
       layerGroup.visible = true;
       for (let i = 0; i < orbiters.length; i++) {
-        orbiters[i].isSelected = (orbiters[i].cfg.id === id);
+        const o = orbiters[i];
+        o.isSelected = (o.cfg.id === id);
+        o.targetScale = o.isSelected ? (o.cfg.heroScale || 0.4) : (o.cfg.ambientScale || 0.05);
       }
     },
 
     release() {
       selectedOrbiterId = null;
       for (let i = 0; i < orbiters.length; i++) {
-        orbiters[i].isSelected = false;
+        const o = orbiters[i];
+        o.isSelected = false;
+        o.targetScale = o.cfg.ambientScale || 0.05;
       }
     },
 
@@ -578,6 +609,31 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
     getOrbiterPosition(id) {
       const match = orbiters.find((o) => o.cfg.id === id);
       return match ? match.currentPos.clone() : null;
+    },
+
+    /**
+     * Computes the ideal cinematic hero inspection camera position & lookAt
+     * framing the spacecraft large in the foreground with Mars/Moon in background.
+     */
+    getOrbiterHeroCamera(id) {
+      const o = orbiters.find((orb) => orb.cfg.id === id);
+      if (!o) return null;
+      const curPos = o.currentPos.clone();
+      const norm = curPos.clone().normalize();
+      const nextPos = new THREE.Vector3();
+      calculateOrbitPosition(o.cfg, o.angle + 0.05, nextPos);
+      const tangent = nextPos.clone().sub(curPos).normalize();
+      const up = new THREE.Vector3().crossVectors(norm, tangent).normalize();
+
+      const camPos = curPos.clone()
+        .add(norm.clone().multiplyScalar(4.6))
+        .add(up.clone().multiplyScalar(1.2))
+        .sub(tangent.clone().multiplyScalar(3.0));
+
+      return {
+        camPos: [camPos.x, camPos.y, camPos.z],
+        lookAt: [curPos.x, curPos.y, curPos.z],
+      };
     },
 
     dispose() {

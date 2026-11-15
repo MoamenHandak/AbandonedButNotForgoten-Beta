@@ -187,11 +187,11 @@ export const VEHICLES_DATA = [
     sector: 'LUNAR POLAR ORBIT // MAPPING',
     modelSrc: '/models/lro-opt.glb',
     alt: '3D model of Lunar Reconnaissance Orbiter circling the Moon',
-    scale: 0.038,
-    position: [16.03, -11.07, 2.7],
+    scale: 0.85,
+    position: [32.0, -22.1, 5.4],
     rotation: [0.1, 0.4, 0],
-    focusCamPos: [19.56, -12.2, 5.52],
-    focusLookAt: [16.03, -11.07, 2.7],
+    focusCamPos: [35.6, -23.8, 8.2],
+    focusLookAt: [32.0, -22.1, 5.4],
     contactShadowRadius: 0,
     agency: 'NASA / Goddard',
     launchDate: 'June 18, 2009',
@@ -215,7 +215,7 @@ export const VEHICLES_DATA = [
       { id: 'lro-cam', label: 'LROC Narrow Angle Camera', position: [15.58, -11.12, 2.5], offset: { x: -85, y: -35 } },
       { id: 'lro-solar', label: 'Solar Array Wing', position: [15.08, -10.92, 3.15], offset: { x: 85, y: 35 } }
     ],
-    vistaAnchor: [16.03, -11.07, 2.7]
+    vistaAnchor: [32.0, -22.1, 5.4]
   },
   {
     id: 'ladee-orbiter',
@@ -228,11 +228,11 @@ export const VEHICLES_DATA = [
     sector: 'LUNAR EQUATORIAL ORBIT // RETIRED',
     modelSrc: '/models/ladee-opt.glb',
     alt: '3D model of LADEE lunar atmosphere probe',
-    scale: 0.014,
-    position: [-15.67, -10.56, 15.83],
+    scale: 1.45,
+    position: [-31.3, -21.1, 31.6],
     rotation: [0.15, 0.5, 0],
-    focusCamPos: [-20.28, -11.02, 17.37],
-    focusLookAt: [-15.67, -10.56, 15.83],
+    focusCamPos: [-35.8, -22.4, 34.2],
+    focusLookAt: [-31.3, -21.1, 31.6],
     contactShadowRadius: 0,
     agency: 'NASA / Ames',
     launchDate: 'September 7, 2013',
@@ -425,7 +425,7 @@ export const VEHICLES_DATA = [
   {
     id: 'mgs-orbiter',
     isOrbiter: true,
-    name: 'MARS SURVEYOR',
+    name: 'MARS GLOBAL SURVEYOR',
     codename: 'MGS // MAPPING ORBIT',
     role: 'MARS GLOBAL SURVEYOR',
     destination: 'mars',
@@ -433,11 +433,11 @@ export const VEHICLES_DATA = [
     sector: 'AEROBRAKING ORBIT // ARCHIVE',
     modelSrc: '/models/mgs-opt.glb',
     alt: '3D model of Mars Global Surveyor orbiter',
-    scale: 0.024,
-    position: [17.13, 0.19, 2.77],
+    scale: 0.35,
+    position: [50.8, 0.5, 8.2],
     rotation: [0.1, 0.35, 0],
-    focusCamPos: [21.52, 1.84, 5.7],
-    focusLookAt: [17.13, 0.19, 2.77],
+    focusCamPos: [55.6, 1.8, 9.6],
+    focusLookAt: [50.8, 0.5, 8.2],
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
     launchDate: 'November 7, 1996',
@@ -461,7 +461,7 @@ export const VEHICLES_DATA = [
       { id: 'mgs-camera', label: 'Mars Orbiter Camera (MOC)', position: [16.73, -0.06, 2.52], offset: { x: -85, y: -35 } },
       { id: 'mgs-solar', label: 'Solar Array & Drag Flaps', position: [15.88, 0.24, 2.87], offset: { x: -85, y: 40 } }
     ],
-    vistaAnchor: [17.13, 0.19, 2.77]
+    vistaAnchor: [50.8, 0.5, 8.2]
   },
   {
     id: 'odyssey-orbiter',
@@ -474,11 +474,11 @@ export const VEHICLES_DATA = [
     sector: 'CIRCULAR POLAR ORBIT // ACTIVE',
     modelSrc: '/models/odyssey-opt.glb',
     alt: '3D model of Mars Odyssey 2001 spacecraft',
-    scale: 0.065,
-    position: [0.15, 6.53, 17.77],
+    scale: 0.44,
+    position: [0.4, 18.5, 53.2],
     rotation: [0.2, 0.4, 0],
-    focusCamPos: [-2.01, 9.78, 22.29],
-    focusLookAt: [0.15, 6.53, 17.77],
+    focusCamPos: [0.8, 20.2, 58.8],
+    focusLookAt: [0.4, 18.5, 53.2],
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
     launchDate: 'April 7, 2001',
@@ -515,11 +515,11 @@ export const VEHICLES_DATA = [
     sector: 'LOW MARTIAN ORBIT // HI-RES',
     modelSrc: '/models/mro-opt.glb',
     alt: '3D model of Mars Reconnaissance Orbiter with large dish',
-    scale: 0.26,
-    position: [-17.41, 14.01, -4.08],
+    scale: 0.040,
+    position: [-51.4, 41.5, -12.1],
     rotation: [0.1, 0.5, 0],
-    focusCamPos: [-20.58, 18.57, -7.09],
-    focusLookAt: [-17.41, 14.01, -4.08],
+    focusCamPos: [-55.8, 44.8, -13.2],
+    focusLookAt: [-51.4, 41.5, -12.1],
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
     launchDate: 'August 12, 2005',
@@ -543,7 +543,7 @@ export const VEHICLES_DATA = [
       { id: 'mro-hirise', label: 'HiRISE High-Resolution Camera', position: [-17.96, 13.66, -4.38], offset: { x: -85, y: -35 } },
       { id: 'mro-solar', label: 'UltraFlex Solar Wings', position: [-18.86, 14.11, -3.93], offset: { x: -85, y: 40 } }
     ],
-    vistaAnchor: [-17.41, 14.01, -4.08]
+    vistaAnchor: [-51.4, 41.5, -12.1]
   },
   {
     id: 'maven-orbiter',
@@ -556,11 +556,11 @@ export const VEHICLES_DATA = [
     sector: 'ELLIPTICAL SCIENCE ORBIT',
     modelSrc: '/models/maven-opt.glb',
     alt: '3D model of MAVEN Mars orbiter',
-    scale: 0.18,
-    position: [3.6, -9.57, -21.08],
+    scale: 0.27,
+    position: [10.5, -28.2, -61.8],
     rotation: [0.15, 0.45, 0],
-    focusCamPos: [6.51, -9.93, -25.03],
-    focusLookAt: [3.6, -9.57, -21.08],
+    focusCamPos: [11.8, -30.5, -67.2],
+    focusLookAt: [10.5, -28.2, -61.8],
     contactShadowRadius: 0,
     agency: 'NASA / Goddard / Lockheed Martin',
     launchDate: 'November 18, 2013',
@@ -584,7 +584,7 @@ export const VEHICLES_DATA = [
       { id: 'maven-spectrometer', label: 'IUVS Ultraviolet Spectrograph', position: [3.1, -9.77, -21.33], offset: { x: -85, y: -35 } },
       { id: 'maven-solar', label: 'Gull-Wing Solar Arrays', position: [2.25, -9.42, -20.98], offset: { x: -85, y: 40 } }
     ],
-    vistaAnchor: [3.6, -9.57, -21.08]
+    vistaAnchor: [10.5, -28.2, -61.8]
   }
 ];
 
@@ -848,7 +848,11 @@ export default function PlanetaryShowroom({
           if (state.vehiclesGroup) state.vehiclesGroup.visible = false;
           state.orbitLayer?.setOrbitalMode(true);
           state.orbitLayer?.select(targetVehicle.id);
-          if (state.scene) state.scene.fog = null;
+          // Fix issue 1: In orbital space, the skybox must be outer space (black with stars), not dusty horizon
+          if (state.scene) {
+            state.scene.background = new THREE.Color(0x010308);
+            state.scene.fog = null;
+          }
           if (state.controls) {
             state.controls.maxPolarAngle = Math.PI;
             state.controls.maxDistance = 350.0;
@@ -861,10 +865,13 @@ export default function PlanetaryShowroom({
           state.orbitLayer?.release();
           if (state.scene) {
             if (targetVehicle.destination === 'mars') {
+              state.scene.background = new THREE.Color(0x1e0b07);
               state.scene.fog = new THREE.FogExp2(0x1e0b07, 0.014);
             } else if (targetVehicle.destination === 'moon') {
+              state.scene.background = new THREE.Color(0x020409);
               state.scene.fog = new THREE.Fog(0x020409, 3500, 7500);
             } else {
+              state.scene.background = new THREE.Color(0x000205);
               state.scene.fog = null;
             }
           }
@@ -878,12 +885,18 @@ export default function PlanetaryShowroom({
         let targetCam = targetVehicle.focusCamPos;
         let targetLook = targetVehicle.focusLookAt;
         if (isOrbiter && state.orbitLayer) {
-          const curPos = state.orbitLayer.getOrbiterPosition(targetVehicle.id);
-          if (curPos) {
-            targetLook = [curPos.x, curPos.y, curPos.z];
-            const norm = curPos.clone().normalize();
-            const camVec = curPos.clone().add(norm.clone().multiplyScalar(4.0)).add(new THREE.Vector3(0, 1.5, 0));
-            targetCam = [camVec.x, camVec.y, camVec.z];
+          const heroCam = state.orbitLayer.getOrbiterHeroCamera?.(targetVehicle.id);
+          if (heroCam) {
+            targetCam = heroCam.camPos;
+            targetLook = heroCam.lookAt;
+          } else {
+            const curPos = state.orbitLayer.getOrbiterPosition(targetVehicle.id);
+            if (curPos) {
+              targetLook = [curPos.x, curPos.y, curPos.z];
+              const norm = curPos.clone().normalize();
+              const camVec = curPos.clone().add(norm.clone().multiplyScalar(4.6)).add(new THREE.Vector3(0, 1.2, 0));
+              targetCam = [camVec.x, camVec.y, camVec.z];
+            }
           }
         }
 
@@ -896,6 +909,8 @@ export default function PlanetaryShowroom({
           state.renderOnce?.();
         }
       };
+
+      threeRef.current.applyVehicleState = applyVehicleState;
 
       if (isPlanetChanging) {
         setIsOrbitTransitioning(true);
@@ -1738,8 +1753,9 @@ export default function PlanetaryShowroom({
         } else if (planetName === 'mars') {
           // ================= MARS SETUP =================
           const MARS_HORIZON_COLOR = 0x1e0b07;
-          scene.background = new THREE.Color(MARS_HORIZON_COLOR);
-          scene.fog = new THREE.FogExp2(MARS_HORIZON_COLOR, 0.014);
+          const isCurrentOrbiter = Boolean(currentVehicleRef.current?.isOrbiter);
+          scene.background = isCurrentOrbiter ? new THREE.Color(0x010308) : new THREE.Color(MARS_HORIZON_COLOR);
+          scene.fog = isCurrentOrbiter ? null : new THREE.FogExp2(MARS_HORIZON_COLOR, 0.014);
 
           const sunLight = new THREE.DirectionalLight(0xffc58e, 2.5);
           sunLight.position.set(22, 16, 16);
@@ -1981,14 +1997,71 @@ export default function PlanetaryShowroom({
           viking.scale.setScalar(vikingData.scale);
           viking.position.set(...vikingData.position);
           viking.rotation.set(...vikingData.rotation);
+
+          // Fix issue 4: Procedural quilted thermal insulation bump map for Viking 1 Lander
+          const vikingBumpCanvas = document.createElement('canvas');
+          vikingBumpCanvas.width = 256;
+          vikingBumpCanvas.height = 256;
+          const vCtx = vikingBumpCanvas.getContext('2d');
+          if (vCtx) {
+            vCtx.fillStyle = '#808080';
+            vCtx.fillRect(0, 0, 256, 256);
+            for (let y = 0; y < 256; y += 16) {
+              for (let x = 0; x < 256; x += 16) {
+                const grad = vCtx.createRadialGradient(x + 8, y + 8, 2, x + 8, y + 8, 8);
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.8, '#999999');
+                grad.addColorStop(1, '#444444');
+                vCtx.fillStyle = grad;
+                vCtx.fillRect(x + 1, y + 1, 14, 14);
+              }
+            }
+          }
+          const vikingBumpTex = new THREE.CanvasTexture(vikingBumpCanvas);
+          vikingBumpTex.wrapS = THREE.RepeatWrapping;
+          vikingBumpTex.wrapT = THREE.RepeatWrapping;
+          vikingBumpTex.repeat.set(6, 6);
+
           viking.traverse((c) => {
             if (c.isMesh) {
               c.castShadow = true;
               c.receiveShadow = true;
               if (c.material) {
-                c.material.roughness = 0.58;
-                c.material.metalness = 0.25;
-                if (c.material.color) c.material.color.setRGB(0.82, 0.82, 0.85);
+                const matName = c.material.name || '';
+                if (matName.includes('blinn2') || matName.includes('blinn10')) {
+                  // Gold/bronze thermal RTG foil & science booms
+                  c.material.color.setHex(0xd4af37);
+                  c.material.metalness = 0.88;
+                  c.material.roughness = 0.28;
+                  c.material.bumpMap = vikingBumpTex;
+                  c.material.bumpScale = 0.04;
+                } else if (matName.includes('blinn4') || matName.includes('initialShading')) {
+                  // White multilayer thermal insulation blankets
+                  c.material.color.setHex(0xf0ede6);
+                  c.material.metalness = 0.08;
+                  c.material.roughness = 0.65;
+                  c.material.bumpMap = vikingBumpTex;
+                  c.material.bumpScale = 0.03;
+                } else if (matName.includes('blinn8') || matName.includes('blinn11')) {
+                  // Titanium & aluminum landing struts, radar and dish
+                  c.material.color.setHex(0xcfd2d6);
+                  c.material.metalness = 0.82;
+                  c.material.roughness = 0.22;
+                } else if (matName.includes('blinn6') || matName.includes('blinn9')) {
+                  // Dark anodized engine thrusters & equipment boxes
+                  c.material.color.setHex(0x1e2024);
+                  c.material.metalness = 0.6;
+                  c.material.roughness = 0.45;
+                } else if (matName.includes('blinn12')) {
+                  // NASA red / orange instrument accents
+                  c.material.color.setHex(0xba321a);
+                  c.material.metalness = 0.15;
+                  c.material.roughness = 0.38;
+                } else {
+                  c.material.roughness = 0.45;
+                  c.material.metalness = 0.35;
+                }
+                c.material.needsUpdate = true;
               }
             }
           });
@@ -2165,7 +2238,12 @@ export default function PlanetaryShowroom({
     };
 
     threeRef.current.loadPlanetScene = loadPlanetScene;
-    loadPlanetScene(dest);
+    loadPlanetScene(dest, () => {
+      const initialCraft = filteredVehicles[0];
+      if (initialCraft && threeRef.current.applyVehicleState) {
+        threeRef.current.applyVehicleState(initialCraft, false);
+      }
+    });
 
     const handleResize = () => {
       if (isDisposed || !containerRef.current) return;
