@@ -3,8 +3,6 @@ export const SETTINGS_STORAGE_KEY = 'abnf_game_settings';
 export const LANGUAGES = [
   { code: 'en', label: 'English', dir: 'ltr' },
   { code: 'ar', label: 'العربية', dir: 'rtl' },
-  { code: 'fr', label: 'Français', dir: 'ltr' },
-  { code: 'es', label: 'Español', dir: 'ltr' },
 ];
 
 export const GRAPHICS_PRESETS = {

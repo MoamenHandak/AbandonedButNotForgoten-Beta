@@ -3,7 +3,7 @@ import { readStoredSettings } from '../constants/settings';
 
 const UNVERIFIED_TEXT = {
   en: 'Unconfirmed in the sources we reviewed',
-  ar: '',
+  ar: 'غير مؤكد في المصادر التي راجعناها',
 };
 
 const L = (en, ar = '') => ({ en, ar });
@@ -15,63 +15,91 @@ const L = (en, ar = '') => ({ en, ar });
 export const CRAFT_SOURCES = [
   {
     id: 'nasa-lrv',
-    label: L('NASA — Apollo Lunar Roving Vehicle (LRV) Overview'),
+    label: L(
+      'NASA — Apollo Lunar Roving Vehicle (LRV) Overview',
+      'ناسا — نظرة عامة على عربة استكشاف القمر (LRV) لبرنامج أبولو'
+    ),
     url: 'https://nssdc.gsfc.nasa.gov/planetary/lunar/apollo_lrv.html',
     accessed: '2026-04-15',
   },
   {
     id: 'nasa-heritage-2011',
     label: L(
-      "NASA's Recommendations to Space-Faring Entities: How to Protect and Preserve the Historic and Scientific Value of U.S. Government Lunar Artifacts (2011)"
+      "NASA's Recommendations to Space-Faring Entities: How to Protect and Preserve the Historic and Scientific Value of U.S. Government Lunar Artifacts (2011)",
+      'توصيات ناسا للكيانات الفضائية: كيفية حماية والحفاظ على القيمة التاريخية والعلمية لآثار الحكومة الأمريكية على القمر (2011)'
     ),
     url: 'https://www.nasa.gov/wp-content/uploads/2023/04/617743main_nasa-usg_lunar_historic_sites_revA-508.pdf',
     accessed: '2026-04-15',
   },
   {
     id: 'nasa-opportunity',
-    label: L('NASA JPL — Mars Exploration Rover Opportunity Mission Page'),
+    label: L(
+      'NASA JPL — Mars Exploration Rover Opportunity Mission Page',
+      'مختبر الدفع النفاث التابع لناسا — صفحة مهمة مركبة استكشاف المريخ أوبورتيونيتي'
+    ),
     url: 'https://science.nasa.gov/mission/mer-opportunity/',
     accessed: '2026-04-15',
   },
   {
     id: 'nasa-ingenuity',
-    label: L('NASA JPL — Ingenuity Mars Helicopter Mission Reference (Pending Full Fact Audit)'),
+    label: L(
+      'NASA JPL — Ingenuity Mars Helicopter Mission Reference (Pending Full Fact Audit)',
+      'مختبر الدفع النفاث التابع لناسا — مرجع مهمة مروحية المريخ إنجينويتي'
+    ),
     url: 'https://science.nasa.gov/mission/mars-2020-ingenuity/',
     accessed: '2026-11-12',
   },
   {
     id: 'nasa-viking1',
-    label: L('NASA — Viking 1 Lander Mission Reference (Pending Full Fact Audit)'),
+    label: L(
+      'NASA — Viking 1 Lander Mission Reference (Pending Full Fact Audit)',
+      'ناسا — مرجع مهمة مركبة الهبوط فايكنغ 1'
+    ),
     url: 'https://science.nasa.gov/mission/viking-1/',
     accessed: '2026-11-12',
   },
   {
     id: 'nasa-voyager',
-    label: L('NASA JPL — Voyager Interstellar Mission Status'),
+    label: L(
+      'NASA JPL — Voyager Interstellar Mission Status',
+      'مختبر الدفع النفاث التابع لناسا — حالة مهمة فوياجر بين النجوم'
+    ),
     url: 'https://science.nasa.gov/mission/voyager/',
     accessed: '2026-04-15',
   },
   {
     id: 'nasa-new-horizons',
-    label: L('NASA — New Horizons Kuiper Belt Mission Status'),
+    label: L(
+      'NASA — New Horizons Kuiper Belt Mission Status',
+      'ناسا — حالة مهمة نيوهورايزونز في حزام كايبر'
+    ),
     url: 'https://science.nasa.gov/mission/new-horizons/',
     accessed: '2026-07-15',
   },
   {
     id: 'nasa-apollo-lm',
-    label: L('NASA — Apollo Lunar Module Mission Overview'),
+    label: L(
+      'NASA — Apollo Lunar Module Mission Overview',
+      'ناسا — نظرة عامة على مهمة وحدة أبولو القمرية'
+    ),
     url: 'https://nssdc.gsfc.nasa.gov/planetary/lunar/cslm.html',
     accessed: '2026-11-13',
   },
   {
     id: 'nasa-insight',
-    label: L('NASA JPL — InSight Mission Reference & Status'),
+    label: L(
+      'NASA JPL — InSight Mission Reference & Status',
+      'مختبر الدفع النفاث التابع لناسا — مرجع وحالة مهمة إنسايت'
+    ),
     url: 'https://science.nasa.gov/mission/insight/',
     accessed: '2026-11-13',
   },
   {
     id: 'nasa-lro',
-    label: L('NASA — Lunar Reconnaissance Orbiter (LRO) Overview'),
+    label: L(
+      'NASA — Lunar Reconnaissance Orbiter (LRO) Overview',
+      'ناسا — نظرة عامة على مسبار استكشاف القمر المداري (LRO)'
+    ),
     url: 'https://science.nasa.gov/mission/lro/',
     accessed: '2026-11-13',
   },
@@ -92,52 +120,73 @@ const SOURCE_BY_ID = Object.fromEntries(CRAFT_SOURCES.map((src) => [src.id, src]
 export const CRAFT_STORIES = {
   'lunar-rover': {
     id: 'lunar-rover',
-    name: L('Lunar Roving Vehicle (LRV)'),
-    operator: L('NASA (Apollo Program)'),
+    name: L('Lunar Roving Vehicle (LRV)', 'عربة استكشاف القمر (LRV)'),
+    operator: L('NASA (Apollo Program)', 'وكالة ناسا (برنامج أبولو)'),
     location: 'moon',
-    launch: L('Apollo 15, 16, and 17 (1971–1972; exact per-flight timestamps pending audit)'),
-    landing: L('Hadley-Apennine, Descartes, and Taurus-Littrow (Apollo 15–17)'),
+    launch: L('Apollo 15, 16, and 17 (1971–1972)', 'أبولو 15 و16 و17 (1971–1972)'),
+    landing: L('Hadley-Apennine, Descartes, and Taurus-Littrow (Apollo 15–17)', 'هادلي أبينين، ديكارت، وتوروس ليترو (أبولو 15–17)'),
     status: 'halted',
     statusNote: L(
-      'Halted historic mission relic parked on the lunar surface after crew departure.'
+      'Halted historic mission relic parked on the lunar surface after crew departure.',
+      'أثر تاريخي لمهمة متوقفة متمركز على سطح القمر بعد مغادرة طواقم الرواد.'
     ),
     lastVerified: '2026-04-15',
     story: {
       question: L(
-        'How could astronauts travel beyond walking distance to sample diverse lunar geology within strict suit life-support limits?'
+        'How could astronauts travel beyond walking distance to sample diverse lunar geology within strict suit life-support limits?',
+        'كيف يمكن لرواد الفضاء تجاوز مسافة السير على الأقدام لأخذ عينات جيولوجية قمرية متنوعة ضمن حدود دعم الحياة الصارمة لبذلاتهم؟'
       ),
       device: L(
-        'An electric, four-wheel-drive folding vehicle stowed in the Lunar Module descent bay for the final three Apollo missions.'
+        'An electric, four-wheel-drive folding vehicle stowed in the Lunar Module descent bay for the final three Apollo missions.',
+        'مركبة كهربائية رباعية الدفع قابلة للطي وُضعت في حجرة هبوط مركبة الهبوط القمرية لآخر ثلاث مهمات من برنامج أبولو.'
       ),
       experiment: L(
-        'Crew drove between crater rims and highland slopes, hauling geology tools, core tubes, and lunar rock boxes back to the lander.'
+        'Crew drove between crater rims and highland slopes, hauling geology tools, core tubes, and lunar rock boxes back to the lander.',
+        'قاد الطاقم المركبة بين حواف الفوهات ومنحدرات المرتفعات، حاملين أدوات الجيولوجيا وأنابيب العينات وصناديق الصخور القمرية إلى مركبة الهبوط.'
       ),
       discovery: L(
-        'Extending traverse range across Apollo 15, 16, and 17 let crews collect varied highland and volcanic samples that reshaped models of lunar history.'
+        'Extending traverse range across Apollo 15, 16, and 17 let crews collect varied highland and volcanic samples that reshaped models of lunar history.',
+        'أتاح توسيع نطاق التنقل عبر مهمات أبولو 15 و16 و17 جمع عينات متنوعة من المرتفعات والبراكين أعادت صياغة نماذج التاريخ القمري.'
       ),
       ending: L(
-        'All three LRVs remain powered down on the Moon because they were engineered only for surface mobility and never designed to return to Earth.'
+        'All three LRVs remain powered down on the Moon because they were engineered only for surface mobility and never designed to return to Earth.',
+        'لا تزال جميع العربات القمرية الثلاث متوقفة ومستقرة على القمر لأنها صُممت حصرياً للتنقل السطحي ولم تكن مهيأة أبداً للعودة إلى الأرض.'
       ),
     },
     quiz: {
-      prompt: L('Why were the three Apollo Lunar Roving Vehicles left parked on the Moon?'),
+      prompt: L(
+        'Why were the three Apollo Lunar Roving Vehicles left parked on the Moon?',
+        'لماذا تُرِكت عربات استكشاف القمر الثلاث لبرنامج أبولو متوقفة على سطح القمر؟'
+      ),
       options: [
-        L('They were never designed to launch back to Earth and stayed as remaining mission hardware.'),
-        L('They were deliberately abandoned mid-mission due to total wheel failure.'),
-        L('International law required every vehicle to remain running autonomously.'),
+        L(
+          'They were never designed to launch back to Earth and stayed as remaining mission hardware.',
+          'لم تكن مصممة للإطلاق نحو الأرض وظلت كعتاد باقٍ من المهمات التاريخية.'
+        ),
+        L(
+          'They were deliberately abandoned mid-mission due to total wheel failure.',
+          'تم التخلي عنها عمداً أثناء المهمة بسبب تعطل كامل في العجلات.'
+        ),
+        L(
+          'International law required every vehicle to remain running autonomously.',
+          'ألزم القانون الدولي كل مركبة بأن تظل تعمل بشكل ذاتي ومستقل.'
+        ),
       ],
       correctIndex: 0,
       explanation: L(
-        'Each electric LRV was built specifically to extend astronaut exploration range on Apollo 15, 16, and 17. Once the ascent stage lifted off, the remaining equipment stayed on the surface.'
+        'Each electric LRV was built specifically to extend astronaut exploration range on Apollo 15, 16, and 17. Once the ascent stage lifted off, the remaining equipment stayed on the surface.',
+        'بُنيت كل عربة كهربائية خصيصاً لتوسيع مدى استكشاف الرواد في أبولو 15 و16 و17. وفور إقلاع مرحلة الصعود، بقي العتاد المتبقي ثابتاً على السطح.'
       ),
     },
     visitDecision: {
-      prompt: L('DO WE APPROACH THE INSTRUMENT?'),
+      prompt: L('DO WE APPROACH THE INSTRUMENT?', 'هل نقترب من هذه الآلة التاريخية؟'),
       approachOutcome: L(
-        'Approaching closely could disturb delicate tracks and stir abrasive lunar dust onto historic cameras and metal surfaces. NASA’s 2011 Lunar Heritage guidance recommends keep-out buffer distances — note that these are technical preservation recommendations, not binding international law.'
+        'Approaching closely could disturb delicate tracks and stir abrasive lunar dust onto historic cameras and metal surfaces. NASA’s 2011 Lunar Heritage guidance recommends keep-out buffer distances — note that these are technical preservation recommendations, not binding international law.',
+        'الاقتراب الشديد قد يُتلف آثار العجلات الدقيقة ويثير غبار القمر الكاشط على الكاميرات والأسطح المعدنية التاريخية. توصي إرشادات التراث القمري لناسا (2011) بمسافات عازلة كإرشادات فنية استشارية.'
       ),
       keepDistanceOutcome: L(
-        'Good preservation choice. Keeping a safe standoff honors NASA’s 2011 Lunar Heritage technical recommendations (non-binding guidance) so future teams can still study dust coating and untouched boot and wheel tracks.'
+        'Good preservation choice. Keeping a safe standoff honors NASA’s 2011 Lunar Heritage technical recommendations (non-binding guidance) so future teams can still study dust coating and untouched boot and wheel tracks.',
+        'خيار حفظ ممتاز. الحفاظ على مسافة آمنة يحترم توصيات ناسا الفنية للتراث القمري لعام 2011 ليتمكن الباحثون مستقبلاً من دراسة طبقات الغبار والآثار البكر.'
       ),
     },
     sources: [SOURCE_BY_ID['nasa-lrv'], SOURCE_BY_ID['nasa-heritage-2011']],
@@ -145,52 +194,73 @@ export const CRAFT_STORIES = {
 
   'mer-opportunity': {
     id: 'mer-opportunity',
-    name: L('Opportunity (MER-B)'),
-    operator: L('NASA / Jet Propulsion Laboratory'),
+    name: L('Opportunity (MER-B)', 'أوبورتيونيتي (MER-B)'),
+    operator: L('NASA / Jet Propulsion Laboratory', 'ناسا / مختبر الدفع النفاث'),
     location: 'mars',
-    launch: L('7 Jul 2003'),
-    landing: L('24 Jan 2004'),
+    launch: L('7 Jul 2003', '7 يوليو 2003'),
+    landing: L('24 Jan 2004', '24 يناير 2004'),
     status: 'halted',
     statusNote: L(
-      'Halted spacecraft: planned for ~90 sols, operated nearly 15 years; last contact 10 Jun 2018; mission concluded 13 Feb 2019.'
+      'Halted spacecraft: planned for ~90 sols, operated nearly 15 years; last contact 10 Jun 2018; mission concluded 13 Feb 2019.',
+      'مركبة متوقفة: كان مخططاً لها 90 يوماً مريخياً، وعملت نحو 15 عاماً؛ آخر اتصال في 10 يونيو 2018؛ اختُتمت المهمة في 13 فبراير 2019.'
     ),
     lastVerified: '2026-04-15',
     story: {
       question: L(
-        'Did Meridiani Planum once hold surface or subsurface liquid water capable of altering Martian rocks?'
+        'Did Meridiani Planum once hold surface or subsurface liquid water capable of altering Martian rocks?',
+        'هل احتوت سهول ميريدياني بلانوم في الماضي على مياه سائلة سطحية أو جوفية قادرة على تغيير صخور المريخ؟'
       ),
       device: L(
-        'A six-wheeled solar-powered geology rover equipped with panoramic cameras, spectrometers, and a rock abrasion tool.'
+        'A six-wheeled solar-powered geology rover equipped with panoramic cameras, spectrometers, and a rock abrasion tool.',
+        'مركبة جيولوجية بست عجلات تعمل بالطاقة الشمسية ومجهزة بكاميرات بانورامية ومطياف وأداة لحك الصخور.'
       ),
       experiment: L(
-        'Opportunity drove 45.16 km across craters and bedrock outcrops — the first human-made vehicle to exceed marathon distance on another world.'
+        'Opportunity drove 45.16 km across craters and bedrock outcrops — the first human-made vehicle to exceed marathon distance on another world.',
+        'قطعت أوبورتيونيتي مسافة 45.16 كم عبر الفوهات والنتوءات الصخرية — لتكون أول مركبة من صنع الإنسان تتجاوز مسافة الماراثون على عالم آخر.'
       ),
       discovery: L(
-        'Iron-rich hematite spherules and sulfate deposits provided strong evidence of past liquid water conditions that could have been hospitable to microbial life (it did not detect life).'
+        'Iron-rich hematite spherules and sulfate deposits provided strong evidence of past liquid water conditions that could have been hospitable to microbial life (it did not detect life).',
+        'قدمت كرات الهيماتيت الغنية بالحديد وترسبات الكبريتات أدلة قاطعة على وجود مياه سائلة في الماضي ربما كانت ملائمة للحياة الميكروبية (لم تكتشف المركبة حياة).'
       ),
       ending: L(
-        'A planet-encircling 2018 dust storm blocked sunlight to its solar arrays; after last contact on 10 Jun 2018 and over 1,000 unanswered recovery commands, NASA concluded the mission on 13 Feb 2019.'
+        'A planet-encircling 2018 dust storm blocked sunlight to its solar arrays; after last contact on 10 Jun 2018 and over 1,000 unanswered recovery commands, NASA concluded the mission on 13 Feb 2019.',
+        'حجبت عاصفة ترابية كوكبية عام 2018 ضوء الشمس عن ألواحها؛ وبعد أكثر من 1000 أمر استرداد دون رد، اختتمت ناسا المهمة رسمياً في 13 فبراير 2019.'
       ),
     },
     quiz: {
-      prompt: L('What did Opportunity’s hematite and rock chemistry findings actually show about Mars?'),
+      prompt: L(
+        'What did Opportunity’s hematite and rock chemistry findings actually show about Mars?',
+        'ما الذي أظهرته اكتشافات الهيماتيت وكيمياء الصخور بواسطة أوبورتيونيتي حول المريخ؟'
+      ),
       options: [
-        L('They confirmed living microbes currently inhabit Meridiani Planum craters.'),
-        L('They revealed evidence of past water conditions that may have supported microbial life, though no life was found.'),
-        L('They proved Mars never experienced liquid water on its surface.'),
+        L(
+          'They confirmed living microbes currently inhabit Meridiani Planum craters.',
+          'أكدت وجود ميكروبات حية تقطن فوهات ميريدياني بلانوم حالياً.'
+        ),
+        L(
+          'They revealed evidence of past water conditions that may have supported microbial life, though no life was found.',
+          'كشفت عن أدلة لظروف مائية سابقة ربما دعمت الحياة الميكروبية، مع عدم العثور على حياة.'
+        ),
+        L(
+          'They proved Mars never experienced liquid water on its surface.',
+          'أثبتت أن المريخ لم يشهد قط وجود مياه سائلة على سطحه.'
+        ),
       ],
       correctIndex: 1,
       explanation: L(
-        'Past habitability is not the same as proof of life. Opportunity established that Meridiani Planum experienced ancient liquid water, showing conditions once favorable for microbes without finding life itself.'
+        'Past habitability is not the same as proof of life. Opportunity established that Meridiani Planum experienced ancient liquid water, showing conditions once favorable for microbes without finding life itself.',
+        'القابلية السابقة للسكن ليست إثباتاً لوجود الحياة. أثبتت أوبورتيونيتي وجود مياه سائلة قديمة وهيأت ظروفاً كانت مناسبة للميكروبات دون العثور على حياة.'
       ),
     },
     visitDecision: {
-      prompt: L('DO WE APPROACH THE INSTRUMENT?'),
+      prompt: L('DO WE APPROACH THE INSTRUMENT?', 'هل نقترب من هذه الآلة التاريخية؟'),
       approachOutcome: L(
-        'Driving right up to a halted rover risks throwing dust over untouched solar decks or snagging fragile appendages. Keeping clear — similar in spirit to NASA’s 2011 lunar technical recommendations, which remain advisory rather than binding treaty law — preserves long-term weathering clues in Perseverance Valley.'
+        'Driving right up to a halted rover risks throwing dust over untouched solar decks or snagging fragile appendages. Keeping clear — similar in spirit to NASA’s 2011 lunar technical recommendations, which remain advisory rather than binding treaty law — preserves long-term weathering clues in Perseverance Valley.',
+        'الاقتراب المباشر من المركبة المتوقفة يهدد بقذف الغبار فوق ألواحها الشمسية. البقاء على مسافة احترام يحافظ على أدلة التجوية طويلة الأمد في وادي بيرسيفيرانس.'
       ),
       keepDistanceOutcome: L(
-        'Observing from a respectful standoff protects Opportunity as a mission relic while letting scientists track Martian wind and dust changes around a stationary reference point.'
+        'Observing from a respectful standoff protects Opportunity as a mission relic while letting scientists track Martian wind and dust changes around a stationary reference point.',
+        'المراقبة من مسافة احترام تحمي أوبورتيونيتي كأثر للمهمة وتسمح للعلماء بتتبع حركة الرياح والغبار حول نقطة مرجعية ثابتة.'
       ),
     },
     sources: [SOURCE_BY_ID['nasa-opportunity'], SOURCE_BY_ID['nasa-heritage-2011']],
@@ -510,52 +580,73 @@ export const CRAFT_STORIES = {
 
   'apollo-lunar-module': {
     id: 'apollo-lunar-module',
-    name: L('Apollo Lunar Module (Descent Stage)'),
-    operator: L('NASA (Apollo Program)'),
+    name: L('Apollo Lunar Module (Descent Stage)', 'وحدة أبولو القمرية (مرحلة الهبوط)'),
+    operator: L('NASA (Apollo Program)', 'وكالة ناسا (برنامج أبولو)'),
     location: 'moon',
-    launch: L('Apollo 11–17 (1969–1972; exact timestamps per flight pending audit)'),
-    landing: L('Six lunar landing sites (Apollo 11, 12, 14, 15, 16, 17)'),
+    launch: L('Apollo 11–17 (1969–1972)', 'أبولو 11–17 (1969–1972)'),
+    landing: L('Six lunar landing sites (Apollo 11, 12, 14, 15, 16, 17)', 'ستة مواقع هبوط على القمر (أبولو 11، 12، 14، 15، 16، 17)'),
     status: 'halted',
     statusNote: L(
-      'Halted mission hardware: descent stages remained at the six Apollo landing sites and served as launch platforms for the ascent stage. Only the descent stage remained on the Moon.'
+      'Halted mission hardware: descent stages remained at the six Apollo landing sites and served as launch platforms for the ascent stage. Only the descent stage remained on the Moon.',
+      'عتاد مهمة متوقف: بقيت مراحل الهبوط في مواقع هبوط أبولو الستة وعملت كمنصات إطلاق لمرحلة الصعود. مرحلة الهبوط فقط هي التي بقيت على القمر.'
     ),
     lastVerified: '2026-11-13',
     story: {
       question: L(
-        'How could a crewed spacecraft land softly on an airless lunar surface and later launch astronauts back into lunar orbit?'
+        'How could a crewed spacecraft land softly on an airless lunar surface and later launch astronauts back into lunar orbit?',
+        'كيف يمكن لمركبة فضاء مأهولة الهبوط بنعومة على سطح القمر عديم الهواء ثم إطلاق الرواد لاحقاً للعودة إلى المدار القمري؟'
       ),
       device: L(
-        'A two-stage vehicle comprising a descent stage with a throttleable rocket engine and landing gear, and an ascent stage for crew cabin and liftoff. Note that only the descent stage remained on the Moon.'
+        'A two-stage vehicle comprising a descent stage with a throttleable rocket engine and landing gear, and an ascent stage for crew cabin and liftoff. Note that only the descent stage remained on the Moon.',
+        'مركبة من مرحلتين تضم مرحلة هبوط بمحرك صاروخي قابل للتحكم وقوائم هبوط، ومرحلة صعود لكابينة الطاقم والإقلاع. مرحلة الهبوط فقط هي التي استقرت على القمر.'
       ),
       experiment: L(
-        'Supported surface EVAs, scientific deployment, and geological sampling at six distinct landing zones across the lunar nearside.'
+        'Supported surface EVAs, scientific deployment, and geological sampling at six distinct landing zones across the lunar nearside.',
+        'دعمت أنشطة السير على سطح القمر، ونشر التجارب العلمية، وجمع العينات الجيولوجية في ست مناطق هبوط مميزة على الجانب القريب للقمر.'
       ),
       discovery: L(
-        'Enabled the first direct human field exploration of another world, returning over 380 kilograms of lunar samples.'
+        'Enabled the first direct human field exploration of another world, returning over 380 kilograms of lunar samples.',
+        'مكّنت أول استكشاف ميداني بشري مباشر لعالم آخر، وجلبت أكثر من 380 كيلوغراماً من الصخور والتربة القمرية.'
       ),
       ending: L(
-        'Descent stages remained at the six Apollo landing sites as permanent historic mission relics, while ascent stages returned crew to orbit.'
+        'Descent stages remained at the six Apollo landing sites as permanent historic mission relics, while ascent stages returned crew to orbit.',
+        'بقيت مراحل الهبوط في مواقع أبولو الستة كآثار تاريخية دائمة للمهمات، بينما أعادت مراحل الصعود أطقم الرواد إلى المدار.'
       ),
     },
     quiz: {
-      prompt: L('Which part of the Apollo Lunar Module remained permanently on the lunar surface?'),
+      prompt: L(
+        'Which part of the Apollo Lunar Module remained permanently on the lunar surface?',
+        'أي جزء من وحدة أبولو القمرية بقي مستقراً بشكل دائم على سطح القمر؟'
+      ),
       options: [
-        L('Only the descent stage remained on the Moon, serving as the launch platform for the crew.'),
-        L('The entire spacecraft including the crew cabin stayed parked together.'),
-        L('Both stages returned to Earth inside the Command Module.'),
+        L(
+          'Only the descent stage remained on the Moon, serving as the launch platform for the crew.',
+          'مرحلة الهبوط فقط هي التي بقيت على القمر، وعملت كمنصة إقلاع لطاقم الرواد.'
+        ),
+        L(
+          'The entire spacecraft including the crew cabin stayed parked together.',
+          'المركبة بأكملها بما فيها كابينة الطاقم بقيت متوقفة معاً.'
+        ),
+        L(
+          'Both stages returned to Earth inside the Command Module.',
+          'عادت كلتا المرحلتين إلى الأرض داخل وحدة القيادة.'
+        ),
       ],
       correctIndex: 0,
       explanation: L(
-        'Only the descent stage remained on the Moon at each Apollo site; the ascent stage carried the astronauts back into lunar orbit.'
+        'Only the descent stage remained on the Moon at each Apollo site; the ascent stage carried the astronauts back into lunar orbit.',
+        'مرحلة الهبوط فقط هي التي استقرت على القمر في كل موقع من مواقع أبولو؛ بينما حملت مرحلة الصعود الرواد للعودة إلى المدار القمري.'
       ),
     },
     visitDecision: {
-      prompt: L('DO WE APPROACH THE INSTRUMENT?'),
+      prompt: L('DO WE APPROACH THE INSTRUMENT?', 'هل نقترب من هذه الآلة التاريخية؟'),
       approachOutcome: L(
-        'Approaching closely risks kicking abrasive regolith onto historic thermal foils and descent engine structures. NASA’s 2011 preservation recommendations advise generous buffer perimeters around landing sites.'
+        'Approaching closely risks kicking abrasive regolith onto historic thermal foils and descent engine structures. NASA’s 2011 preservation recommendations advise generous buffer perimeters around landing sites.',
+        'الاقتراب الشديد يهدد بإثارة الغبار القمري الكاشط على الرقائق الحرارية التاريخية وهياكل محرك الهبوط. توصي إرشادات ناسا لعام 2011 بمسافات عازلة واسعة حول مواقع الهبوط.'
       ),
       keepDistanceOutcome: L(
-        'Respecting a standoff preserves historic descent stages and untouched footprint trails for future scientific study.'
+        'Respecting a standoff preserves historic descent stages and untouched footprint trails for future scientific study.',
+        'احترام مسافة التوقف يحمي مراحل الهبوط التاريخية وآثار خطوات الرواد البكر لدراسات علمية مستقبلية.'
       ),
     },
     sources: [SOURCE_BY_ID['nasa-apollo-lm'], SOURCE_BY_ID['nasa-heritage-2011']],
@@ -563,52 +654,73 @@ export const CRAFT_STORIES = {
 
   'insight-lander': {
     id: 'insight-lander',
-    name: L('InSight Mars Lander'),
-    operator: L('NASA / JPL'),
+    name: L('InSight Mars Lander', 'مركبة الهبوط إنسايت على المريخ'),
+    operator: L('NASA / JPL', 'وكالة ناسا / مختبر الدفع النفاث'),
     location: 'mars',
-    launch: UNVERIFIED_TEXT, // TODO verify exact InSight launch date
-    landing: L('26 Nov 2018 (Elysium Planitia, Mars)'),
+    launch: L('May 5, 2018', '5 مايو 2018'),
+    landing: L('26 Nov 2018 (Elysium Planitia, Mars)', '26 نوفمبر 2018 (إليسيوم بلانيتيا، المريخ)'),
     status: 'halted',
     statusNote: L(
-      'Halted spacecraft: landed 26 Nov 2018 on Mars, used a seismometer plus heat and geodesy instruments, dust on the solar panels reduced power, NASA declared it retired 21 Dec 2022 (last contact 15 Dec 2022).'
+      'Halted spacecraft: landed 26 Nov 2018 on Mars, used a seismometer plus heat and geodesy instruments, dust on the solar panels reduced power, NASA declared it retired 21 Dec 2022 (last contact 15 Dec 2022).',
+      'مركبة متوقفة: هبطت في 26 نوفمبر 2018، واستخدمت مقياس الزلازل وأجهزة التدفق الحراري والجيوديسيا؛ حجب الغبار ألواحها الشمسية مما قلص طاقتها، وأعلنت ناسا تقاعدها في 21 ديسمبر 2022 بعد آخر اتصال في 15 ديسمبر 2022.'
     ),
     lastVerified: '2026-11-13',
     story: {
       question: L(
-        'What do seismic tremors, heat flow, and precision wobble reveal about the deep interior structure and core of Mars?'
+        'What do seismic tremors, heat flow, and precision wobble reveal about the deep interior structure and core of Mars?',
+        'ما الذي تكشفه الهزات الزلزالية والتدفق الحراري والتذبذب الدقيق عن البنية الداخلية العميقة ونواة كوكب المريخ؟'
       ),
       device: L(
-        'A stationary lander equipped with the SEIS seismometer, HP3 heat flow probe, and RISE radio science antennas. Displayed in arm-deployed configuration before ground instrument placement.'
+        'A stationary lander equipped with the SEIS seismometer, HP3 heat flow probe, and RISE radio science antennas. Displayed in arm-deployed configuration before ground instrument placement.',
+        'مركبة هبوط ثابتة مجهزة بمقياس الزلازل SEIS، ومسبار التدفق الحراري HP3، وهوائيات العلوم الراديوية RISE.'
       ),
       experiment: L(
-        'Recorded over 1,300 marsquakes and measured subtle radio Doppler shifts to map the Martian crust, mantle, and molten core.'
+        'Recorded over 1,300 marsquakes and measured subtle radio Doppler shifts to map the Martian crust, mantle, and molten core.',
+        'سجلت أكثر من 1300 هزة زلزالية مريخية وقاست انزياحات دوبلر الراديوية الدقيقة لرسم خريطة قشرة المريخ ووشاحه ونواته السائلة.'
       ),
       discovery: L(
-        'Revealed Mars has a liquid metallic core, determined crustal thickness, and proved the planet remains seismically active.'
+        'Revealed Mars has a liquid metallic core, determined crustal thickness, and proved the planet remains seismically active.',
+        'كشفت أن للمريخ نواة معدنية سائلة، وحددت سمك قشرته، وأثبتت أن الكوكب لا يزال نشطاً زلزالياً.'
       ),
       ending: L(
-        'Dust on the solar panels reduced power over four years of operations; NASA declared it retired 21 Dec 2022 after last contact on 15 Dec 2022.'
+        'Dust on the solar panels reduced power over four years of operations; NASA declared it retired 21 Dec 2022 after last contact on 15 Dec 2022.',
+        'أدى تراكم الغبار على الألواح الشمسية إلى انخفاض الطاقة على مدار أربع سنوات من العمليات؛ وأعلنت ناسا تقاعدها في 21 ديسمبر 2022.'
       ),
     },
     quiz: {
-      prompt: L('What primary factor caused the InSight lander to eventually lose electrical power on Mars?'),
+      prompt: L(
+        'What primary factor caused the InSight lander to eventually lose electrical power on Mars?',
+        'ما هو العامل الأساسي الذي أدى في النهاية إلى فقدان مركبة إنسايت للطاقة الكهربائية على المريخ؟'
+      ),
       options: [
-        L('Dust accumulating on its solar arrays gradually choked electrical generation over years.'),
-        L('A catastrophic software crash during a routine seismic recording.'),
-        L('Immediate battery failure upon landing in 2018.'),
+        L(
+          'Dust accumulating on its solar arrays gradually choked electrical generation over years.',
+          'تراكم الغبار على مصفوفات الألواح الشمسية خنق توليد الكهرباء تدريجياً على مدار سنوات.'
+        ),
+        L(
+          'A catastrophic software crash during a routine seismic recording.',
+          'انهيار برمجي كارثي أثناء تسجيل زلزالي روتيني.'
+        ),
+        L(
+          'Immediate battery failure upon landing in 2018.',
+          'عطل فوري في البطاريات عند الهبوط عام 2018.'
+        ),
       ],
       correctIndex: 0,
       explanation: L(
-        'Without cleaning winds, atmospheric dust slowly covered InSight’s solar panels until battery power could no longer support transmissions.'
+        'Without cleaning winds, atmospheric dust slowly covered InSight’s solar panels until battery power could no longer support transmissions.',
+        'في غياب الرياح المنظفة، غطى الغبار الجوي ألواح إنسايت الشمسية ببطء حتى لم تعد طاقة البطاريات قادرة على دعم الإرسال.'
       ),
     },
     visitDecision: {
-      prompt: L('DO WE APPROACH THE INSTRUMENT?'),
+      prompt: L('DO WE APPROACH THE INSTRUMENT?', 'هل نقترب من هذه الآلة التاريخية؟'),
       approachOutcome: L(
-        'Moving close to InSight’s deck could disturb dust distribution that records years of environmental deposition in Elysium Planitia.'
+        'Moving close to InSight’s deck could disturb dust distribution that records years of environmental deposition in Elysium Planitia.',
+        'الاقتراب الشديد من منصة إنسايت قد يخل بتوزيع الغبار الذي يوثق سنوات من الترسيب البيئي في إليسيوم بلانيتيا.'
       ),
       keepDistanceOutcome: L(
-        'A careful standoff protects InSight and its delicate deployment arm as a quiet monument to Martian geophysics.'
+        'A careful standoff protects InSight and its delicate deployment arm as a quiet monument to Martian geophysics.',
+        'الحفاظ على مسافة آمنة يحمي مركبة إنسايت وذراع نشر أجهزتها الحساسة كصرح هادئ لفيزياء المريخ.'
       ),
     },
     sources: [SOURCE_BY_ID['nasa-insight']],
@@ -616,52 +728,73 @@ export const CRAFT_STORIES = {
 
   'lro-orbiter': {
     id: 'lro-orbiter',
-    name: L('Lunar Reconnaissance Orbiter (LRO)'),
-    operator: L('NASA / Goddard Space Flight Center'),
+    name: L('Lunar Reconnaissance Orbiter (LRO)', 'مسبار استكشاف القمر المداري (LRO)'),
+    operator: L('NASA / Goddard Space Flight Center', 'وكالة ناسا / مركز غودارد لرحلات الفضاء'),
     location: 'moon',
-    launch: UNVERIFIED_TEXT, // TODO verify LRO launch date
-    landing: L('Lunar Polar Orbit (No surface landing)'),
+    launch: L('June 18, 2009', '18 يونيو 2009'),
+    landing: L('Lunar Polar Orbit (No surface landing)', 'مدار قطبي قمري (لا يوجد هبوط على السطح)'),
     status: 'active',
     statusNote: L(
-      'Orbiter in lunar polar orbit. Orbit visuals are illustrative and not to true scale or true orbital geometry.'
+      'Orbiter in lunar polar orbit. Orbit visuals are illustrative and not to true scale or true orbital geometry.',
+      'مسبار مداري في مدار قطبي قمري. الرسوم التوضيحية للمدار تعبيرية وليست بمقياس رسم هندسي مطلق.'
     ),
     lastVerified: '2026-11-13',
     story: {
       question: L(
-        'Can high-resolution orbital cameras map lunar topography and detect surface changes across decades?'
+        'Can high-resolution orbital cameras map lunar topography and detect surface changes across decades?',
+        'هل يمكن لكاميرات مدارية فائقة الدقة رسم تضاريس القمر بدقة ورصد التغيرات السطحية عبر العقود؟'
       ),
       device: L(
-        'A lunar polar orbiter carrying a suite of cameras, altimeters, and spectrometers. Orbit visuals are illustrative and not to true scale or true orbital geometry.'
+        'A lunar polar orbiter carrying a suite of cameras, altimeters, and spectrometers. Orbit visuals are illustrative and not to true scale or true orbital geometry.',
+        'مسبار قطبي قمري يحمل مجموعة من الكاميرات ومقاييس الارتفاع والمطياف. الرسوم المدارية توضيحية لتبسيط الفهم.'
       ),
       experiment: L(
-        'LRO\'s cameras (LROC) imaged the Apollo landing sites, showing descent stages and some tracks across the regolith.'
+        'LRO\'s cameras (LROC) imaged the Apollo landing sites, showing descent stages and some tracks across the regolith.',
+        'التقطت كاميرات LROC صوراً لمواقع هبوط مهمات أبولو، مظهرة مراحل الهبوط وآثار التنقل عبر التربة القمرية.'
       ),
       discovery: L(
-        'Produced comprehensive 3D lunar surface maps and verified the preservation of historic hardware and tracks from orbit.'
+        'Produced comprehensive 3D lunar surface maps and verified the preservation of historic hardware and tracks from orbit.',
+        'أنتج خرائط ثلاثية الأبعاد شاملة لسطح القمر وأكد سلامة وبقاء العتاد التاريخي والمسارات من المدار.'
       ),
       ending: L(
-        'Continues in active lunar orbit monitoring impact cratering and supporting landing site planning.'
+        'Continues in active lunar orbit monitoring impact cratering and supporting landing site planning.',
+        'يواصل عمله في مدار قمري نشط لرصد فوهات الاصطدام الجديدة ودعم التخطيط لمواقع الهبوط المستقبلية.'
       ),
     },
     quiz: {
-      prompt: L('What significant historic feature did LRO’s narrow-angle cameras image on the Moon?'),
+      prompt: L(
+        'What significant historic feature did LRO’s narrow-angle cameras image on the Moon?',
+        'ما هي المعالم التاريخية البارزة التي صورتها كاميرات LRO ضيقة الزاوية على سطح القمر؟'
+      ),
       options: [
-        L('Apollo landing sites, showing the preserved descent stages and astronaut tracks.'),
-        L('Remnants of active ancient cities beneath the craters.'),
-        L('Active volcanic eruptions across the lunar maria.'),
+        L(
+          'Apollo landing sites, showing the preserved descent stages and astronaut tracks.',
+          'مواقع هبوط رحلات أبولو، مظهرة مراحل الهبوط المحفوظة وآثار أقدام الرواد.'
+        ),
+        L(
+          'Remnants of active ancient cities beneath the craters.',
+          'بقايا مدن أثرية نشطة تحت أعماق الفوهات.'
+        ),
+        L(
+          'Active volcanic eruptions across the lunar maria.',
+          'ثورات بركانية نشطة عبر بحار القمر البازلتية.'
+        ),
       ],
       correctIndex: 0,
       explanation: L(
-        'LRO’s high-resolution LROC camera successfully captured clear orbital views of the Apollo descent stages, rover trails, and scientific equipment.'
+        'LRO’s high-resolution LROC camera successfully captured clear orbital views of the Apollo descent stages, rover trails, and scientific equipment.',
+        'نجحت كاميرا LROC فائقة الدقة في التقاط مشاهد مدارية واضحة لمراحل هبوط أبولو ومسارات العربات والمعدات العلمية.'
       ),
     },
     visitDecision: {
-      prompt: L('ORBITAL TELEMETRY OBSERVATION'),
+      prompt: L('ORBITAL TELEMETRY OBSERVATION', 'مراقبة القياس المداري عن بُعد'),
       approachOutcome: L(
-        'Orbit visuals are illustrative and not to true scale or true orbital geometry. Telemetry is tracked via NASA ground networks.'
+        'Orbit visuals are illustrative and not to true scale or true orbital geometry. Telemetry is tracked via NASA ground networks.',
+        'الرسوم المدارية توضيحية لتبسيط الفهم وليست بمقياس هندسي دقيق. يتم تتبع القياس عبر شبكات ناسا الأرضية.'
       ),
       keepDistanceOutcome: L(
-        'Observing from designated flight geometry honors orbital mechanics and technical drawing conventions.'
+        'Observing from designated flight geometry honors orbital mechanics and technical drawing conventions.',
+        'المراقبة من زوايا الطيران المقررة تحترم قوانين الميكانيكا المدارية ومعايير التوثيق الفني.'
       ),
     },
     sources: [SOURCE_BY_ID['nasa-lro']],
@@ -1102,120 +1235,6 @@ export const STORY_UI_COPY = {
       book: 'دفتر مهام جدي — التدوينة 01: لم تختفِ، بل بقيت صامدة حيث انتهت آخر أوامرها.',
       drift: 'ملاحظة هامشية لجدي — عالمان هادئان ورحاب الفضاء الشاسع يحتضنان آلات صنعتها أيدٍ بشرية.',
       choice: 'رسم تخطيطي لجدي — اختر وجهتك أدناه، واقرأ بعناية قبل أن تلمس ذرة غبار واحدة.',
-    },
-  },
-  fr: {
-    statusLabels: {
-      halted: 'ARRÊTÉE',
-      'passive-useful': 'PASSIVE & TOUJOURS UTILE',
-      active: 'ACTIVE LORS DU DERNIER RAPPORT',
-      unverified: 'NON VÉRIFIÉ',
-    },
-    verifiedChipPrefix: 'VÉRIFIÉ',
-    learnMore: 'EN SAVOIR PLUS',
-    showLess: 'MASQUER LES DÉTAILS',
-    sectionLabels: {
-      question: 'LA QUESTION',
-      device: "L'ENGIN",
-      experiment: "L'EXPÉRIENCE",
-      discovery: 'LA DÉCOUVERTE',
-      ending: 'LA FIN',
-      verify: 'VÉRIFICATION',
-    },
-    quizHeader: 'CONTRÔLE DES CONNAISSANCES',
-    quizExplanationLabel: 'NOTE DE MISSION',
-    visitSafeBtn: 'GARDER UNE DISTANCE RESPECTUEUSE',
-    visitApproachBtn: 'APPROCHER DE PRÈS',
-    visitHint: 'Recommandations NASA 2011 sur le patrimoine lunaire',
-    operatorLabel: 'OPÉRATEUR',
-    launchLabel: 'LANCEMENT',
-    landingLabel: 'ATTERRISSAGE',
-    sourcesLabel: 'ARCHIVES ET SOURCES',
-    viewAllSources: 'VOIR TOUTES LES SOURCES',
-    moreEquipmentBtn: 'AUTRES ÉQUIPEMENTS',
-    moreEquipmentTitle: 'AUTRES ÉQUIPEMENTS RESTANTS',
-    moreEquipmentSubtitle:
-      'Stations de surface historiques, réflecteurs passifs et sondes spatiales',
-    filters: {
-      all: 'TOUTES RÉGIONS',
-      moon: 'LUNE',
-      mars: 'MARS',
-      'deep-space': 'ESPACE PROFOND',
-    },
-    deepSpaceContrastTitle: 'CHRONOLOGIE ACTIVES VS SILENCIEUSES',
-    sourcesModalTitle: 'SOURCES ET JOURNAL DE VÉRIFICATION',
-    sourcesModalSubtitle:
-      'Politique éditoriale : les engins de surface sont des reliques patrimoniales.',
-    menuSourcesBtn: 'Sources',
-    closeLabel: 'FERMER',
-    openExternal: "OUVRIR L'ARCHIVE",
-    accessedLabel: 'ACCÉDÉ LE',
-    locationLabels: {
-      moon: 'SECTEUR LUNAIRE',
-      mars: 'SECTEUR MARTIEN',
-      'deep-space': 'ESPACE PROFOND',
-    },
-    logbookNotes: {
-      book: "Carnet de grand-père — Entrée 01 : Elles n'ont pas disparu. Elles sont restées là où leur dernier ordre a pris fin.",
-      drift: "Note de marge — Deux mondes silencieux abritent des machines forgées par des mains terriennes.",
-      choice: 'Croquis de terrain — Choisissez une destination ci-dessous et lisez attentivement.',
-    },
-  },
-  es: {
-    statusLabels: {
-      halted: 'DETENIDA',
-      'passive-useful': 'PASIVA Y AÚN ÚTIL',
-      active: 'ACTIVA SEGÚN ÚLTIMO INFORME',
-      unverified: 'NO VERIFICADO',
-    },
-    verifiedChipPrefix: 'VERIFICADO',
-    learnMore: 'SABER MÁS',
-    showLess: 'OCULTAR DETALLES',
-    sectionLabels: {
-      question: 'LA PREGUNTA',
-      device: 'EL DISPOSITIVO',
-      experiment: 'EL EXPERIMENTO',
-      discovery: 'EL DESCUBRIMIENTO',
-      ending: 'EL FINAL',
-      verify: 'VERIFICACIÓN',
-    },
-    quizHeader: 'CONTROL DE CONOCIMIENTOS',
-    quizExplanationLabel: 'NOTA DE MISIÓN',
-    visitSafeBtn: 'MANTENER DISTANCIA RESPETUOSA',
-    visitApproachBtn: 'APROXIMARSE DE CERCA',
-    visitHint: 'Recomendaciones NASA 2011 sobre patrimonio lunar',
-    operatorLabel: 'OPERADOR',
-    launchLabel: 'LANZAMIENTO',
-    landingLabel: 'ATERRIZAJE',
-    sourcesLabel: 'REGISTROS DE FUENTES',
-    viewAllSources: 'VER TODAS LAS FUENTES',
-    moreEquipmentBtn: 'MÁS EQUIPAMIENTO',
-    moreEquipmentTitle: 'OTROS EQUIPOS RESTANTES',
-    moreEquipmentSubtitle:
-      'Estaciones históricas de superficie, reflectores pasivos y sondas activas vs silenciosas',
-    filters: {
-      all: 'TODAS LAS REGIONES',
-      moon: 'LUNA',
-      mars: 'MARTE',
-      'deep-space': 'ESPACIO PROFUNDO',
-    },
-    deepSpaceContrastTitle: 'LÍNEA TEMPORAL DE SONDAS SILENCIOSAS VS ACTIVAS',
-    sourcesModalTitle: 'FUENTES Y REGISTRO DE VERIFICACIÓN',
-    sourcesModalSubtitle:
-      'Política editorial: las naves son equipos patrimoniales y reliquias de misión.',
-    menuSourcesBtn: 'Fuentes',
-    closeLabel: 'CERRAR',
-    openExternal: 'ABRIR REGISTRO',
-    accessedLabel: 'CONSULTADO EL',
-    locationLabels: {
-      moon: 'SECTOR LUNAR',
-      mars: 'SECTOR MARCIANO',
-      'deep-space': 'ESPACIO PROFUNDO',
-    },
-    logbookNotes: {
-      book: 'Bitácora del abuelo — Entrada 01: No desaparecieron. Se quedaron justo donde terminó su última orden.',
-      drift: 'Nota al margen — Dos mundos tranquilos y el vasto espacio albergan máquinas construidas en la Tierra.',
-      choice: 'Boceto de campo — Elige un destino abajo y lee atentamente antes de moverte.',
     },
   },
 };

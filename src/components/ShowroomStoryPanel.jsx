@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, BookOpenCheck, ShieldCheck, Compass, ExternalLink } from 'lucide-react';
 import { getCraftStory, getStoryUiCopy } from '../data/craftStories';
 import { playLock, playUnlock, playServo } from '../audio/surfaceAudio';
+import { triggerConfettiBurst, triggerEdgeFlash } from '../utils/quizEffects';
 
 /**
  * Educational storytelling extension rendered inside the showroom's existing
@@ -41,10 +42,34 @@ export default function ShowroomStoryPanel({
 
   const handleSelectQuiz = (idx) => {
     setSelectedQuizIndex(idx);
-    if (storyData.quiz && idx === storyData.quiz.correctIndex) {
+    const isCorrect = storyData.quiz && idx === storyData.quiz.correctIndex;
+    if (isCorrect) {
       playLock();
+      triggerConfettiBurst(false);
+      triggerEdgeFlash('correct');
+      window.dispatchEvent(
+        new CustomEvent('lunaQuizReaction', {
+          detail: { type: 'correct', destination: storyData.location, craftName: storyData.name }
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent('gameAudioCue', {
+          detail: { cue: 'quiz_correct' }
+        })
+      );
     } else {
       playUnlock();
+      triggerEdgeFlash('wrong');
+      window.dispatchEvent(
+        new CustomEvent('lunaQuizReaction', {
+          detail: { type: 'wrong', craftName: storyData.name }
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent('gameAudioCue', {
+          detail: { cue: 'quiz_wrong' }
+        })
+      );
     }
   };
 

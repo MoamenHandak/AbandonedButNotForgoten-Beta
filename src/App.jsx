@@ -58,6 +58,16 @@ export default function App() {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   }, [settings?.language]);
 
+  // Support direct entry to story from Arcade lock screen
+  useEffect(() => {
+    const onRequestStory = () => {
+      setActiveModal(null);
+      handleStartJourney();
+    };
+    window.addEventListener('requestStoryStart', onRequestStory);
+    return () => window.removeEventListener('requestStoryStart', onRequestStory);
+  }, []);
+
   // Save settings handler
   const handleSaveSettings = (newSettings) => {
     const normalized = normalizeSettings(newSettings);

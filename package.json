@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "verify:i18n": "node scripts/verify_translations.cjs",
     "optimize:models": "node scripts/optimize-models.mjs",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"

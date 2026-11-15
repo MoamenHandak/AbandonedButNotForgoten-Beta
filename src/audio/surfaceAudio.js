@@ -85,8 +85,21 @@ class SurfaceAudioEngine {
       if (this.ctx?.state === 'suspended') this.ctx.resume();
     };
 
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (this.ctx && this.ctx.state === 'running') {
+          this.ctx.suspend().catch(() => {});
+        }
+      } else {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+    };
+
     window.addEventListener('gameSettingsChange', onSettings);
     window.addEventListener('gameAudioCue', onCue);
+    document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pointerdown', unlock, { passive: true });
     window.addEventListener('touchstart', unlock, { passive: true });
     window.addEventListener('keydown', unlock, { passive: true });
@@ -94,6 +107,7 @@ class SurfaceAudioEngine {
     return () => {
       window.removeEventListener('gameSettingsChange', onSettings);
       window.removeEventListener('gameAudioCue', onCue);
+      document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('touchstart', unlock);
       window.removeEventListener('keydown', unlock);
@@ -136,9 +150,21 @@ class SurfaceAudioEngine {
   handle(cue, detail = {}) {
     if (!cue) return;
     this.resume();
-    if (cue === 'menu_music') {
+    if (cue === 'intro_music') {
+      this.startIntroMusic();
+    } else if (cue === 'menu_music') {
       this.startMenuMusic();
-    } else if (cue === 'menu_music_stop') {
+    } else if (cue === 'prologue_music') {
+      this.startPrologueMusic();
+    } else if (cue === 'choice_music') {
+      this.startChoiceMusic();
+    } else if (cue === 'moon_music') {
+      this.startMoonMusic();
+    } else if (cue === 'mars_music') {
+      this.startMarsMusic();
+    } else if (cue === 'victory_stinger' || cue === 'victory_music') {
+      this.startVictoryMusic();
+    } else if (cue === 'menu_music_stop' || cue === 'stop_music') {
       this.stopMusic();
     } else if (cue === 'credits_music') {
       this.startCreditsMusic();
@@ -149,6 +175,21 @@ class SurfaceAudioEngine {
       this.startAmbience(detail.planet);
     } else if (cue === 'surface_ambience_stop') {
       this.stopAmbience();
+    } else if (cue === 'dialogue_type') {
+      this.playTypewriter(detail.speaker || 'luna');
+      this.duckMusic(1.8, 0.45);
+    } else if (cue === 'quiz_correct') {
+      this.playQuizCorrect();
+    } else if (cue === 'quiz_wrong') {
+      this.playQuizWrong();
+    } else if (cue === 'sector_complete' || cue === 'campaign_complete') {
+      this.playSectorComplete();
+    } else if (cue === 'transit_whoosh') {
+      this.playTransitWhoosh();
+    } else if (cue === 'drawer_toggle') {
+      this.playDrawerToggle();
+    } else if (cue === 'tab_switch') {
+      this.playTabSwitch();
     } else if (cue === 'camera_servo') {
       this.playServo('fly');
       this.playThruster('medium');
@@ -160,8 +201,8 @@ class SurfaceAudioEngine {
     } else if (cue === 'part_select' || cue === 'part_lock') {
       this.playServo('lock');
       this.playBlip(0.12, 980, 1640);
-    } else if (cue === 'part_unlock') {
-      this.playBlip(0.06, 1200, 600);
+    } else if (cue === 'part_unlock' || cue === 'unlock') {
+      this.playUnlockChime();
     } else if (cue === 'start_journey') {
       this.stopMusic();
       this.playServo('launch');
@@ -169,6 +210,341 @@ class SurfaceAudioEngine {
     } else if (String(cue).startsWith('story_step_')) {
       this.playBlip(0.05, 800, 1200);
     }
+  }
+
+  /**
+   * Smoothly ducks background music volume during dialogue speech.
+   */
+  duckMusic(duration = 2.0, duckFactor = 0.45) {
+    if (!this.ctx || !this.music || this.settings.mute) return;
+    const now = this.ctx.currentTime;
+    const baseGain = this.settings.music;
+    this.music.gain.cancelScheduledValues(now);
+    this.music.gain.setValueAtTime(this.music.gain.value, now);
+    this.music.gain.linearRampToValueAtTime(baseGain * duckFactor, now + 0.12);
+    this.music.gain.linearRampToValueAtTime(baseGain, now + duration);
+  }
+
+  /**
+   * Dialogue typewriter character sound: soft bright blip for Luna,
+   * warm low resonant click for Mission Logbook.
+   */
+  playTypewriter(speaker = 'luna') {
+    if (!this.ctx || this.settings.mute) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    if (speaker === 'logbook') {
+      osc.type = 'triangle';
+      const baseFreq = 230 + (Math.random() - 0.5) * 35;
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.78, now + 0.04);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.045, now + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.048);
+    } else {
+      osc.type = 'sine';
+      const baseFreq = 960 + (Math.random() - 0.5) * 80;
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.15, now + 0.025);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.032, now + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+    }
+
+    osc.connect(gain);
+    gain.connect(this.sfx);
+    osc.start(now);
+    osc.stop(now + 0.055);
+  }
+
+  /** Bright ascending chime chord for correct quiz answers */
+  playQuizCorrect() {
+    if (!this.ctx || this.settings.mute) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+
+      const startTime = now + idx * 0.07;
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.12, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.65);
+
+      osc.connect(gain);
+      gain.connect(this.sfx);
+      osc.start(startTime);
+      osc.stop(startTime + 0.7);
+    });
+  }
+
+  /** Gentle low warning dissonance for incorrect quiz attempts */
+  playQuizWrong() {
+    if (!this.ctx || this.settings.mute) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc1.type = 'triangle';
+    osc2.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(185, now);
+    osc2.frequency.setValueAtTime(196, now);
+    osc1.frequency.exponentialRampToValueAtTime(130, now + 0.28);
+    osc2.frequency.exponentialRampToValueAtTime(138, now + 0.28);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 420;
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.07, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfx);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.32);
+    osc2.stop(now + 0.32);
+  }
+
+  /** Triumphant fanfare for sector or campaign completion */
+  playSectorComplete() {
+    if (!this.ctx || this.settings.mute) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const chords = [
+      { t: 0.0, freqs: [261.63, 329.63, 392.0] },
+      { t: 0.22, freqs: [293.66, 369.99, 440.0] },
+      { t: 0.5, freqs: [329.63, 392.0, 523.25, 659.25] }
+    ];
+    chords.forEach((chord) => {
+      chord.freqs.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+
+        const startTime = now + chord.t;
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.09, startTime + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 1.2);
+
+        osc.connect(gain);
+        gain.connect(this.sfx);
+        osc.start(startTime);
+        osc.stop(startTime + 1.3);
+      });
+    });
+  }
+
+  /** Sweeping hyperspace whoosh for planetary transit */
+  playTransitWhoosh() {
+    if (!this.ctx || this.settings.mute || !this.noiseBuffer) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 3.0;
+    filter.frequency.setValueAtTime(250, now);
+    filter.frequency.exponentialRampToValueAtTime(2200, now + 0.55);
+    filter.frequency.exponentialRampToValueAtTime(160, now + 1.4);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.45);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfx);
+    noise.start(now);
+    noise.stop(now + 1.5);
+  }
+
+  /** Tactile latch and servo click for details drawer toggle */
+  playDrawerToggle() {
+    this.playServo('lock');
+    this.playBlip(0.08, 640, 920);
+  }
+
+  /** Crisp UI tab switch blip */
+  playTabSwitch() {
+    this.playBlip(0.045, 900, 1150);
+  }
+
+  /** Harmonic unlock chime */
+  playUnlockChime() {
+    this.playBlip(0.07, 780, 1420);
+  }
+
+  /**
+   * Intimate, nostalgic piano & soft string pads for Story Prologue (B2)
+   */
+  startPrologueMusic() {
+    this.resume();
+    if (!this.ctx || this.musicType === 'prologue') return;
+    this.stopMusic();
+    this.musicType = 'prologue';
+
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    const drone = ctx.createOscillator();
+    drone.type = 'sine';
+    drone.frequency.value = 65.4; // C2
+
+    const droneFilter = ctx.createBiquadFilter();
+    droneFilter.type = 'lowpass';
+    droneFilter.frequency.value = 160;
+
+    const droneGain = ctx.createGain();
+    droneGain.gain.setValueAtTime(0.0001, now);
+    droneGain.gain.linearRampToValueAtTime(0.12, now + 2.0);
+
+    drone.connect(droneFilter);
+    droneFilter.connect(droneGain);
+    droneGain.connect(this.music);
+    drone.start();
+
+    // Soft string chords (C maj - G - Am - F)
+    const stringFilter = ctx.createBiquadFilter();
+    stringFilter.type = 'lowpass';
+    stringFilter.frequency.value = 520;
+
+    const stringGain = ctx.createGain();
+    stringGain.gain.setValueAtTime(0.0001, now);
+    stringGain.gain.linearRampToValueAtTime(0.11, now + 2.5);
+
+    stringFilter.connect(stringGain);
+    stringGain.connect(this.music);
+
+    const freqs = [130.81, 164.81, 196.0, 261.63];
+    const stringOscs = freqs.map((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = f;
+      osc.detune.value = (i - 1.5) * 4;
+      osc.connect(stringFilter);
+      osc.start();
+      return osc;
+    });
+
+    this.musicBed.push(
+      { source: drone, gain: droneGain },
+      { source: stringFilter, gain: stringGain },
+      ...stringOscs.map((o) => ({ source: o, gain: null }))
+    );
+
+    // Random gentle nostalgic piano notes
+    const pianoNotes = [329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99];
+    this.musicTimer = setInterval(() => {
+      if (!this.ctx || this.settings.mute || this.musicType !== 'prologue') return;
+      const tNow = this.ctx.currentTime;
+      const freq = pianoNotes[Math.floor(Math.random() * pianoNotes.length)];
+
+      const piano = this.ctx.createOscillator();
+      piano.type = 'sine';
+      piano.frequency.value = freq;
+
+      const pGain = this.ctx.createGain();
+      pGain.gain.setValueAtTime(0.0001, tNow);
+      pGain.gain.exponentialRampToValueAtTime(0.065, tNow + 0.03);
+      pGain.gain.exponentialRampToValueAtTime(0.0001, tNow + 2.4);
+
+      piano.connect(pGain);
+      pGain.connect(this.music);
+      piano.start(tNow);
+      piano.stop(tNow + 2.5);
+    }, 4500);
+  }
+
+  /**
+   * Calm rising resonant pad chords for Choice Scene (B2)
+   */
+  startChoiceMusic() {
+    this.resume();
+    if (!this.ctx || this.musicType === 'choice') return;
+    this.stopMusic();
+    this.musicType = 'choice';
+
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    const padFilter = ctx.createBiquadFilter();
+    padFilter.type = 'lowpass';
+    padFilter.frequency.setValueAtTime(320, now);
+    padFilter.frequency.linearRampToValueAtTime(580, now + 12);
+
+    const padGain = ctx.createGain();
+    padGain.gain.setValueAtTime(0.0001, now);
+    padGain.gain.linearRampToValueAtTime(0.14, now + 2.0);
+
+    padFilter.connect(padGain);
+    padGain.connect(this.music);
+
+    const freqs = [110.0, 164.81, 220.0, 277.18, 329.63]; // A major 9
+    const oscs = freqs.map((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.value = f;
+      osc.detune.value = (i - 2) * 5;
+      osc.connect(padFilter);
+      osc.start();
+      return osc;
+    });
+
+    this.musicBed.push(
+      { source: padFilter, gain: padGain },
+      ...oscs.map((o) => ({ source: o, gain: null }))
+    );
+  }
+
+  /**
+   * Pre-menu intro scene: mysterious cosmic pads and faint telemetry pings
+   */
+  startIntroMusic() {
+    this.resume();
+    if (!this.ctx || this.musicType === 'intro') return;
+    this.stopMusic();
+    this.musicType = 'intro';
+
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    const drone = ctx.createOscillator();
+    drone.type = 'sine';
+    drone.frequency.value = 48.0;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.12, now + 2.5);
+    drone.connect(gain);
+    gain.connect(this.music);
+    drone.start();
+
+    this.musicBed.push({ source: drone, gain });
+  }
+
+  /**
+   * Short uplifting stinger on victory modals
+   */
+  startVictoryMusic() {
+    this.playSectorComplete();
   }
 
   /**

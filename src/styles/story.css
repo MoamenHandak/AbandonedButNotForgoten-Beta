@@ -204,33 +204,32 @@
 }
 
 /* ==========================================================================
-   HADES / RPG DIALOGUE BOX SYSTEM (Scene 1 & Scene 2)
+   VISUAL NOVEL FULL-SCREEN STAGE & DIALOGUE SYSTEM (dialog_style.png)
    ========================================================================== */
 
 .story-cinematic-stage {
-    position: relative;
-    width: min(94vw, 1020px);
-    min-height: min(78vh, 580px);
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     align-items: center;
-    border: 2px solid var(--color-border-hud);
-    border-radius: 12px;
-    overflow: hidden;
-    background: #030614;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 229, 255, 0.15);
-    animation: fadeInStage 0.45s ease-out;
+    background: #02040b;
+    z-index: 10;
 }
 
 .story-cinematic-bg {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100dvh;
     object-fit: cover;
+    object-position: center;
     z-index: 1;
-    animation: cinematicShotFadeIn 0.6s ease-out, slowCinematicZoom 25s ease-in-out infinite alternate;
+    animation: cinematicShotFadeIn 0.6s ease-out, slowCinematicZoom 28s ease-in-out infinite alternate;
 }
 
 @keyframes cinematicShotFadeIn {
@@ -247,227 +246,290 @@
     position: absolute;
     inset: 0;
     z-index: 2;
-    background: linear-gradient(
-        180deg,
-        rgba(3, 7, 22, 0.25) 0%,
-        rgba(3, 7, 22, 0.5) 45%,
-        rgba(3, 7, 22, 0.95) 100%
-    );
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(2, 6, 18, 0.6) 80%, rgba(2, 5, 15, 0.95) 100%),
+                linear-gradient(180deg, rgba(2, 6, 18, 0.2) 0%, rgba(2, 6, 18, 0.4) 50%, rgba(2, 6, 18, 0.95) 100%);
     pointer-events: none;
 }
 
 .story-chapter-chip {
     position: absolute;
-    top: 20px;
-    left: 24px;
-    z-index: 5;
+    top: 24px;
+    left: 28px;
+    z-index: 15;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(3, 7, 22, 0.85);
-    border: 1px solid var(--color-accent-cyan);
+    background: rgba(3, 8, 22, 0.85);
+    border: 1px solid rgba(0, 229, 255, 0.45);
     padding: 6px 14px;
     border-radius: 20px;
-    font-family: var(--font-display);
+    font-family: var(--font-display, 'Tajawal', sans-serif);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 2px;
-    color: var(--color-accent-cyan);
+    color: var(--color-accent-cyan, #00e5ff);
     text-transform: uppercase;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
 }
 
-/* Dialogue Outer Layout */
-.story-dialogue-wrapper {
-    position: relative;
-    z-index: 6;
-    width: 100%;
-    padding: 0 28px 24px;
+[dir="rtl"] .story-chapter-chip {
+    left: auto;
+    right: 28px;
+}
+
+/* Character Cut-Out (Part A3 — Overlaps background art on bottom-left) */
+.story-character-cutout {
+    position: absolute;
+    bottom: 0;
+    left: clamp(16px, 5vw, 90px);
+    height: clamp(52vh, 76vh, 86vh);
+    max-width: 44vw;
+    z-index: 15;
+    pointer-events: none;
     display: flex;
     align-items: flex-end;
-    gap: 20px;
+    transition: filter 0.45s ease, opacity 0.45s ease, transform 0.45s ease;
 }
 
-/* Character Portrait on the Left (Hades style) */
-.dialogue-portrait-col {
-    flex-shrink: 0;
-    width: 160px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    margin-bottom: -6px;
+[dir="rtl"] .story-character-cutout {
+    left: auto;
+    right: clamp(16px, 5vw, 90px);
+    transform-origin: bottom right;
 }
 
-.dialogue-portrait-frame {
-    position: relative;
-    width: 140px;
-    height: 180px;
-    border-radius: 12px;
-    overflow: visible;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
+.story-character-cutout.is-dimmed {
+    filter: brightness(0.52) grayscale(0.28);
+    opacity: 0.82;
 }
 
-.dialogue-character-img {
-    width: 100%;
+.story-character-cutout-img {
     height: 100%;
+    width: auto;
+    max-width: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.85));
-    animation: characterBreathe 4s ease-in-out infinite;
+    object-position: bottom left;
+    filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.92));
+    animation: lunaIdleBreathe 4.8s ease-in-out infinite;
     transform-origin: bottom center;
 }
 
-@keyframes characterBreathe {
+[dir="rtl"] .story-character-cutout-img {
+    object-position: bottom right;
+}
+
+@keyframes lunaIdleBreathe {
     0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-4px) scale(1.02); }
+    50% { transform: translateY(-6px) scale(1.015); }
 }
 
-.dialogue-portrait-glow {
-    position: absolute;
-    inset: -4px;
-    border-radius: 14px;
-    border: 2px solid var(--color-accent-cyan);
-    pointer-events: none;
-    box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
-}
-
-/* Dialogue Box Unified Template (media_1794609689865_544d7e8b) */
-.story-dialogue-box {
-    flex: 1;
+/* Dialogue Outer Layout & Box (Part A1 & A2) */
+.story-dialogue-wrapper {
     position: relative;
-    background: rgba(0, 0, 0, 0.95);
-    border: 1px solid #ffffff;
-    border-radius: 12px;
-    padding: 24px 28px 20px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
+    z-index: 25;
+    width: 100%;
+    max-width: min(92vw, 1140px);
+    padding: 0 0 clamp(16px, 3.5vh, 32px) 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.story-dialogue-box {
+    width: 100%;
+    position: relative;
+    background: rgba(5, 12, 28, 0.86);
+    border: 1px solid rgba(80, 200, 255, 0.45);
+    border-radius: 14px;
+    padding: 24px 32px 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px) saturate(140%);
     cursor: pointer;
     user-select: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .story-dialogue-box:hover {
-    border-color: #ffffff;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 255, 255, 0.2);
+    border-color: rgba(120, 225, 255, 0.75);
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.9), 0 0 25px rgba(0, 229, 255, 0.2);
 }
 
-/* Character Nameplate inside the top of the box */
+.story-dialogue-box.is-logbook {
+    border-color: rgba(255, 185, 75, 0.55);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 30px rgba(255, 180, 50, 0.22), inset 0 1px 0 rgba(255, 220, 150, 0.15);
+}
+
+.story-dialogue-box.is-logbook:hover {
+    border-color: rgba(255, 210, 100, 0.85);
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 180, 50, 0.3);
+}
+
+/* Speaker Name Tag Docked on the Top-Left Border */
 .dialogue-nameplate {
-    position: static;
-    background: transparent;
-    border: none;
-    padding: 0 0 10px 0;
-    margin: 0;
-    border-radius: 0;
-    display: flex;
+    position: absolute;
+    top: -18px;
+    left: 28px;
+    background: rgba(4, 10, 24, 0.96);
+    border: 1px solid var(--color-accent-cyan, #00e5ff);
+    border-radius: 8px;
+    padding: 5px 16px;
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
-    box-shadow: none;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+    z-index: 5;
+}
+
+[dir="rtl"] .dialogue-nameplate {
+    left: auto;
+    right: 28px;
 }
 
 .dialogue-nameplate.is-logbook {
-    border: none;
+    border-color: #ffb84d;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 18px rgba(255, 184, 77, 0.35);
 }
 
 .nameplate-name {
-    font-family: var(--ui-head);
-    font-size: 20px;
+    font-family: var(--font-display, 'Tajawal', sans-serif);
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.5px;
-    color: #ffffff;
-    text-transform: none;
+    letter-spacing: 0.12em;
+    color: #00e5ff;
+    text-transform: uppercase;
 }
 
 .dialogue-nameplate.is-logbook .nameplate-name {
-    color: #ffffff;
+    color: #ffc266;
 }
 
 .nameplate-role {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-    letter-spacing: 1px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 0.08em;
 }
 
-/* Dialogue Line Text */
 .dialogue-line-text {
-    font-size: 16px;
+    font-family: var(--font-ui, 'Tajawal', sans-serif);
+    font-size: clamp(16px, 1.35vw, 20px);
     line-height: 1.65;
-    color: #e6eeff;
-    margin: 8px 0 14px;
+    color: #ffffff;
+    margin: 12px 0 16px;
     min-height: 52px;
-    letter-spacing: 0.3px;
 }
 
-/* Dialogue Box Bottom Bar (Controls & Advance prompt) */
+/* Bold keyword highlights */
+.markup-bold {
+    color: #38e1ff;
+    font-weight: 700;
+    text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+}
+
+.story-dialogue-box.is-logbook .markup-bold {
+    color: #ffd680;
+    text-shadow: 0 0 12px rgba(255, 180, 50, 0.45);
+}
+
+/* Typewriter cursor */
+.typewriter-cursor {
+    display: inline-block;
+    color: var(--color-accent-cyan, #00e5ff);
+    animation: cursorBlink 0.75s infinite;
+    margin-left: 2px;
+    font-weight: 700;
+}
+
+.story-dialogue-box.is-logbook .typewriter-cursor {
+    color: #ffb84d;
+}
+
+@keyframes cursorBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
 .dialogue-bottom-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 12px;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .dialogue-counter {
-    font-family: var(--font-display);
+    font-family: var(--font-display, 'Tajawal', sans-serif);
     font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--color-text-muted);
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.45);
 }
 
 .dialogue-advance-prompt {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-family: var(--font-display);
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 1.5px;
-    color: var(--color-accent-cyan);
-    animation: advanceArrowBounce 1.5s ease-in-out infinite;
+    letter-spacing: 0.1em;
+    color: var(--color-accent-cyan, #00e5ff);
+    animation: promptBlink 1.4s infinite;
 }
 
-@keyframes advanceArrowBounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(3px); }
+.story-dialogue-box.is-logbook .dialogue-advance-prompt {
+    color: #ffb84d;
+}
+
+@keyframes promptBlink {
+    0%, 100% { opacity: 0.9; transform: translateY(0); }
+    50% { opacity: 0.4; transform: translateY(2px); }
 }
 
 .dialogue-complete-btn {
-    padding: 8px 20px !important;
-    font-size: 12px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #00e5ff;
+    color: #000000;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-family: var(--font-display, 'Tajawal', sans-serif);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.dialogue-complete-btn:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
 }
 
 /* Mobile Responsiveness for Dialogue Box */
 @media (max-width: 768px) {
-    .story-cinematic-stage {
-        min-height: 520px;
+    .story-character-cutout {
+        height: 60vh;
+        max-width: 60vw;
+        left: 8px;
+    }
+
+    [dir="rtl"] .story-character-cutout {
+        left: auto;
+        right: 8px;
     }
 
     .story-dialogue-wrapper {
-        flex-direction: column;
-        align-items: center;
-        padding: 0 14px 16px;
-    }
-
-    .dialogue-portrait-col {
-        width: 100px;
-        margin-bottom: -16px;
-        z-index: 8;
-    }
-
-    .dialogue-portrait-frame {
-        width: 90px;
-        height: 110px;
+        padding: 0 0 16px 0;
+        max-width: 95vw;
     }
 
     .story-dialogue-box {
-        width: 100%;
-        padding: 22px 16px 16px;
+        padding: 20px 18px 14px;
+        border-radius: 10px;
     }
 
     .dialogue-line-text {
-        font-size: 14px;
-        min-height: 56px;
+        font-size: 15px;
+        min-height: 48px;
     }
 }
 
@@ -1245,4 +1307,343 @@
     margin: 8px auto 10px;
     max-width: 680px;
     text-align: left;
+}
+
+/* ==========================================================================
+   PART A5: LUNA NON-BLOCKING IN-GAME REACTION TOAST
+   ========================================================================== */
+
+.luna-reaction-toast {
+    position: fixed;
+    bottom: clamp(24px, 4vh, 48px);
+    left: clamp(20px, 3.5vw, 48px);
+    max-width: min(92vw, 420px);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(4, 10, 24, 0.92);
+    border: 1px solid rgba(0, 229, 255, 0.55);
+    border-radius: 12px;
+    padding: 12px 16px 12px 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 24px rgba(0, 229, 255, 0.22);
+    backdrop-filter: blur(14px) saturate(130%);
+    z-index: 125;
+    animation: lunaToastSlideUp 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[dir="rtl"] .luna-reaction-toast,
+.luna-reaction-toast.is-rtl {
+    left: auto;
+    right: clamp(20px, 3.5vw, 48px);
+}
+
+.luna-reaction-toast:hover {
+    transform: translateY(-2px);
+    border-color: rgba(80, 240, 255, 0.85);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.9), 0 0 32px rgba(0, 229, 255, 0.35);
+}
+
+.luna-reaction-toast.wrong {
+    border-color: rgba(255, 175, 60, 0.65);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 24px rgba(255, 175, 60, 0.25);
+}
+
+@keyframes lunaToastSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.luna-toast-avatar-frame {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 229, 255, 0.2) 0%, rgba(4, 10, 24, 0.9) 80%);
+    border: 1.5px solid rgba(0, 229, 255, 0.6);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.luna-reaction-toast.wrong .luna-toast-avatar-frame {
+    border-color: rgba(255, 175, 60, 0.7);
+    background: radial-gradient(circle, rgba(255, 175, 60, 0.2) 0%, rgba(4, 10, 24, 0.9) 80%);
+}
+
+.luna-toast-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    transform: scale(1.18);
+}
+
+.luna-toast-badge {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #00e5ff;
+    color: #040814;
+    border: 1.5px solid #040814;
+}
+
+.luna-toast-badge.is-warning {
+    background: #ffa726;
+    color: #040814;
+}
+
+.luna-toast-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.luna-toast-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+}
+
+.luna-toast-speaker {
+    font-family: var(--font-display, 'Tajawal', sans-serif);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #00e5ff;
+    text-transform: uppercase;
+}
+
+.luna-reaction-toast.wrong .luna-toast-speaker {
+    color: #ffb84d;
+}
+
+.luna-toast-role {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.08em;
+}
+
+.luna-toast-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+[dir="rtl"] .luna-toast-close,
+.luna-reaction-toast.is-rtl .luna-toast-close {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.luna-toast-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.luna-toast-text {
+    font-family: var(--font-ui, 'Tajawal', sans-serif);
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.92);
+    margin: 0;
+}
+
+.luna-bold-kw {
+    color: #38e1ff;
+    font-weight: 700;
+}
+
+.luna-reaction-toast.wrong .luna-bold-kw {
+    color: #ffc966;
+}
+
+/* ==========================================================================
+   PART B1: LAYERED QUIZ ANSWER EFFECTS & ARCADE SILHOUETTE
+   ========================================================================== */
+
+/* Quiz Option Button Pulse Effect */
+@keyframes correctOptionPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 229, 255, 0); }
+    40% { transform: scale(1.03); box-shadow: 0 0 25px rgba(0, 255, 170, 0.7); }
+    100% { transform: scale(1); box-shadow: 0 0 15px rgba(0, 255, 170, 0.4); }
+}
+
+@keyframes wrongOptionShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.details-quiz-option-btn.is-correct,
+.story-quiz-option-btn.is-correct {
+    animation: correctOptionPulse 0.5s ease-out;
+    border-color: #00ffaa !important;
+    background: rgba(0, 255, 170, 0.18) !important;
+    color: #ffffff !important;
+}
+
+.details-quiz-option-btn.is-incorrect,
+.story-quiz-option-btn.is-incorrect {
+    animation: wrongOptionShake 0.4s ease-in-out;
+    border-color: #ff4d6d !important;
+    background: rgba(255, 77, 109, 0.18) !important;
+}
+
+/* Pagination Dot Checkmark Pop */
+@keyframes dotPopCheck {
+    0% { transform: scale(0.7); }
+    60% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+
+.carousel-dot.is-completed {
+    position: relative;
+    background-color: #00ffaa !important;
+    box-shadow: 0 0 12px rgba(0, 255, 170, 0.65);
+    animation: dotPopCheck 0.4s ease-out;
+}
+
+/* Screen-Edge Flash Vignette */
+.screen-edge-flash {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 110;
+    animation: edgeFlashFade 0.75s ease-out forwards;
+}
+
+.screen-edge-flash.is-correct {
+    box-shadow: inset 0 0 80px rgba(0, 255, 170, 0.4);
+}
+
+.screen-edge-flash.is-gold {
+    box-shadow: inset 0 0 110px rgba(255, 215, 0, 0.5);
+}
+
+@keyframes edgeFlashFade {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Confetti Particle Canvas */
+.quiz-confetti-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 115;
+}
+
+/* Arcade Mode Locked Craft Silhouette Overlay */
+.arcade-locked-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, rgba(3, 7, 18, 0.75) 0%, rgba(2, 5, 14, 0.94) 85%);
+    z-index: 20;
+    text-align: center;
+    padding: 24px;
+    user-select: none;
+    backdrop-filter: blur(8px);
+}
+
+.arcade-locked-card {
+    max-width: 460px;
+    background: rgba(5, 12, 28, 0.92);
+    border: 1px solid rgba(255, 180, 50, 0.45);
+    border-radius: 14px;
+    padding: 28px 24px 22px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 25px rgba(255, 180, 50, 0.18);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.arcade-lock-icon {
+    color: #ffb84d;
+    filter: drop-shadow(0 0 12px rgba(255, 184, 77, 0.6));
+}
+
+.arcade-locked-title {
+    font-family: var(--font-display, 'Tajawal', sans-serif);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: #ffc266;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.arcade-locked-desc {
+    font-family: var(--font-ui, 'Tajawal', sans-serif);
+    font-size: 13px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.75);
+    margin: 0;
+}
+
+.arcade-start-story-btn {
+    margin-top: 6px;
+    background: #00e5ff;
+    color: #030814;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 20px;
+    font-family: var(--font-display, 'Tajawal', sans-serif);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.arcade-start-story-btn:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .luna-reaction-toast,
+    .details-quiz-option-btn.is-correct,
+    .story-quiz-option-btn.is-correct,
+    .details-quiz-option-btn.is-incorrect,
+    .story-quiz-option-btn.is-incorrect,
+    .carousel-dot.is-completed,
+    .screen-edge-flash {
+        animation: none !important;
+        transform: none !important;
+    }
 }

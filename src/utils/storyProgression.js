@@ -151,6 +151,18 @@ export function recordQuizCompleted(craftId, currentDestination, areaVehicles) {
 }
 
 /**
+ * In Arcade Mode (Spacecrafts browser from Main Menu), only crafts completed
+ * in Story Mode are viewable in full 3D.
+ * Any craft not in the 12 completed or unverified is locked.
+ */
+export function isCraftViewableInArcade(craftId, progression) {
+  if (!craftId) return false;
+  const p = progression || getStoryProgression();
+  if (p.allCompleted) return true;
+  return Boolean(p.completedQuizzes?.[craftId]);
+}
+
+/**
  * Get the next area in the story order.
  */
 export function getOppositeArea(area) {

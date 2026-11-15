@@ -13,6 +13,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import ModelPreviewCanvas from './ModelPreviewCanvas';
+import TypewriterText from './TypewriterText';
 import { prefetchGLB, preloadImage, resolveAssetUrl } from '../utils/modelCache';
 import { getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
 import { getTranslations } from '../constants/translations';
@@ -35,76 +36,18 @@ function ShowroomLoadingOverlay({ activeLang = 'en' }) {
   );
 }
 
-const SCENE_1_LINES = [
-  {
-    speaker: 'LUNA',
-    role: 'CURIOUS EXPLORER',
-    bgImage: '/assets/story/shot1.png',
-    text: "Late at night, when the city quiets down, I look at the stars outside my window. Humanity sent so many brave explorers into the deep unknown—rovers, landers, orbiters... Are they still waiting out there in the dark?"
-  },
-  {
-    speaker: 'LUNA',
-    role: 'CURIOUS EXPLORER',
-    bgImage: '/assets/story/shot2.jpg',
-    text: "Wait... this old archive logbook from Grandpa's NASA days. The classic insignia is faded, but the cover is warm to the touch... like telemetry pulses humming softly under the leather."
-  },
-  {
-    speaker: 'LUNA',
-    role: 'CURIOUS EXPLORER',
-    bgImage: '/assets/story/shot3.jpg',
-    text: "It's opening! The pages aren't just paper—they're glowing with orbital trajectory maps and telemetry beacons!"
-  },
-  {
-    speaker: "MISSION LOGBOOK",
-    role: "DEEP SPACE ARCHIVE",
-    bgImage: '/assets/story/shot3.jpg',
-    isLogbook: true,
-    text: "ARCHIVE LINK ESTABLISHED: Project 'Abandoned, But Not Forgotten'. Relaying telemetry beacons across the Solar System. To remember is to bring them home."
-  }
-];
-
-const SCENE_2_LINES = [
-  {
-    speaker: 'LUNA',
-    role: 'CURIOUS EXPLORER',
-    bgImage: '/assets/story/shot4.jpg',
-    text: "Whoa! Miniature glowing planets, celestial rings, and spiral galaxies are spinning right into my bedroom! It's like the entire cosmos came to tell its story!"
-  },
-  {
-    speaker: "MISSION LOGBOOK",
-    role: "COSMIC ARCHIVE",
-    bgImage: '/assets/story/shot4.jpg',
-    isLogbook: true,
-    text: "From the airless craters of the Moon to the windswept dunes of Mars, every silent machine stands as an enduring monument to human curiosity."
-  },
-  {
-    speaker: 'LUNA',
-    role: 'CURIOUS EXPLORER',
-    bgImage: '/assets/story/shot5.jpg',
-    text: "The bedroom walls dissolved completely... I'm floating in weightless orbit high above planet Earth! The logbook is unlocking deep-space exploration trajectories!"
-  },
-  {
-    speaker: "MISSION LOGBOOK",
-    role: "NAVIGATION SYSTEM",
-    bgImage: '/assets/story/shot5.jpg',
-    isLogbook: true,
-    text: "Telemetry vectors primed. Choose your destination, explorer: uncover the frozen silence of the Moon, or journey across the void to the Red Planet."
-  }
-];
-
 function StoryDialogueBox({
   chapter,
-  bgImage,
-  bgAlt,
-  lines,
+  lines = [],
   onComplete,
   completeLabel,
-  completeIcon: CompleteIcon
+  completeIcon: CompleteIcon,
+  activeLang = 'en'
 }) {
   const [currentLine, setCurrentLine] = useState(0);
 
   const isLastLine = currentLine >= lines.length - 1;
-  const line = lines[currentLine] || lines[0];
+  const line = lines[currentLine] || lines[0] || {};
 
   const handleAdvance = () => {
     if (!isLastLine) {
@@ -126,44 +69,62 @@ function StoryDialogueBox({
     return () => window.removeEventListener('keydown', handleKey);
   }, [currentLine, isLastLine]);
 
-  const currentBg = line?.bgImage || bgImage;
+  const currentBg = line.bgImage || '/assets/story/shot1.png';
+  const expression = line.expression || 'curious';
+  const isArabic = activeLang === 'ar';
 
   return (
-    <section className="story-cinematic-stage" aria-label={`Story Scene: ${chapter}`}>
-      <img key={currentBg} src={resolveAssetUrl(currentBg)} alt={bgAlt} className="story-cinematic-bg" />
+    <section className="story-cinematic-stage" aria-label={`Story Scene: ${chapter}`} dir={isArabic ? 'rtl' : 'ltr'}>
+      {/* 100vw x 100dvh Full-screen Background with cross-fade & zoom */}
+      <img
+        key={currentBg}
+        src={resolveAssetUrl(currentBg)}
+        alt="Atmospheric story scene illustration"
+        className="story-cinematic-bg"
+      />
       <div className="story-cinematic-vignette" />
 
+      {/* Chapter Tag */}
       <div className="story-chapter-chip">
         <BookOpen size={14} />
         <span>{chapter}</span>
       </div>
 
-      <div className="story-dialogue-wrapper">
-        <div className="dialogue-portrait-col">
-          <div className="dialogue-portrait-frame">
-            <img
-              src={resolveAssetUrl('/assets/story/girl_thinking.png')}
-              alt="Young girl explorer speaking"
-              className="dialogue-character-img"
-            />
-            <div className="dialogue-portrait-glow" />
-          </div>
-        </div>
+      {/* Luna Character Cut-Out (Bottom-Left overlapping stage) */}
+      <div className={`story-character-cutout ${line.isLogbook ? 'is-dimmed' : ''}`} aria-hidden="true">
+        <img
+          key={expression}
+          src={resolveAssetUrl(`/assets/story/luna/luna_${expression}.webp`)}
+          alt="Luna the young explorer"
+          className="story-character-cutout-img"
+        />
+      </div>
 
+      {/* Dialogue Box (Centered bottom glass panel) */}
+      <div className="story-dialogue-wrapper">
         <div
-          className="story-dialogue-box"
+          className={`story-dialogue-box ${line.isLogbook ? 'is-logbook' : ''}`}
           onClick={handleAdvance}
           role="button"
           tabIndex={0}
-          aria-label="Click or press Space to advance dialogue"
+          aria-label={isArabic ? 'انقر أو اضغط مسافة للمتابعة' : 'Click or press Space to advance dialogue'}
         >
+          {/* Docked Speaker Name Tag */}
           <div className={`dialogue-nameplate ${line.isLogbook ? 'is-logbook' : ''}`}>
             <span className="nameplate-name">{line.speaker}</span>
             <span className="nameplate-role">// {line.role}</span>
           </div>
 
-          <p className="dialogue-line-text">{line.text}</p>
+          {/* Word/Grapheme safe Typewriter body */}
+          <div className="dialogue-line-text">
+            <TypewriterText
+              text={line.text}
+              isArabic={isArabic}
+              isLogbook={Boolean(line.isLogbook)}
+            />
+          </div>
 
+          {/* Bottom HUD row: Log counter & advance prompt */}
           <div className="dialogue-bottom-row">
             <span className="dialogue-counter">
               LOG {currentLine + 1} / {lines.length}
@@ -172,7 +133,7 @@ function StoryDialogueBox({
             {isLastLine ? (
               <button
                 type="button"
-                className="btn btn-primary dialogue-complete-btn"
+                className="dialogue-complete-btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   onComplete();
@@ -183,7 +144,7 @@ function StoryDialogueBox({
               </button>
             ) : (
               <span className="dialogue-advance-prompt">
-                <span>CLICK OR PRESS SPACE TO ADVANCE</span>
+                <span>{isArabic ? 'انقر أو اضغط مسافة للمتابعة' : 'CLICK OR PRESS SPACE TO ADVANCE'}</span>
                 <span>▼</span>
               </span>
             )}
@@ -195,8 +156,8 @@ function StoryDialogueBox({
 }
 
 export default function StoryGame({ onBackToMenu }) {
-  // Scene states: 'book' -> 'drift' -> 'choice' -> 'moon' | 'mars'
-  const [currentScene, setCurrentScene] = useState('book');
+  // Scene states: 'prologue' -> 'choice' -> 'moon' | 'mars'
+  const [currentScene, setCurrentScene] = useState('prologue');
   const [craftBrowse, setCraftBrowse] = useState(false);
   const [progression, setProgression] = useState(getStoryProgression);
 
@@ -213,10 +174,9 @@ export default function StoryGame({ onBackToMenu }) {
     return () => window.removeEventListener('storyProgressionUpdated', onProgressionUpdate);
   }, []);
 
-  // Progressive scene-by-scene warming: pre-warm Choice globes during Scene 1/2,
-  // and only warm PlanetaryShowroom JS code when reaching Choice
+  // Progressive scene-by-scene warming
   useEffect(() => {
-    if (currentScene === 'book' || currentScene === 'drift') {
+    if (currentScene === 'prologue' || currentScene === 'book') {
       const id = setTimeout(() => {
         prefetchGLB('/models/moon-opt.glb');
         prefetchGLB('/models/mars-opt.glb');
@@ -225,7 +185,10 @@ export default function StoryGame({ onBackToMenu }) {
         preloadImage('/assets/story/shot3.jpg');
         preloadImage('/assets/story/shot4.jpg');
         preloadImage('/assets/story/shot5.jpg');
-        preloadImage('/assets/story/girl_thinking.png');
+        preloadImage('/assets/story/luna/luna_curious.webp');
+        preloadImage('/assets/story/luna/luna_reading.webp');
+        preloadImage('/assets/story/luna/luna_surprised.webp');
+        preloadImage('/assets/story/luna/luna_wonder.webp');
       }, 200);
       return () => clearTimeout(id);
     }
@@ -246,10 +209,8 @@ export default function StoryGame({ onBackToMenu }) {
         } else if (['moon', 'mars'].includes(currentScene)) {
           goToScene('choice');
         } else if (currentScene === 'choice') {
-          goToScene('drift');
-        } else if (currentScene === 'drift') {
-          goToScene('book');
-        } else if (currentScene === 'book') {
+          goToScene('prologue');
+        } else if (currentScene === 'prologue' || currentScene === 'book' || currentScene === 'drift') {
           onBackToMenu();
         }
       }
@@ -268,6 +229,7 @@ export default function StoryGame({ onBackToMenu }) {
   };
 
   const isExploring = ['moon', 'mars'].includes(currentScene);
+  const isPrologue = ['prologue', 'book', 'drift'].includes(currentScene);
 
   return (
     <div className={`story-container ${isExploring ? 'is-exploring' : ''}`}>
@@ -280,25 +242,21 @@ export default function StoryGame({ onBackToMenu }) {
           aria-label="Return to Main Menu"
         >
           <ArrowLeft size={16} />
-          <span>MENU</span>
+          <span>{activeLang === 'ar' ? 'القائمة' : 'MENU'}</span>
         </button>
 
         {/* Story Progression Tracker */}
         <div className="story-steps-tracker" aria-label="Story Progression">
-          <span className={`step-indicator ${currentScene === 'book' ? 'active' : ''}`}>
-            1. THE BOOK
-          </span>
-          <span className="step-divider">›</span>
-          <span className={`step-indicator ${currentScene === 'drift' ? 'active' : ''}`}>
-            2. INSIDE
+          <span className={`step-indicator ${isPrologue ? 'active' : ''}`}>
+            1. {activeLang === 'ar' ? 'المقدمة' : 'PROLOGUE'}
           </span>
           <span className="step-divider">›</span>
           <span className={`step-indicator ${currentScene === 'choice' ? 'active' : ''}`}>
-            3. THE CHOICE
+            2. {activeLang === 'ar' ? 'الوجهة' : 'THE CHOICE'}
           </span>
           <span className="step-divider">›</span>
           <span className={`step-indicator ${isExploring ? 'active' : ''}`}>
-            4. DESTINATION
+            3. {activeLang === 'ar' ? 'الاستكشاف' : 'DESTINATION'}
           </span>
         </div>
 
@@ -313,18 +271,18 @@ export default function StoryGame({ onBackToMenu }) {
               title="Inspect 3D Spacecrafts & Rovers"
             >
               <Layers size={14} />
-              <span>CRAFTS</span>
+              <span>{activeLang === 'ar' ? 'المركبات' : 'CRAFTS'}</span>
             </button>
           )}
 
-          {currentScene !== 'choice' && !isExploring && (
+          {isPrologue && (
             <button
               type="button"
               className="story-skip-btn"
               onClick={() => goToScene('choice')}
               title="Skip directly to destination choice"
             >
-              <span>CHOICE</span>
+              <span>{t.skipPrologue || (activeLang === 'ar' ? 'تخطي' : 'SKIP')}</span>
               <FastForward size={14} />
             </button>
           )}
@@ -334,32 +292,16 @@ export default function StoryGame({ onBackToMenu }) {
       {/* Main Story Stage */}
       <main className="story-stage">
         {/* ================================================================
-            SCENE 1: THE SPACE BOOK (Hades / RPG Dialogue Box)
+            PROLOGUE: FULL-SCREEN VISUAL NOVEL (5-Shot Sequence)
             ================================================================ */}
-        {currentScene === 'book' && (
+        {isPrologue && (
           <StoryDialogueBox
-            chapter={t.scene1Chapter}
-            bgImage="/assets/story/scene1_book.jpg"
-            bgAlt="Young girl in her room opening a magical glowing NASA space exploration book"
-            lines={t.scene1Lines}
-            onComplete={() => goToScene('drift')}
-            completeLabel={t.continue}
-            completeIcon={ChevronRight}
-          />
-        )}
-
-        {/* ================================================================
-            SCENE 2: INSIDE THE BOOK (Hades / RPG Dialogue Box)
-            ================================================================ */}
-        {currentScene === 'drift' && (
-          <StoryDialogueBox
-            chapter={t.scene2Chapter}
-            bgImage="/assets/story/scene2_drift.jpg"
-            bgAlt="The girl weightlessly drifting through celestial nebulae and space"
-            lines={t.scene2Lines}
+            chapter={t.prologueChapter || t.scene1Chapter}
+            lines={t.prologueLines || t.scene1Lines}
             onComplete={() => goToScene('choice')}
             completeLabel={t.openLogbook}
             completeIcon={Compass}
+            activeLang={activeLang}
           />
         )}
 
