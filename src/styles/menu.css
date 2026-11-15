@@ -4,6 +4,17 @@
    ========================================================================== */
 
 :root {
+    /* Safe Area Inset Tokens with fallbacks */
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+
+    /* Dynamic Viewport Unit fallback */
+    --app-height: 100dvh;
+    @supports not (height: 100dvh) {
+        --app-height: calc(var(--vh, 1vh) * 100);
+    }
     /* No Man's Sky Design Tokens */
     --font-display: 'NMSGeoSans', 'Tajawal', sans-serif;
     --font-ui: 'NMSFuturaProBook', 'Tajawal', sans-serif;
@@ -44,12 +55,27 @@ html, body {
     padding: 0;
     width: 100%;
     height: 100%;
+    height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
     overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
     background: #07030a;
     color: #ffffff;
     font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
+    overflow: hidden;
+    position: relative;
+    overscroll-behavior: none;
 }
 
 /* ==========================================================================
@@ -894,7 +920,7 @@ html, body {
     font-family: var(--font-ui);
     color: #ffffff;
     transform: translate(-50%, 100vh);
-    animation: creditsRoll 62s linear 0.6s forwards;
+    animation: creditsRoll 85s linear 0.6s forwards;
 }
 
 @keyframes creditsRoll {
@@ -945,6 +971,17 @@ html, body {
     margin-top: clamp(52px, 11vh, 96px);
 }
 
+.cr-block.cr-team {
+    margin-top: clamp(38px, 8vh, 70px);
+}
+
+.cr-team-name {
+    font-size: clamp(28px, 4.6vw, 48px);
+    letter-spacing: 0.18em;
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.45);
+}
+
 .cr-role {
     display: block;
     margin-bottom: 14px;
@@ -974,10 +1011,62 @@ html, body {
     color: rgba(255, 255, 255, 0.85);
 }
 
+.cr-provider-item {
+    margin-bottom: 24px;
+}
+
+.cr-provider-name {
+    font-family: var(--font-display);
+    font-size: clamp(22px, 3.2vw, 34px);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: #ffffff;
+    margin: 6px 0;
+}
+
+.cr-provider-desc {
+    font-size: clamp(13px, 1.4vw, 15px);
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.65);
+    max-width: 620px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.cr-crafts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 12px;
+}
+
+.cr-craft-card {
+    padding: 4px 0;
+}
+
+.cr-craft-title {
+    font-family: var(--font-display);
+    font-size: clamp(19px, 2.7vw, 28px);
+    font-weight: 500;
+    letter-spacing: 0.13em;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0 0 4px;
+}
+
+.cr-craft-sub {
+    font-size: clamp(12px, 1.3vw, 14px);
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0;
+}
+
 .cr-thanks {
     font-size: clamp(18px, 2.4vw, 24px);
     letter-spacing: 0.12em;
     color: rgba(255, 255, 255, 0.85);
+    line-height: 1.6;
+    max-width: 650px;
+    margin: 0 auto;
 }
 
 .cr-end {
@@ -1046,6 +1135,18 @@ html, body {
     text-transform: uppercase;
     color: #ffffff;
     animation: nmsPromptIn 1s ease 2s both, nmsPromptPulse 2.4s ease-in-out 3s infinite;
+}
+
+.cp-touch {
+    display: none;
+}
+
+.credits-screen.is-handheld .cp-key {
+    display: none;
+}
+
+.credits-screen.is-handheld .cp-touch {
+    display: inline;
 }
 
 .cp-k {
@@ -1276,6 +1377,17 @@ html, body {
    ===================================================================== */
 
 :root {
+    /* Safe Area Inset Tokens with fallbacks */
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+
+    /* Dynamic Viewport Unit fallback */
+    --app-height: 100dvh;
+    @supports not (height: 100dvh) {
+        --app-height: calc(var(--vh, 1vh) * 100);
+    }
     --color-accent-cyan: #ffffff;
     --color-accent-amber: rgba(255, 255, 255, 0.85);
     --color-space-deep: #000000;

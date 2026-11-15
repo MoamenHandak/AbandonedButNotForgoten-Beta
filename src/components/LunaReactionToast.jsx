@@ -71,51 +71,66 @@ export default function LunaReactionToast({ lang = 'en' }) {
   const isPositive = reaction.type === 'correct' || reaction.type === 'sector_complete' || reaction.type === 'campaign_complete';
 
   return (
-    <aside
-      className={`luna-reaction-toast ${reaction.type} ${isArabic ? 'is-rtl' : ''}`}
-      role="status"
-      aria-live="polite"
+    <div
+      className={`showroom-luna-dialogue-container ${reaction.type}`}
       dir={isArabic ? 'rtl' : 'ltr'}
+      role="dialog"
+      aria-modal="false"
+      aria-label="Luna Reaction"
       onClick={() => setReaction(null)}
     >
-      <div className="luna-toast-avatar-frame">
-        <img
-          src={resolveAssetUrl(`/assets/story/luna/luna_${reaction.pose}.webp`)}
-          alt="Luna Reaction"
-          className="luna-toast-avatar-img"
-        />
-        <div className={`luna-toast-badge ${isPositive ? 'is-positive' : 'is-warning'}`}>
-          {isPositive ? <Sparkles size={11} /> : <AlertCircle size={11} />}
-        </div>
+      {/* Luna Character Cut-Out standing at bottom */}
+      <div className="showroom-luna-cutout" aria-hidden="true">
+        <picture>
+          <source srcSet={resolveAssetUrl(`/assets/story/luna/luna_${reaction.pose}.webp`)} type="image/webp" />
+          <img
+            src={resolveAssetUrl(`/assets/story/luna/luna_${reaction.pose}.webp`)}
+            alt="Luna the explorer"
+            className="story-character-cutout-img"
+          />
+        </picture>
       </div>
 
-      <div className="luna-toast-body">
-        <div className="luna-toast-header">
-          <span className="luna-toast-speaker">
-            {isArabic ? 'لونا' : 'LUNA'}
-          </span>
-          <span className="luna-toast-role">
-            // {isPositive
-              ? (isArabic ? 'تأكيد القياس' : 'TELEMETRY SYNC')
-              : (isArabic ? 'ملاحظة ميدانية' : 'FIELD NOTE')}
-          </span>
-          <button
-            type="button"
-            className="luna-toast-close"
-            onClick={(e) => {
-              e.stopPropagation();
-              setReaction(null);
-            }}
-            aria-label="Dismiss message"
-          >
-            <X size={13} />
-          </button>
-        </div>
+      {/* Story-Style Visual Novel Dialogue Box at bottom */}
+      <div className="showroom-luna-dialogue-wrapper">
+        <div className="story-dialogue-box">
+          <div className="dialogue-character-name" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <span className="character-name-text">{isArabic ? 'لونا' : 'LUNA'}</span>
+              <span className="character-role-text">
+                {' // '}
+                {isPositive
+                  ? (isArabic ? 'تأكيد القياس' : 'TELEMETRY SYNC')
+                  : (isArabic ? 'ملاحظة ميدانية' : 'FIELD NOTE')}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="details-close-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setReaction(null);
+              }}
+              aria-label="Close"
+              title="Close"
+              style={{ padding: '4px', cursor: 'pointer', background: 'transparent', border: 'none', color: '#ffffff', opacity: 0.8 }}
+            >
+              <X size={16} />
+            </button>
+          </div>
 
-        <p className="luna-toast-text">
-          {formatMarkupText(reaction.text, 'luna-bold-kw')}
-        </p>
+          <div className="dialogue-line-text">
+            {formatMarkupText(reaction.text, 'markup-bold')}
+          </div>
+
+          <div className="dialogue-bottom-row" style={{ marginTop: '8px' }}>
+            <span className="dialogue-advance-prompt">
+              <span>{isArabic ? 'انقر في أي مكان للمتابعة' : 'CLICK ANYWHERE TO DISMISS'}</span>
+              <span>▼</span>
+            </span>
+          </div>
+        </div>
       </div>
-    </aside>
+    </div>
   );
 }

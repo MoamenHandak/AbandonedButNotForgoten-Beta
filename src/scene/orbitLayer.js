@@ -14,18 +14,19 @@
 
 import * as THREE from 'three';
 import { loadGLTFModel, disposeObject3D, prefersReducedMotion } from '../utils/modelCache';
+import { getOrbitOverviewCamera as computeOrbitOverview } from './cameraAutoFit';
 
-// Planetary configurations for orbital scenes
+// Planetary configurations for orbital scenes (proportions: planet radius, orbit 1.6-2.0x, speed ~20-30s rev)
 const PLANET_CONFIGS = {
   moon: {
-    radius: 18.0,
+    radius: 14.0,
     modelSrc: '/models/moon-opt.glb',
     spinSpeed: 0.012,
     fallbackColor: 0x989da3,
     roughness: 0.92,
   },
   mars: {
-    radius: 38.0, // Scale Mars at least twice as big as the Moon (18.0 * 2 = 36.0+)
+    radius: 26.0, // Scale Mars ~1.85x Moon, perfectly proportioned for mobile & desktop
     modelSrc: '/models/mars-opt.glb',
     spinSpeed: 0.014,
     fallbackColor: 0xc45532,
@@ -39,29 +40,31 @@ const ORBIT_CONFIGS = {
     {
       id: 'lro-orbiter',
       name: 'LRO',
+      label: 'LRO',
       modelSrc: '/models/lro-opt.glb',
-      orbitRadiusA: 41.0,
-      orbitRadiusB: 38.0,
+      orbitRadiusA: 24.0,
+      orbitRadiusB: 23.0,
       center: [0, 0, 0],
-      inclination: [1.45, 0.2, 0.1], // Near-polar mapping orbit ~85 deg
-      speed: 0.18, // rad/s
+      inclination: [1.45, 0.2, 0.1], // Near-polar mapping orbit
+      speed: 0.26, // ~24s revolution
       initialAngle: 0.85,
-      ambientScale: 0.026, // Native span 33.28m -> ambient span ~0.86 units
-      heroScale: 0.070, // Hero inspection span ~2.33 units
+      ambientScale: 0.040,
+      heroScale: 0.085, // ~10% Moon diameter
       color: 0x00e5ff,
     },
     {
       id: 'ladee-orbiter',
       name: 'LADEE',
+      label: 'LADEE',
       modelSrc: '/models/ladee-opt.glb',
-      orbitRadiusA: 50.0,
-      orbitRadiusB: 46.0,
+      orbitRadiusA: 28.0,
+      orbitRadiusB: 26.0,
       center: [0, 0, 0],
       inclination: [0.35, 0.45, 0.2],
-      speed: 0.14,
+      speed: 0.22, // ~28s revolution
       initialAngle: 2.7,
-      ambientScale: 0.013, // Native span 63.90m -> ambient span ~0.83 units
-      heroScale: 0.036, // Hero inspection span ~2.30 units
+      ambientScale: 0.022,
+      heroScale: 0.044, // ~10% Moon diameter
       color: 0x8de1ff,
     },
   ],
@@ -69,61 +72,65 @@ const ORBIT_CONFIGS = {
     {
       id: 'mgs-orbiter',
       name: 'MGS',
+      label: 'MGS',
       modelSrc: '/models/mgs-opt.glb',
-      orbitRadiusA: 52.0,
-      orbitRadiusB: 48.0,
+      orbitRadiusA: 44.0,
+      orbitRadiusB: 42.0,
       center: [0, 0, 0],
       inclination: [0.55, 0.25, 0.1],
-      speed: 0.14,
+      speed: 0.25, // ~25s revolution
       initialAngle: 0.4,
-      ambientScale: 0.024,
-      heroScale: 0.065,
-      stationedPos: [50.8, 0.5, 8.2],
+      ambientScale: 0.022,
+      heroScale: 0.046, // ~10% Mars diameter (5.2 units)
+      stationedPos: [43.0, 0.5, 7.0],
       color: 0x00e5ff,
     },
     {
       id: 'odyssey-orbiter',
       name: 'Odyssey',
+      label: 'ODYSSEY',
       modelSrc: '/models/odyssey-opt.glb',
-      orbitRadiusA: 60.0,
-      orbitRadiusB: 56.0,
+      orbitRadiusA: 48.0,
+      orbitRadiusB: 45.0,
       center: [0, 0, 0],
       inclination: [-0.42, 0.35, 0.2],
-      speed: 0.12,
+      speed: 0.22, // ~28s revolution
       initialAngle: 1.9,
-      ambientScale: 0.016,
-      heroScale: 0.045,
-      stationedPos: [0.4, 18.5, 53.2],
+      ambientScale: 0.012,
+      heroScale: 0.025, // ~10% Mars diameter (5.4 units)
+      stationedPos: [0.4, 15.5, 45.0],
       color: 0x64d2ff,
     },
     {
       id: 'mro-orbiter',
       name: 'MRO',
+      label: 'MRO',
       modelSrc: '/models/mro-opt.glb',
-      orbitRadiusA: 68.0,
-      orbitRadiusB: 64.0,
+      orbitRadiusA: 52.0,
+      orbitRadiusB: 49.0,
       center: [0, 0, 0],
       inclination: [1.5, -0.25, 0.15],
-      speed: 0.10,
+      speed: 0.20, // ~31s revolution
       initialAngle: 3.6,
-      ambientScale: 0.025,
-      heroScale: 0.065,
-      stationedPos: [-51.4, 41.5, -12.1],
+      ambientScale: 0.026,
+      heroScale: 0.055, // ~9.6% Mars diameter (5.0 units)
+      stationedPos: [-43.0, 35.0, -10.0],
       color: 0x00e5ff,
     },
     {
       id: 'maven-orbiter',
       name: 'MAVEN',
+      label: 'MAVEN',
       modelSrc: '/models/maven-opt.glb',
-      orbitRadiusA: 82.0,
-      orbitRadiusB: 58.0,
-      center: [6.0, 0, -6.0],
+      orbitRadiusA: 58.0,
+      orbitRadiusB: 46.0,
+      center: [4.0, 0, -4.0],
       inclination: [-0.65, 0.45, 0.35],
-      speed: 0.08,
+      speed: 0.18, // ~35s revolution
       initialAngle: 5.1,
-      ambientScale: 0.16,
-      heroScale: 0.42,
-      stationedPos: [10.5, -28.2, -61.8],
+      ambientScale: 0.18,
+      heroScale: 0.38, // ~10% Mars diameter (5.1 units)
+      stationedPos: [8.5, -23.0, -51.0],
       color: 0xffcc73,
     },
   ],
@@ -204,6 +211,62 @@ function createOrbitTrackGroup(cfg) {
 }
 
 /**
+ * Creates an always-visible pulsing 3D HUD label sprite for orbiters.
+ * Shows reticle + short name (e.g. "MGS") so the satellite is instantly located against the planet.
+ */
+function createOrbiterLabelSprite(name, colorHex = '#00e5ff') {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+
+  ctx.clearRect(0, 0, 256, 128);
+
+  // Outer glowing ring
+  ctx.beginPath();
+  ctx.arc(64, 64, 30, 0, Math.PI * 2);
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = colorHex;
+  ctx.stroke();
+
+  // Inner dot
+  ctx.beginPath();
+  ctx.arc(64, 64, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  // Horizontal HUD tick
+  ctx.beginPath();
+  ctx.moveTo(96, 64);
+  ctx.lineTo(122, 64);
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = colorHex;
+  ctx.stroke();
+
+  // Text label
+  ctx.font = 'bold 38px "NMSGeoSans", monospace, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = colorHex;
+  ctx.shadowBlur = 12;
+  ctx.fillText(name, 132, 77);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthTest: true,
+    depthWrite: false,
+  });
+
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(6.5, 3.25, 1.0);
+  sprite.renderOrder = 10;
+
+  return { sprite, texture, mat };
+}
+
+/**
  * Initializes and manages the Orbit Layer for a destination.
  */
 export function createOrbitLayer({ scene, destination, profile, signal }) {
@@ -222,6 +285,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
   let isPaused = false;
   let isOrbitalMode = false;
   let selectedOrbiterId = null;
+  let isHeroZoomed = true;
   let isDisposed = false;
 
   // By default, hide until entering orbital view
@@ -364,6 +428,15 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
     orbiterState.modelGroup.scale.setScalar(orbiterState.currentScale);
     layerGroup.add(orbiterState.modelGroup);
 
+    // Always-visible pulsing 3D HUD label sprite in world space (unscaled by modelGroup)
+    const labelColor = cfg.color ? `#${cfg.color.toString(16).padStart(6, '0')}` : '#00e5ff';
+    const labelData = createOrbiterLabelSprite(cfg.label || cfg.name, labelColor);
+    labelData.sprite.position.set(orbiterState.currentPos.x, orbiterState.currentPos.y + 2.8, orbiterState.currentPos.z);
+    layerGroup.add(labelData.sprite);
+    orbiterState.hudSprite = labelData.sprite;
+    orbiterState.hudTex = labelData.texture;
+    orbiterState.hudMat = labelData.mat;
+
     // Pre-allocated trail buffer (Quality preset)
     if (trailsEnabled && !isReducedMotion) {
       const trailPositions = new Float32Array(orbiterState.trailCount * 3);
@@ -405,6 +478,11 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
             return;
           }
           const model = gltf.scene;
+          model.updateMatrixWorld(true);
+          const bbox = new THREE.Box3().setFromObject(model);
+          const center = bbox.getCenter(new THREE.Vector3());
+          model.position.sub(center);
+
           model.traverse((child) => {
             if (child.isMesh) {
               child.castShadow = false;
@@ -501,7 +579,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         o.modelGroup.lookAt(_tmpTangentPos);
 
         // Smooth scale transition between ambientScale and heroScale
-        const targetScale = o.isSelected ? (o.cfg.heroScale || 0.4) : (o.cfg.ambientScale || 0.05);
+        const targetScale = (o.isSelected && isHeroZoomed) ? (o.cfg.heroScale || 0.4) : (o.cfg.ambientScale || 0.05);
         if (Math.abs(o.currentScale - targetScale) > 0.0001) {
           o.currentScale = THREE.MathUtils.lerp(o.currentScale, targetScale, Math.min(step * 4.5, 1.0));
         } else {
@@ -509,8 +587,17 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         }
         o.modelGroup.scale.setScalar(o.currentScale);
 
-        // Dynamic camera tracking: when inspecting this orbiter, camera smoothly rides along in orbit
-        if (o.isSelected && camera && controls) {
+        if (o.hudSprite) {
+          o.hudSprite.position.set(o.currentPos.x, o.currentPos.y + 2.8, o.currentPos.z);
+          const pulse = 1.0 + 0.12 * Math.sin(Date.now() * 0.0035 + i);
+          o.hudSprite.scale.set(6.5 * pulse, 3.25 * pulse, 1.0);
+          // Hide HUD label sprite during close-up hero inspection or when selected to avoid overlapping craft/UI
+          o.hudSprite.visible = !isHeroZoomed && !o.isSelected;
+        }
+
+        // Dynamic camera tracking: only when in hero close-up inspection mode!
+        // In Orbit Overview mode, the camera watches the planet while the craft orbits around it
+        if (isHeroZoomed && o.isSelected && camera && controls) {
           const dx = o.currentPos.x - prevX;
           const dy = o.currentPos.y - prevY;
           const dz = o.currentPos.z - prevZ;
@@ -588,7 +675,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       for (let i = 0; i < orbiters.length; i++) {
         const o = orbiters[i];
         o.isSelected = (o.cfg.id === id);
-        o.targetScale = o.isSelected ? (o.cfg.heroScale || 0.4) : (o.cfg.ambientScale || 0.05);
+        o.targetScale = (o.isSelected && isHeroZoomed) ? (o.cfg.heroScale || 0.4) : (o.cfg.ambientScale || 0.05);
       }
     },
 
@@ -615,7 +702,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
      * Computes the ideal cinematic hero inspection camera position & lookAt
      * framing the spacecraft large in the foreground with Mars/Moon in background.
      */
-    getOrbiterHeroCamera(id) {
+    getOrbiterHeroCamera(id, isMobile = false, camOverride = null) {
       const o = orbiters.find((orb) => orb.cfg.id === id);
       if (!o) return null;
       const curPos = o.currentPos.clone();
@@ -625,15 +712,60 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       const tangent = nextPos.clone().sub(curPos).normalize();
       const up = new THREE.Vector3().crossVectors(norm, tangent).normalize();
 
+      const activeCam = camOverride || camera || scene.userData?.camera;
+      const aspect = activeCam?.aspect || (window.innerWidth / window.innerHeight);
+      const isNarrow = aspect < 1.0;
+      const aspectMult = isNarrow ? Math.min(1.45, Math.max(1.12, 0.95 / aspect)) : 1.0;
+
+      const isMars = destination === 'mars';
+      const baseDist = isMars ? 1.75 : 1.0;
+
       const camPos = curPos.clone()
-        .add(norm.clone().multiplyScalar(3.2))
-        .add(up.clone().multiplyScalar(0.8))
-        .sub(tangent.clone().multiplyScalar(2.2));
+        .add(norm.clone().multiplyScalar(3.8 * baseDist * aspectMult))
+        .add(up.clone().multiplyScalar(1.0 * baseDist * aspectMult))
+        .sub(tangent.clone().multiplyScalar(2.8 * baseDist * aspectMult));
 
       return {
         camPos: [camPos.x, camPos.y, camPos.z],
         lookAt: [curPos.x, curPos.y, curPos.z],
       };
+    },
+
+    /**
+     * Computes Orbit Overview camera framing
+     * Shows Mars/Moon centered with the orbiter circling around the planet.
+     */
+    getOrbitOverviewCamera(id, isMobile = false, camOverride = null) {
+      const o = orbiters.find((orb) => orb.cfg.id === id);
+      const orbitRadius = o ? o.cfg.orbitRadiusA : (pConfig.radius * 1.85);
+      const inclination = o ? o.cfg.inclination : [0.4, 0.2, 0.1];
+      return computeOrbitOverview({
+        planetRadius: pConfig.radius,
+        orbitRadius,
+        inclination,
+        camera: camOverride || camera || scene.userData?.camera,
+        isMobile,
+      });
+    },
+
+    setZoomMode(heroZoomed) {
+      isHeroZoomed = Boolean(heroZoomed);
+      for (let i = 0; i < orbiters.length; i++) {
+        const o = orbiters[i];
+        if (o.isSelected) {
+          o.targetScale = isHeroZoomed ? (o.cfg.heroScale || 0.4) : (o.cfg.ambientScale || 0.05);
+        } else {
+          o.targetScale = o.cfg.ambientScale || 0.05;
+        }
+      }
+    },
+
+    getZoomMode() {
+      return isHeroZoomed;
+    },
+
+    getOrbiters() {
+      return orbiters;
     },
 
     dispose() {
@@ -646,6 +778,8 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         disposeObject3D(t.trackGroup);
       });
       orbiters.forEach((o) => {
+        if (o.hudTex) o.hudTex.dispose();
+        if (o.hudMat) o.hudMat.dispose();
         if (o.trailGeo) o.trailGeo.dispose();
         if (o.trailLine && o.trailLine.material) o.trailLine.material.dispose();
         if (o.loadedModel) disposeObject3D(o.loadedModel);

@@ -14,6 +14,7 @@ export default function TypewriterText({
   isArabic = false,
   isLogbook = false,
   onComplete,
+  onTypingStateChange,
   className = '',
   boldClass = 'markup-bold'
 }) {
@@ -70,6 +71,8 @@ export default function TypewriterText({
 
   // Typing timer
   useEffect(() => {
+    onTypingStateChange?.(charCount < totalLength);
+
     if (charCount >= totalLength) {
       onComplete?.();
       return;

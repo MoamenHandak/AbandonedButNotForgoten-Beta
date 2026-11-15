@@ -60,12 +60,12 @@ export function resetStoryProgression() {
 
 /**
  * Record initial choice at Scene 3 (Choice screen).
- * Locks the other destination until the chosen sector is completed.
+ * Defaults to 'moon' as the mandatory first destination.
  */
-export function recordInitialChoice(destination) {
+export function recordInitialChoice(destination = 'moon') {
   const current = getStoryProgression();
   if (!current.firstChoice) {
-    current.firstChoice = destination;
+    current.firstChoice = 'moon';
     saveStoryProgression(current);
   }
   return current;
@@ -73,17 +73,22 @@ export function recordInitialChoice(destination) {
 
 /**
  * Check if a destination area (moon / mars) is currently locked.
+ * In Story Mode: The Moon is always the starting sector.
+ * Mars is locked until the Moon area is fully completed.
  */
 export function isAreaLocked(area, progression) {
   if (!progression || progression.allCompleted) return false;
-  if (!progression.firstChoice) return false;
 
-  // The chosen first destination is never locked
-  if (progression.firstChoice === area) return false;
+  // The Moon is never locked — it is always the starting destination
+  if (area === 'moon') return false;
 
-  // The second destination is locked until the first destination's area is completed
-  const firstAreaCompleted = Boolean(progression.completedAreas?.[progression.firstChoice]);
-  return !firstAreaCompleted;
+  // Mars is locked until the Moon sector is completed
+  if (area === 'mars') {
+    const isMoonCompleted = Boolean(progression.completedAreas?.moon);
+    return !isMoonCompleted;
+  }
+
+  return false;
 }
 
 /**
@@ -98,9 +103,17 @@ export function isCraftUnlocked(craftId, vehiclesList, progression) {
   const craftIdx = vehiclesList.findIndex((v) => v.id === craftId);
   if (craftIdx <= 0) return true; // First vehicle is always unlocked
 
-  // Check if every preceding craft has its quiz completed
+  const currentCraft = vehiclesList[craftIdx];
+  // Overview phases are unlocked once the preceding craft is unlocked/completed
+  if (currentCraft?.isOverviewPhase) {
+    const prevCraft = vehiclesList[craftIdx - 1];
+    return !prevCraft || Boolean(progression.completedQuizzes?.[prevCraft.id]);
+  }
+
+  // Check if every preceding craft has its quiz completed (skipping overview phases)
   for (let i = 0; i < craftIdx; i++) {
     const prevCraft = vehiclesList[i];
+    if (prevCraft.isOverviewPhase) continue;
     if (!progression.completedQuizzes?.[prevCraft.id]) {
       return false;
     }
@@ -119,10 +132,12 @@ export function recordQuizCompleted(craftId, currentDestination, areaVehicles) {
   const wasAlreadyCompleted = Boolean(progression.completedQuizzes[craftId]);
   progression.completedQuizzes[craftId] = true;
 
-  // Check if all craft in the active area are now completed
+  // Check if all craft in the active area are now completed (excluding overview phases)
   let isAreaComplete = false;
   if (areaVehicles && areaVehicles.length > 0) {
-    const allInAreaDone = areaVehicles.every((v) => progression.completedQuizzes[v.id]);
+    const allInAreaDone = areaVehicles
+      .filter((v) => !v.isOverviewPhase)
+      .every((v) => progression.completedQuizzes[v.id]);
     if (allInAreaDone) {
       progression.completedAreas = progression.completedAreas || {};
       progression.completedAreas[currentDestination] = true;
@@ -157,6 +172,7 @@ export function recordQuizCompleted(craftId, currentDestination, areaVehicles) {
  */
 export function isCraftViewableInArcade(craftId, progression) {
   if (!craftId) return false;
+  if (craftId.includes('orbit-system')) return true;
   const p = progression || getStoryProgression();
   if (p.allCompleted) return true;
   return Boolean(p.completedQuizzes?.[craftId]);

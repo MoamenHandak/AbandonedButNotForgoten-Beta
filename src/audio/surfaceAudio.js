@@ -7,6 +7,15 @@
  */
 
 const SETTINGS_KEY = 'abnf_game_settings';
+const BASE_PATH = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL || '/').replace(/\/+$/, '') + '/';
+
+function resolveAudioUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (/^(?:[a-z]+:)?\/\//i.test(url)) return url;
+  if (url.startsWith(BASE_PATH)) return url;
+  const clean = url.startsWith('/') ? url.slice(1) : url;
+  return `${BASE_PATH}${clean}`;
+}
 
 function readSettings() {
   const fallback = { master: 0.8, music: 0.7, sfx: 0.9, mute: false };
@@ -57,6 +66,10 @@ class SurfaceAudioEngine {
     this.musicBed = [];
     this.musicTimer = null;
     this.musicType = null;
+    this.menuAudio = null;
+    this.storyAudio = null;
+    this.spaceAudio = null;
+    this.spaceMusicActive = false;
     this.installed = false;
   }
 
@@ -87,10 +100,22 @@ class SurfaceAudioEngine {
 
     const onVisibility = () => {
       if (document.hidden) {
+        if (this.menuAudio && !this.menuAudio.paused) this.menuAudio.pause();
+        if (this.storyAudio && !this.storyAudio.paused) this.storyAudio.pause();
+        if (this.spaceAudio && !this.spaceAudio.paused) this.spaceAudio.pause();
         if (this.ctx && this.ctx.state === 'running') {
           this.ctx.suspend().catch(() => {});
         }
       } else {
+        if (this.musicType === 'menu' && this.menuAudio && this.menuAudio.paused) {
+          this.menuAudio.play().catch(() => {});
+        }
+        if (this.musicType === 'story' && this.storyAudio && this.storyAudio.paused) {
+          this.storyAudio.play().catch(() => {});
+        }
+        if (this.spaceMusicActive && this.spaceAudio && this.spaceAudio.paused) {
+          this.spaceAudio.play().catch(() => {});
+        }
         if (this.ctx && this.ctx.state === 'suspended') {
           this.ctx.resume().catch(() => {});
         }
@@ -100,6 +125,8 @@ class SurfaceAudioEngine {
     window.addEventListener('gameSettingsChange', onSettings);
     window.addEventListener('gameAudioCue', onCue);
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', unlock, { passive: true });
+    window.addEventListener('pageshow', unlock, { passive: true });
     window.addEventListener('pointerdown', unlock, { passive: true });
     window.addEventListener('touchstart', unlock, { passive: true });
     window.addEventListener('keydown', unlock, { passive: true });
@@ -108,6 +135,8 @@ class SurfaceAudioEngine {
       window.removeEventListener('gameSettingsChange', onSettings);
       window.removeEventListener('gameAudioCue', onCue);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', unlock);
+      window.removeEventListener('pageshow', unlock);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('touchstart', unlock);
       window.removeEventListener('keydown', unlock);
@@ -135,11 +164,21 @@ class SurfaceAudioEngine {
   }
 
   applyGains() {
-    if (!this.master) return;
+    if (this.master) {
+      const silent = this.settings.mute ? 0 : 1;
+      this.master.gain.value = this.settings.master * silent;
+      this.music.gain.value = this.settings.music;
+      this.sfx.gain.value = this.settings.sfx;
+    }
+    this.updateAudioTracksVolume();
+  }
+
+  updateAudioTracksVolume() {
     const silent = this.settings.mute ? 0 : 1;
-    this.master.gain.value = this.settings.master * silent;
-    this.music.gain.value = this.settings.music;
-    this.sfx.gain.value = this.settings.sfx;
+    const vol = Math.max(0, Math.min(1, this.settings.master * this.settings.music * silent));
+    if (this.menuAudio) this.menuAudio.volume = vol;
+    if (this.storyAudio) this.storyAudio.volume = vol;
+    if (this.spaceAudio) this.spaceAudio.volume = vol;
   }
 
   resume() {
@@ -154,8 +193,16 @@ class SurfaceAudioEngine {
       this.startIntroMusic();
     } else if (cue === 'menu_music') {
       this.startMenuMusic();
-    } else if (cue === 'prologue_music') {
-      this.startPrologueMusic();
+    } else if (cue === 'story_music' || cue === 'prologue_music') {
+      this.startStoryMusic();
+    } else if (cue === 'story_music_stop') {
+      if (this.musicType === 'story') {
+        this.stopMusic();
+      }
+    } else if (cue === 'space_music') {
+      this.startSpaceMusic();
+    } else if (cue === 'space_music_stop') {
+      this.stopSpaceMusic();
     } else if (cue === 'choice_music') {
       this.startChoiceMusic();
     } else if (cue === 'moon_music') {
@@ -216,13 +263,28 @@ class SurfaceAudioEngine {
    * Smoothly ducks background music volume during dialogue speech.
    */
   duckMusic(duration = 2.0, duckFactor = 0.45) {
-    if (!this.ctx || !this.music || this.settings.mute) return;
-    const now = this.ctx.currentTime;
-    const baseGain = this.settings.music;
-    this.music.gain.cancelScheduledValues(now);
-    this.music.gain.setValueAtTime(this.music.gain.value, now);
-    this.music.gain.linearRampToValueAtTime(baseGain * duckFactor, now + 0.12);
-    this.music.gain.linearRampToValueAtTime(baseGain, now + duration);
+    if (this.ctx && this.music && !this.settings.mute) {
+      const now = this.ctx.currentTime;
+      const baseGain = this.settings.music;
+      this.music.gain.cancelScheduledValues(now);
+      this.music.gain.setValueAtTime(this.music.gain.value, now);
+      this.music.gain.linearRampToValueAtTime(baseGain * duckFactor, now + 0.12);
+      this.music.gain.linearRampToValueAtTime(baseGain, now + duration);
+    }
+    const duckAudio = (audio, active) => {
+      if (audio && !this.settings.mute && active) {
+        const baseVol = Math.max(0, Math.min(1, this.settings.master * this.settings.music));
+        audio.volume = baseVol * duckFactor;
+        setTimeout(() => {
+          if (audio && !this.settings.mute) {
+            audio.volume = baseVol;
+          }
+        }, duration * 1000);
+      }
+    };
+    duckAudio(this.menuAudio, this.musicType === 'menu');
+    duckAudio(this.storyAudio, this.musicType === 'story');
+    duckAudio(this.spaceAudio, this.spaceMusicActive);
   }
 
   /**
@@ -548,13 +610,180 @@ class SurfaceAudioEngine {
   }
 
   /**
-   * Procedural Space Ambient Music for Main Menu (Item 7)
+   * Looping Menu Theme Audio (/audio/menu_theme.mp3)
+   * Loops on the splash screen ("press to continue") and continues through the main navigation menu.
    */
   startMenuMusic() {
     this.resume();
-    if (!this.ctx || this.musicType === 'menu') return;
+    this.stopSpaceMusic();
+    if (this.musicType === 'menu') {
+      if (this.menuAudio && this.menuAudio.paused) {
+        this.menuAudio.play().catch(() => {});
+      }
+      return;
+    }
     this.stopMusic();
     this.musicType = 'menu';
+
+    if (!this.menuAudio) {
+      this.menuAudio = new Audio(resolveAudioUrl('/audio/menu_theme.mp3'));
+      this.menuAudio.loop = true;
+      this.menuAudio.preload = 'auto';
+
+      this.menuAudio.addEventListener('error', (err) => {
+        console.warn('Menu audio failed to load, falling back to procedural synthesizer:', err);
+        if (this.musicType === 'menu') {
+          this.startProceduralMenuMusic();
+        }
+      });
+    }
+
+    this.updateAudioTracksVolume();
+
+    const playPromise = this.menuAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Autoplay policy prevented playback until user gesture
+        const playOnFirstGesture = () => {
+          if (this.musicType === 'menu' && this.menuAudio && this.menuAudio.paused) {
+            this.updateAudioTracksVolume();
+            this.menuAudio.play().catch(() => {});
+          }
+          window.removeEventListener('pointerdown', playOnFirstGesture, true);
+          window.removeEventListener('keydown', playOnFirstGesture, true);
+          window.removeEventListener('touchstart', playOnFirstGesture, true);
+        };
+        window.addEventListener('pointerdown', playOnFirstGesture, true);
+        window.addEventListener('keydown', playOnFirstGesture, true);
+        window.addEventListener('touchstart', playOnFirstGesture, true);
+      });
+    }
+  }
+
+  /**
+   * Looping Story Music (/audio/story_music.mp3)
+   * Loops during the prologue dialogue part before choosing the destination.
+   */
+  startStoryMusic() {
+    this.resume();
+    this.stopSpaceMusic();
+    if (this.musicType === 'story') {
+      if (this.storyAudio && this.storyAudio.paused) {
+        this.storyAudio.play().catch(() => {});
+      }
+      return;
+    }
+    this.stopMusic();
+    this.musicType = 'story';
+
+    if (!this.storyAudio) {
+      this.storyAudio = new Audio(resolveAudioUrl('/audio/story_music.mp3'));
+      this.storyAudio.loop = true;
+      this.storyAudio.preload = 'auto';
+
+      this.storyAudio.addEventListener('error', (err) => {
+        console.warn('Story audio error, falling back to procedural prologue music:', err);
+        if (this.musicType === 'story') {
+          this.startPrologueMusic();
+        }
+      });
+    }
+
+    this.updateAudioTracksVolume();
+
+    const playPromise = this.storyAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        const playOnGesture = () => {
+          if (this.musicType === 'story' && this.storyAudio && this.storyAudio.paused) {
+            this.updateAudioTracksVolume();
+            this.storyAudio.play().catch(() => {});
+          }
+          window.removeEventListener('pointerdown', playOnGesture, true);
+          window.removeEventListener('keydown', playOnGesture, true);
+          window.removeEventListener('touchstart', playOnGesture, true);
+        };
+        window.addEventListener('pointerdown', playOnGesture, true);
+        window.addEventListener('keydown', playOnGesture, true);
+        window.addEventListener('touchstart', playOnGesture, true);
+      });
+    }
+  }
+
+  /**
+   * Looping Space Music (/audio/space_music.mp3)
+   * Loops across ALL 3D space: Moon surface/orbit, Mars surface/orbit, and Arcade mode.
+   * Carries on seamlessly when traveling between worlds without cutting out or restarting.
+   */
+  startSpaceMusic() {
+    this.resume();
+    // Stop other screen music when in 3D space
+    if (this.menuAudio && !this.menuAudio.paused) {
+      try { this.menuAudio.pause(); this.menuAudio.currentTime = 0; } catch {}
+    }
+    if (this.storyAudio && !this.storyAudio.paused) {
+      try { this.storyAudio.pause(); this.storyAudio.currentTime = 0; } catch {}
+    }
+
+    // If space music is already actively playing, carry on seamlessly without interruption
+    if (this.spaceAudio && !this.spaceAudio.paused) {
+      this.spaceMusicActive = true;
+      return;
+    }
+
+    if (this.spaceMusicActive) {
+      if (this.spaceAudio && this.spaceAudio.paused) {
+        this.spaceAudio.play().catch(() => {});
+      }
+      return;
+    }
+    this.spaceMusicActive = true;
+
+    if (!this.spaceAudio) {
+      this.spaceAudio = new Audio(resolveAudioUrl('/audio/space_music.mp3'));
+      this.spaceAudio.loop = true;
+      this.spaceAudio.preload = 'auto';
+    }
+
+    this.updateAudioTracksVolume();
+
+    const playPromise = this.spaceAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        const playOnGesture = () => {
+          if (this.spaceMusicActive && this.spaceAudio && this.spaceAudio.paused) {
+            this.updateAudioTracksVolume();
+            this.spaceAudio.play().catch(() => {});
+          }
+          window.removeEventListener('pointerdown', playOnGesture, true);
+          window.removeEventListener('keydown', playOnGesture, true);
+          window.removeEventListener('touchstart', playOnGesture, true);
+        };
+        window.addEventListener('pointerdown', playOnGesture, true);
+        window.addEventListener('keydown', playOnGesture, true);
+        window.addEventListener('touchstart', playOnGesture, true);
+      });
+    }
+  }
+
+  stopSpaceMusic() {
+    this.spaceMusicActive = false;
+    if (this.spaceAudio) {
+      try {
+        this.spaceAudio.pause();
+        this.spaceAudio.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  /**
+   * Fallback procedural space ambient music for Main Menu
+   */
+  startProceduralMenuMusic() {
+    this.resume();
+    if (!this.ctx || this.musicType !== 'menu') return;
 
     const ctx = this.ctx;
     const now = ctx.currentTime;
@@ -736,6 +965,22 @@ class SurfaceAudioEngine {
       clearInterval(this.musicTimer);
       this.musicTimer = null;
     }
+    if (this.menuAudio) {
+      try {
+        this.menuAudio.pause();
+        this.menuAudio.currentTime = 0;
+      } catch {
+        /* already stopped */
+      }
+    }
+    if (this.storyAudio) {
+      try {
+        this.storyAudio.pause();
+        this.storyAudio.currentTime = 0;
+      } catch {
+        /* already stopped */
+      }
+    }
     const now = this.ctx?.currentTime ?? 0;
     this.musicBed.forEach((node) => {
       try {
@@ -754,14 +999,19 @@ class SurfaceAudioEngine {
   startAmbience(planet) {
     if (planet !== 'moon' && planet !== 'mars') return;
     this.resume();
+    this.startSpaceMusic();
     if (!this.ctx || this.planet === planet) return;
-    this.stopAmbience();
+    this.stopAmbienceOnly();
     this.planet = planet;
     if (planet === 'mars') this.buildMarsWind();
     else this.buildMoonVacuum();
   }
 
   stopAmbience() {
+    this.stopAmbienceOnly();
+  }
+
+  stopAmbienceOnly() {
     this.planet = null;
     if (this.crackleTimer) {
       clearInterval(this.crackleTimer);

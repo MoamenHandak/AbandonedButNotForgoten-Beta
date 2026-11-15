@@ -58,10 +58,12 @@ export default function MainMenu({
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) return;
       e.preventDefault();
+      window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'menu_music' } }));
       onEnter(true);
     }
 
     function handlePointer() {
+      window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'menu_music' } }));
       onEnter(false);
     }
 
@@ -138,7 +140,10 @@ export default function MainMenu({
           id="btn-open-crafts"
           type="button"
           className="nms-tile nms-tile-mars"
-          onClick={onOpenSpacecrafts}
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'menu_music_stop' } }));
+            onOpenSpacecrafts();
+          }}
         >
           <span className="nms-tile-art">
             {isEntered && tileStage >= 2 && (

@@ -83,6 +83,12 @@ export default function CreditsModal({ isOpen, onClose }) {
           <p className="cr-tag">{t.tag}</p>
           <span className="cr-diamond" aria-hidden="true" />
 
+          {/* Team Attribution */}
+          <div className="cr-block cr-team team" id="team">
+            <span className="cr-role">{t.roles?.team || (activeLang === 'ar' ? 'الفريق' : 'TEAM')}</span>
+            <h3 className="cr-name cr-team-name">{t.roles?.teamName || 'Beyond The Dust'}</h3>
+          </div>
+
           <div className="cr-block">
             <span className="cr-role">{t.roles?.projectLead || 'Project Manager & Leader'}</span>
             <h3 className="cr-name">Joudy Elgebally</h3>
@@ -102,17 +108,65 @@ export default function CreditsModal({ isOpen, onClose }) {
             <h3 className="cr-name">Ahmed</h3>
           </div>
 
+          {/* 3D Model Providers & Digital Archives */}
+          <div className="cr-block cr-providers">
+            <span className="cr-role">{t.roles?.modelProviders || '3D Model Providers & Digital Archives'}</span>
+            <div className="cr-provider-item">
+              <h3 className="cr-provider-name">{t.providers?.nasaTitle || 'NASA 3D Resources'}</h3>
+              <p className="cr-provider-desc">
+                {t.providers?.nasaDesc || 'NASA Science Visualization Studio, JPL, Ames, Langley, and Goddard Space Flight Center'}
+              </p>
+            </div>
+            <div className="cr-provider-item">
+              <h3 className="cr-provider-name">{t.providers?.sketchfabTitle || 'Sketchfab 3D Community'}</h3>
+              <p className="cr-provider-desc">
+                {t.providers?.sketchfabDesc || 'Historical spacecraft reconstructions and planetary open-source telemetry'}
+              </p>
+            </div>
+          </div>
+
+          {/* Soundtracks & Audio Attribution */}
+          <div className="cr-block cr-music">
+            <span className="cr-role">{t.roles?.music || 'Music & Soundtracks'}</span>
+            <div className="cr-provider-item">
+              <h3 className="cr-provider-name">{t.musicCredits?.title || 'Original Soundtracks via YouTube'}</h3>
+              <p className="cr-provider-desc">
+                {t.musicCredits?.desc || 'Featuring atmospheric space ambient music, prologue visual-novel narrative score, and 3D planetary exploration themes sourced from YouTube creators.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Spacecrafts & Robotic Pioneers */}
           <div className="cr-block cr-memory">
             <span className="cr-role">{t.roles?.memoryTitle || 'In memory of the machines'}</span>
-            <p className="cr-line">Lunar Roving Vehicle</p>
-            <p className="cr-line">Mars Exploration Rover</p>
-            <p className="cr-line">Ingenuity Mars Helicopter</p>
-            <p className="cr-line">Viking 1 Lander</p>
+            <div className="cr-crafts-grid">
+              {(t.machines || [
+                { name: 'Apollo Lunar Roving Vehicle (LRV)', subtitle: 'Hadley-Apennine, Moon • Apollo 15' },
+                { name: 'Apollo 15 Lunar Module Falcon', subtitle: 'Descent Stage Launch Platform, Moon' },
+                { name: 'Lunar Reconnaissance Orbiter (LRO)', subtitle: 'High-Resolution Lunar Polar Mapping Orbit' },
+                { name: 'LADEE Atmosphere Explorer', subtitle: 'Exosphere & Laser Communications Demonstration' },
+                { name: 'Mars Exploration Rover Opportunity', subtitle: 'Meridiani Planum & Perseverance Valley, Mars' },
+                { name: 'Ingenuity Mars Helicopter', subtitle: 'First Powered Flight on Another World • Jezero Crater' },
+                { name: 'Viking 1 Lander', subtitle: 'First Long-Duration Science Station on Mars • Chryse Planitia' },
+                { name: 'InSight Mars Lander', subtitle: 'Geophysical Pulse & Martian Seismology • Elysium Planitia' },
+                { name: 'Mars Global Surveyor (MGS)', subtitle: 'First Comprehensive Global Mapping of the Red Planet' },
+                { name: '2001 Mars Odyssey', subtitle: "Humanity's Longest-Serving Scout in Deep Space" },
+                { name: 'Mars Reconnaissance Orbiter (MRO)', subtitle: 'High-Resolution HiRISE Cartography & Surface Relay' },
+                { name: 'MAVEN Atmospheric Observatory', subtitle: 'Upper Atmosphere Volatiles & Planetary History' },
+              ]).map((craft, idx) => (
+                <div key={idx} className="cr-craft-card">
+                  <h4 className="cr-craft-title">{craft.name}</h4>
+                  <p className="cr-craft-sub">{craft.subtitle}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="cr-block">
             <span className="cr-role">{t.roles?.specialThanks || 'Special Thanks'}</span>
-            <p className="cr-thanks">To every machine left among the stars</p>
+            <p className="cr-thanks">
+              {t.specialThanksMsg || 'To NASA, the open-source community, and every machine left among the stars'}
+            </p>
           </div>
 
           <p className="cr-end">Explore &bull; Discover &bull; Remember</p>

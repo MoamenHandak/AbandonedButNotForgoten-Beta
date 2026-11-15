@@ -62,6 +62,8 @@ import { getTranslations } from '../constants/translations';
 import StatusBadge from './StatusBadge';
 import ShowroomStoryPanel from './ShowroomStoryPanel';
 import { createOrbitLayer } from '../scene/orbitLayer';
+import { calculateFitDistance, getOrbitOverviewCamera } from '../scene/cameraAutoFit';
+import { triggerHaptic, isMobileDevice } from '../utils/viewport';
 import '../styles/spacecraft.css';
 
 const MoreEquipmentModal = lazy(() => import('./MoreEquipmentModal'));
@@ -176,6 +178,44 @@ export const VEHICLES_DATA = [
       { id: 'lm-antenna', label: 'S-Band Steerable Antenna', position: [-17.3, 3.85, 11.2], offset: { x: 85, y: -55 } }
     ],
     vistaAnchor: [-18.0, 2.5, 10.0]
+  },
+  {
+    id: 'moon-orbit-system',
+    isOrbiter: true,
+    isOverviewPhase: true,
+    name: 'LUNAR ORBIT SYSTEM',
+    codename: 'ORBIT // MOON',
+    role: 'PLANETARY ORBIT OVERVIEW',
+    destination: 'moon',
+    planet: 'THE MOON',
+    sector: 'LUNAR ORBIT CONSTELLATION',
+    modelSrc: null,
+    alt: 'Planetary overview of the Moon and all orbiting spacecraft paths',
+    scale: 1.0,
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    focusCamPos: [0, 18.0, 95.0],
+    focusLookAt: [0, 0, 0],
+    contactShadowRadius: 0,
+    agency: 'NASA / International Space Network',
+    launchDate: '1966 – Present',
+    landingSite: 'Circumlunar Orbital Network',
+    distanceTraveled: 'Global Lunar Polar & Equatorial Orbits',
+    operationalTime: 'Continuous Robotic Presence',
+    status: 'Global Reconnaissance & Communications Mesh',
+    tagline: 'The planetary vantage: every orbit track encircling the Moon.',
+    description:
+      'A global orbital vantage displaying the Moon and its orbiting spacecraft paths. From polar mapping sweeps to laser communication demonstrations, lunar orbiters form the essential observation and relay network for exploration.',
+    lastTelemetry:
+      'Tracking active constellations and historic impact sites across the near and far sides.',
+    stats: [
+      { label: 'NETWORK', value: 'Global Orbit' },
+      { label: 'ALTITUDE', value: '50 – 200 km' },
+      { label: 'OBSERVERS', value: 'LRO, LADEE' },
+      { label: 'STATUS', value: 'Continuous' }
+    ],
+    hotspots: [],
+    vistaAnchor: [0, 0, 0]
   },
   {
     id: 'lro-orbiter',
@@ -351,12 +391,12 @@ export const VEHICLES_DATA = [
     sector: 'SECTOR 02 // CHRYSE PLANITIA',
     modelSrc: '/models/viking_lander-opt.glb',
     alt: 'Detailed 3D model of NASA Viking 1 Lander standing on Mars',
-    scale: 0.28,
+    scale: 0.45,
     position: [16.0, -0.08, -8.0],
     rotation: [0, -0.7, 0],
-    focusCamPos: [17.6, 1.46, -6.4],
-    focusLookAt: [16.0, 0.66, -8.0],
-    contactShadowRadius: 1.7,
+    focusCamPos: [18.2, 1.65, -5.8],
+    focusLookAt: [16.0, 0.75, -8.0],
+    contactShadowRadius: 2.4,
     agency: 'NASA / Langley / Martin Marietta',
     launchDate: 'August 20, 1975',
     landingSite: 'Chryse Planitia, Mars (July 20, 1976)',
@@ -422,6 +462,44 @@ export const VEHICLES_DATA = [
       { id: 'insight-antenna', label: 'UHF Relay Antenna & Weather Mast', position: [-0.05, 1.25, -22.15], offset: { x: 85, y: 45 } }
     ],
     vistaAnchor: [0.0, 1.8, -22.0]
+  },
+  {
+    id: 'mars-orbit-system',
+    isOrbiter: true,
+    isOverviewPhase: true,
+    name: 'MARTIAN ORBIT SYSTEM',
+    codename: 'ORBIT // MARS',
+    role: 'PLANETARY ORBIT OVERVIEW',
+    destination: 'mars',
+    planet: 'MARS',
+    sector: 'AREOCENTRIC CONSTELLATION',
+    modelSrc: null,
+    alt: 'Planetary overview of Mars with orbital trajectories and natural satellites',
+    scale: 1.0,
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    focusCamPos: [0, 26.0, 125.0],
+    focusLookAt: [0, 0, 0],
+    contactShadowRadius: 0,
+    agency: 'NASA / JPL / ESA',
+    launchDate: '1971 – Present',
+    landingSite: 'Martian Orbital Network',
+    distanceTraveled: 'Over 200,000 Combined Orbits',
+    operationalTime: 'Continuous Observation Since 1997',
+    status: 'Deep Space Relay & Atmospheric Cartography',
+    tagline: 'The deep-space highway connecting surface rovers to Earth.',
+    description:
+      'A comprehensive planetary view of Mars, its natural moons Phobos and Deimos, and the primary orbital network. Orbiters serve as weather sentinels, mineral mappers, and the vital UHF telecommunications bridge relaying surface data back home.',
+    lastTelemetry:
+      'Constellation relaying multi-terabit telemetry for Curiosity and Perseverance while mapping seasonal polar caps.',
+    stats: [
+      { label: 'RELAY BRIDGE', value: 'Active UHF' },
+      { label: 'OBSERVERS', value: 'MGS, ODY, MRO, MAVEN' },
+      { label: 'MOONS', value: 'Phobos, Deimos' },
+      { label: 'STATUS', value: 'Operational' }
+    ],
+    hotspots: [],
+    vistaAnchor: [0, 0, 0]
   },
   {
     id: 'mgs-orbiter',
@@ -667,9 +745,11 @@ export default function PlanetaryShowroom({
   onClose,
   initialDestination = 'all',
   onBackToChoice = null,
-  onAreaComplete = null
+  onAreaComplete = null,
+  onStoryComplete = null
 }) {
   const containerRef = useRef(null);
+  const detailsScrollRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showStoryModal, setShowStoryModal] = useState(false);
@@ -682,18 +762,8 @@ export default function PlanetaryShowroom({
 
   // Story Progression Campaign System
   const [progression, setProgression] = useState(getStoryProgression);
-  const [progressionToast, setProgressionToast] = useState(null);
   const [areaCompleteModal, setAreaCompleteModal] = useState(null);
   const [campaignVictoryModal, setCampaignVictoryModal] = useState(false);
-  const toastTimerRef = useRef(null);
-
-  const showToast = useCallback((message, actionLabel = null, onAction = null, duration = 4800) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setProgressionToast({ message, actionLabel, onAction });
-    toastTimerRef.current = setTimeout(() => {
-      setProgressionToast(null);
-    }, duration);
-  }, []);
 
   useEffect(() => {
     const onProgressionUpdate = (e) => {
@@ -713,6 +783,28 @@ export default function PlanetaryShowroom({
   const [quizState, setQuizState] = useState({});
   const [isOrbitalView, setIsOrbitalView] = useState(false);
   const [isOrbitTransitioning, setIsOrbitTransitioning] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
+  const [isPhonePortrait, setIsPhonePortrait] = useState(false);
+  const [isInfoCollapsed, setIsInfoCollapsed] = useState(false);
+  const [isHeroZoomed, setIsHeroZoomed] = useState(true);
+
+  useEffect(() => {
+    const checkViewport = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const isMobile = w <= 844 || h <= 500;
+      const isPortrait = w <= 640 && h > w;
+      setIsMobileLayout(isMobile);
+      setIsPhonePortrait(isPortrait);
+    };
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    window.addEventListener('orientationchange', checkViewport);
+    return () => {
+      window.removeEventListener('resize', checkViewport);
+      window.removeEventListener('orientationchange', checkViewport);
+    };
+  }, []);
 
   const handleSaveSettings = useCallback((newSettings) => {
     const normalized = normalizeSettings(newSettings);
@@ -834,28 +926,56 @@ export default function PlanetaryShowroom({
       setCurrentIndex(idx);
       setIsDetailsOpen(false);
       setIsDetailsLeaving(false);
+      const isNextOrbiter = Boolean(vehicle.isOrbiter);
+      const isNextOverview = Boolean(vehicle.isOverviewPhase);
+      const shouldHeroZoom = isNextOrbiter && !isNextOverview;
+      setIsHeroZoomed(shouldHeroZoom);
+      threeRef.current.orbitLayer?.setZoomMode?.(shouldHeroZoom);
 
       const applyVehicleState = (targetVehicle, shouldFly = true) => {
         const state = threeRef.current;
         if (!state.scene || !targetVehicle) return;
 
         const isOrbiter = Boolean(targetVehicle.isOrbiter);
+        const isOverview = Boolean(targetVehicle.isOverviewPhase);
         setIsOrbitalView(isOrbiter);
+
+        let targetCam = targetVehicle.focusCamPos;
+        let targetLook = targetVehicle.focusLookAt;
 
         if (isOrbiter) {
           if (state.terrainGroup) state.terrainGroup.visible = false;
           if (state.vehiclesGroup) state.vehiclesGroup.visible = false;
           state.orbitLayer?.setOrbitalMode(true);
-          state.orbitLayer?.select(targetVehicle.id);
-          // Fix issue 1: In orbital space, the skybox must be outer space (black with stars), not dusty horizon
+          // In orbital space, the skybox must be outer space (black with stars), not dusty horizon
           if (state.scene) {
             state.scene.background = new THREE.Color(0x010308);
             state.scene.fog = null;
           }
           if (state.controls) {
             state.controls.maxPolarAngle = Math.PI;
-            state.controls.maxDistance = 350.0;
-            state.controls.minDistance = 0.5;
+            state.controls.maxDistance = 180.0;
+            state.controls.minDistance = 1.0;
+          }
+
+          if (isOverview) {
+            state.orbitLayer?.release();
+            state.orbitLayer?.setZoomMode?.(false);
+            setIsHeroZoomed(false);
+            const overviewCam = state.orbitLayer?.getOrbitOverviewCamera?.(null, isMobileLayout, state.camera);
+            if (overviewCam) {
+              targetCam = overviewCam.camPos;
+              targetLook = overviewCam.lookAt;
+            }
+          } else {
+            state.orbitLayer?.select(targetVehicle.id);
+            state.orbitLayer?.setZoomMode?.(true);
+            setIsHeroZoomed(true);
+            const heroCam = state.orbitLayer?.getOrbiterHeroCamera?.(targetVehicle.id, isMobileLayout, state.camera);
+            if (heroCam) {
+              targetCam = heroCam.camPos;
+              targetLook = heroCam.lookAt;
+            }
           }
         } else {
           if (state.terrainGroup) state.terrainGroup.visible = true;
@@ -879,29 +999,30 @@ export default function PlanetaryShowroom({
             state.controls.maxDistance = 45.0;
             state.controls.minDistance = 1.5;
           }
-        }
 
-        let targetCam = targetVehicle.focusCamPos;
-        let targetLook = targetVehicle.focusLookAt;
-        if (isOrbiter && state.orbitLayer) {
-          const heroCam = state.orbitLayer.getOrbiterHeroCamera?.(targetVehicle.id);
-          if (heroCam) {
-            targetCam = heroCam.camPos;
-            targetLook = heroCam.lookAt;
-          } else {
-            const curPos = state.orbitLayer.getOrbiterPosition(targetVehicle.id);
-            if (curPos) {
-              targetLook = [curPos.x, curPos.y, curPos.z];
-              const norm = curPos.clone().normalize();
-              const camVec = curPos.clone().add(norm.clone().multiplyScalar(3.2)).add(new THREE.Vector3(0, 0.8, 0));
-              targetCam = [camVec.x, camVec.y, camVec.z];
-            }
-          }
+          const baseLook = new THREE.Vector3(...targetVehicle.focusLookAt);
+          const baseCam = new THREE.Vector3(...targetVehicle.focusCamPos);
+          const camDir = baseCam.clone().sub(baseLook).normalize();
+          const baseDist = baseCam.distanceTo(baseLook);
+
+          // Mobile / narrow portrait aspect: scale distance proportionally (clamped to max 1.35x),
+          // preventing extreme bounding-sphere fits that push the camera 12.5 meters away.
+          const activeCam = state.camera;
+          const aspect = activeCam?.aspect || (window.innerWidth / window.innerHeight);
+          const aspectMult = aspect < 1.0 ? Math.min(1.35, Math.max(1.0, 0.9 / aspect)) : 1.0;
+          const fittedDist = baseDist * aspectMult;
+
+          const fittedCam = baseLook.clone().add(camDir.multiplyScalar(fittedDist));
+          targetCam = [fittedCam.x, fittedCam.y, fittedCam.z];
+          targetLook = [baseLook.x, baseLook.y, baseLook.z];
         }
 
         if (shouldFly && !isPlanetChanging) {
           triggerCameraFly(targetCam, targetLook, 1600, cue);
         } else if (state.camera && state.controls) {
+          state.animating = false;
+          setIsTransitioning(false);
+          state.controls.enabled = true;
           state.camera.position.set(...targetCam);
           state.controls.target.set(...targetLook);
           state.controls.update();
@@ -963,17 +1084,85 @@ export default function PlanetaryShowroom({
 
   const handleOpenDetails = useCallback(() => {
     dispatchAudioCue('camera_servo');
+    triggerHaptic('light');
+    setDetailTab('info');
+    if (detailsScrollRef.current) {
+      detailsScrollRef.current.scrollTop = 0;
+    }
     setIsDetailsLeaving(false);
     setIsDetailsOpen(true);
-  }, []);
+    if (isPhonePortrait && threeRef.current.camera) {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      threeRef.current.camera.setViewOffset(w, h, 0, -h * 0.28, w, h);
+      threeRef.current.camera.updateProjectionMatrix();
+    }
+  }, [isPhonePortrait]);
 
   const handleCloseDetails = useCallback(() => {
     setIsDetailsLeaving(true);
+    triggerHaptic('light');
+    if (isPhonePortrait && threeRef.current.camera) {
+      threeRef.current.camera.clearViewOffset();
+      threeRef.current.camera.updateProjectionMatrix();
+    }
     setTimeout(() => {
       setIsDetailsOpen(false);
       setIsDetailsLeaving(false);
     }, 280);
-  }, []);
+  }, [isPhonePortrait]);
+
+  const handleToggleOrbiterZoom = useCallback(() => {
+    setIsHeroZoomed((prev) => {
+      const next = !prev;
+      threeRef.current.orbitLayer?.setZoomMode?.(next);
+      if (currentVehicleRef.current) {
+        const state = threeRef.current;
+        if (state.orbitLayer && state.camera && state.controls) {
+          if (next) {
+            const heroCam = state.orbitLayer.getOrbiterHeroCamera?.(currentVehicleRef.current.id, isMobileLayout, state.camera);
+            if (heroCam) {
+              triggerCameraFly(heroCam.camPos, heroCam.lookAt, 1200, 'camera_servo');
+            }
+          } else {
+            const overviewCam = state.orbitLayer.getOrbitOverviewCamera?.(currentVehicleRef.current.id, isMobileLayout, state.camera);
+            if (overviewCam) {
+              triggerCameraFly(overviewCam.camPos, overviewCam.lookAt, 1200, 'camera_servo');
+            }
+          }
+        }
+      }
+      triggerHaptic('selection');
+      return next;
+    });
+  }, [isMobileLayout, triggerCameraFly]);
+
+  const lastCanvasTapRef = useRef(0);
+  const handleCanvasTap = useCallback(() => {
+    const now = performance.now();
+    if (now - lastCanvasTapRef.current < 320) {
+      triggerHaptic('light');
+      if (isOrbitalView) {
+        handleToggleOrbiterZoom();
+      }
+      lastCanvasTapRef.current = 0;
+    } else {
+      lastCanvasTapRef.current = now;
+    }
+  }, [isOrbitalView, handleToggleOrbiterZoom]);
+
+  const touchSheetYRef = useRef(null);
+  const handleSheetTouchStart = (e) => {
+    touchSheetYRef.current = e.touches[0].clientY;
+  };
+  const handleSheetTouchEnd = (e) => {
+    if (touchSheetYRef.current === null) return;
+    const dy = e.changedTouches[0].clientY - touchSheetYRef.current;
+    touchSheetYRef.current = null;
+    if (dy > 60) {
+      handleCloseDetails();
+    }
+  };
 
   const handleNext = useCallback(() => {
     const nextIdx = (currentIndex + 1) % filteredVehicles.length;
@@ -982,21 +1171,13 @@ export default function PlanetaryShowroom({
 
     if (!isArcadeMode && !isCraftUnlocked(targetV.id, filteredVehicles, progression)) {
       playServo('click');
-      showToast(
-        activeLang === 'ar'
-          ? `🔒 ${targetV.name} مقفلة! قم بحل اختبار ${currentVehicle.name} أولاً لفتحها.`
-          : `🔒 ${targetV.name} is locked! Solve the quiz on ${currentVehicle.name} to advance.`,
-        activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
-        () => {
-          handleOpenDetails();
-          setDetailTab('quiz');
-        }
-      );
+      triggerHaptic('warning');
       return;
     }
 
+    triggerHaptic('selection');
     selectVehicleIndex(nextIdx, true);
-  }, [isArcadeMode, currentIndex, filteredVehicles, progression, currentVehicle, activeLang, selectVehicleIndex, showToast, handleOpenDetails]);
+  }, [isArcadeMode, currentIndex, filteredVehicles, progression, selectVehicleIndex]);
 
   const handlePrev = useCallback(() => {
     const prevIdx = (currentIndex - 1 + filteredVehicles.length) % filteredVehicles.length;
@@ -1005,21 +1186,13 @@ export default function PlanetaryShowroom({
 
     if (!isArcadeMode && !isCraftUnlocked(targetV.id, filteredVehicles, progression)) {
       playServo('click');
-      showToast(
-        activeLang === 'ar'
-          ? `🔒 ${targetV.name} مقفلة! أكمل الاختبارات السابقة لفتحها.`
-          : `🔒 ${targetV.name} is locked! Complete previous quizzes to unlock.`,
-        activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
-        () => {
-          handleOpenDetails();
-          setDetailTab('quiz');
-        }
-      );
+      triggerHaptic('warning');
       return;
     }
 
+    triggerHaptic('selection');
     selectVehicleIndex(prevIdx, true);
-  }, [isArcadeMode, currentIndex, filteredVehicles, progression, activeLang, selectVehicleIndex, showToast, handleOpenDetails]);
+  }, [isArcadeMode, currentIndex, filteredVehicles, progression, selectVehicleIndex]);
 
   const handleRetryLoad = useCallback(() => {
     const s = threeRef.current;
@@ -1045,13 +1218,9 @@ export default function PlanetaryShowroom({
     }
   }, [isPauseMenuOpen, isLoading3D, loadError, isOpen, activePlanet, currentVehicle]);
 
-  // Touch swipe handlers
-  const handleTouchStart = (e) => {
-    if (
-      e.target.closest(
-        'button, a, input, textarea, .showroom-menu-card, .ui-dialogue, .briefing-overlay, .story-hud-modal, .story-modal-backdrop, .showroom-pause-overlay, .showroom-details-panel'
-      )
-    ) {
+  // Touch swipe handlers exclusively on mobile pagination strip & mission panel (never on 3D canvas)
+  const handlePanelTouchStart = (e) => {
+    if (e.target.closest('button, a, input, textarea, select')) {
       touchStartXRef.current = null;
       return;
     }
@@ -1060,18 +1229,23 @@ export default function PlanetaryShowroom({
     touchStartTRef.current = performance.now();
   };
 
-  const handleTouchEnd = (e) => {
+  const handlePanelTouchEnd = (e) => {
     if (touchStartXRef.current === null) return;
     const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
     const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
     const elapsed = performance.now() - touchStartTRef.current;
     touchStartXRef.current = null;
 
-    // Optional horizontal swipe on canvas (80px threshold)
-    const swiped = elapsed < 500 && Math.abs(deltaX) >= 80 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4;
-    if (!swiped || filteredVehicles.length < 2) return;
-    if (deltaX > 0) handlePrev();
-    else handleNext();
+    if (elapsed < 450 && Math.abs(deltaX) >= 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+      const isRtl = activeLang === 'ar';
+      if (deltaX < 0) {
+        if (isRtl) handlePrev();
+        else handleNext();
+      } else {
+        if (isRtl) handleNext();
+        else handlePrev();
+      }
+    }
   };
 
   // Keyboard navigation
@@ -1178,23 +1352,36 @@ export default function PlanetaryShowroom({
         : initialDestination === 'deepspace'
         ? 'deepspace'
         : 'moon';
-    const initVista =
-      dest === 'mars'
-        ? MARS_VISTA_CAM
-        : dest === 'deepspace'
-        ? DEEPSPACE_VISTA_CAM
-        : MOON_VISTA_CAM;
-    camera.position.set(...initVista.pos);
+    const firstVehicle = filteredVehicles[0] || currentVehicle;
+    const isFirstOrbiter = Boolean(firstVehicle?.isOrbiter);
+
+    let initCamPos = firstVehicle?.focusCamPos || (dest === 'mars' ? [2.5, 1.25, 2.9] : [2.5, 1.35, 3.2]);
+    let initLookAt = firstVehicle?.focusLookAt || [0, 0.65, 0];
+
+    if (!isFirstOrbiter) {
+      const baseLook = new THREE.Vector3(...initLookAt);
+      const baseCam = new THREE.Vector3(...initCamPos);
+      const camDir = baseCam.clone().sub(baseLook).normalize();
+      const baseDist = baseCam.distanceTo(baseLook);
+      const aspect = width / height;
+      const aspectMult = aspect < 1.0 ? Math.min(1.35, Math.max(1.0, 0.9 / aspect)) : 1.0;
+      const fittedCam = baseLook.clone().add(camDir.multiplyScalar(baseDist * aspectMult));
+      initCamPos = [fittedCam.x, fittedCam.y, fittedCam.z];
+    } else if (firstVehicle?.isOverviewPhase) {
+      initCamPos = dest === 'mars' ? [0, 26.0, 125.0] : [0, 18.0, 95.0];
+      initLookAt = [0, 0, 0];
+    }
+
+    camera.position.set(...initCamPos);
     threeRef.current.camera = camera;
 
     const applyCameraOffset = (w, h) => {
       camera.aspect = w / h;
-      if (w > 960) {
-        // Desktop widescreen: align optical center midway between left edge and the right info panel
-        const panelW = Math.min(420, Math.max(340, w * 0.26));
-        const panelMargin = Math.min(40, Math.max(20, w * 0.025));
-        const totalPanelOccupied = panelW + panelMargin;
-        camera.setViewOffset(w, h, totalPanelOccupied / 2, 0, w, h);
+      if (w > 1200) {
+        // Desktop widescreen: subtle view offset to visually balance with right panel without pushing craft off-screen
+        const panelW = Math.min(380, Math.max(300, w * 0.22));
+        const offset = panelW * 0.35;
+        camera.setViewOffset(w + offset, h, offset, 0, w, h);
       } else {
         camera.clearViewOffset();
       }
@@ -1231,7 +1418,7 @@ export default function PlanetaryShowroom({
     controls.maxPolarAngle = Math.PI / 2 - 0.02;
     controls.minDistance = 1.5;
     controls.maxDistance = 45.0;
-    controls.target.set(...initVista.lookAt);
+    controls.target.set(...initLookAt);
     threeRef.current.controls = controls;
 
     const terrainGroup = new THREE.Group();
@@ -1689,6 +1876,16 @@ export default function PlanetaryShowroom({
             profile: activeQuality,
             signal
           });
+          if (currentVehicleRef.current?.isOrbiter && currentVehicleRef.current?.destination === 'moon') {
+            const v = currentVehicleRef.current;
+            if (v.isOverviewPhase) {
+              threeRef.current.orbitLayer.release();
+              threeRef.current.orbitLayer.setZoomMode(false);
+            } else {
+              threeRef.current.orbitLayer.select(v.id);
+              threeRef.current.orbitLayer.setZoomMode(true);
+            }
+          }
         } else if (planetName === 'mars') {
           // ================= MARS SETUP =================
           const MARS_HORIZON_COLOR = 0x1e0b07;
@@ -1897,7 +2094,13 @@ export default function PlanetaryShowroom({
           );
           oppy.updateMatrixWorld(true);
           const oppyBox = new THREE.Box3().setFromObject(oppy);
-          if (oppyBox.min.y < 0) oppy.position.y += -oppyBox.min.y;
+          const oppyFloorRay = new THREE.Raycaster(
+            new THREE.Vector3(oppy.position.x, 20, oppy.position.z),
+            new THREE.Vector3(0, -1, 0)
+          );
+          const oppyFloorHits = oppyFloorRay.intersectObject(marsTerrain, true);
+          const oppySurfaceY = oppyFloorHits.length > 0 ? oppyFloorHits[0].point.y : 0;
+          oppy.position.y += oppySurfaceY - 0.01 - oppyBox.min.y;
 
           // Stage Ingenuity
           const ing = ingGltf.scene;
@@ -2075,6 +2278,16 @@ export default function PlanetaryShowroom({
             profile: activeQuality,
             signal
           });
+          if (currentVehicleRef.current?.isOrbiter && currentVehicleRef.current?.destination === 'mars') {
+            const v = currentVehicleRef.current;
+            if (v.isOverviewPhase) {
+              threeRef.current.orbitLayer.release();
+              threeRef.current.orbitLayer.setZoomMode(false);
+            } else {
+              threeRef.current.orbitLayer.select(v.id);
+              threeRef.current.orbitLayer.setZoomMode(true);
+            }
+          }
         } else {
           // ================= DEEP SPACE SETUP =================
           scene.background = new THREE.Color(0x000205);
@@ -2163,9 +2376,9 @@ export default function PlanetaryShowroom({
         setLoadPercent(100);
         setIsLoading3D(false);
 
-        // Always render one crisp frame right away (even if modal overlay blurs above canvas)
-        renderOnce();
+        // Position camera to active vehicle before initial frame render
         if (onComplete) onComplete();
+        renderOnce();
         syncRenderLoop();
       } catch (err) {
         if (err?.name === 'AbortError' || isDisposed || myToken !== loadToken) return;
@@ -2288,15 +2501,162 @@ export default function PlanetaryShowroom({
 
   return (
     <div
-      className="showroom-viewport"
+      className={`showroom-viewport ${isMobileLayout ? 'is-mobile-layout' : ''} ${isPhonePortrait ? 'is-phone-portrait' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={`Showroom: ${currentVehicle.name}`}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
-      {/* 3D WebGL Canvas Container */}
-      <div ref={containerRef} className="showroom-webgl-container" />
+      {/* Top Header HUD Bar — NASA Branding, Project Title, Settings & Menu buttons */}
+      {!isDialogVisible && (
+        <header className="showroom-top-bar" role="banner" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
+          <div className="showroom-branding">
+            <div className="showroom-branding-logo" aria-hidden="true">
+              <NasaMeatballLogo size={isPhonePortrait ? 28 : 36} />
+            </div>
+            <span className="showroom-branding-sep" aria-hidden="true" />
+            <span className="showroom-branding-title">
+              {isPhonePortrait ? currentVehicle.name : 'ABANDONED BUT NOT FORGOTTEN'}
+            </span>
+
+            {isOrbitalView && (
+              <>
+                <button
+                  type="button"
+                  className="showroom-surface-return-btn"
+                  onClick={handleReturnToSurface}
+                  aria-label="Return to surface exploration"
+                  title="Descend back to surface exploration view"
+                >
+                  <Compass size={14} />
+                  <span className="btn-label">{isPhonePortrait ? '' : (t.surfaceView || 'SURFACE VIEW')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="showroom-surface-return-btn"
+                  onClick={handleToggleOrbiterZoom}
+                  aria-label={isHeroZoomed ? 'Orbit Overview' : 'Inspect Craft'}
+                  title={isHeroZoomed ? 'Zoom out to view planetary orbit tracks' : 'Focus camera on spacecraft'}
+                >
+                  {isHeroZoomed ? <Orbit size={14} /> : <Eye size={14} />}
+                  <span className="btn-label">{isHeroZoomed ? (activeLang === 'ar' ? 'نظرة مدارية' : 'ORBIT OVERVIEW') : (activeLang === 'ar' ? 'فحص المركبة' : 'INSPECT CRAFT')}</span>
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="showroom-hdr-actions">
+            <button
+              type="button"
+              className="showroom-hdr-icon-btn"
+              onClick={() => {
+                playServo('click');
+                setSettingsOpen(true);
+              }}
+              aria-label="Settings"
+              title="Settings"
+            >
+              <Settings size={18} />
+            </button>
+
+            <button
+              type="button"
+              className="showroom-hdr-icon-btn"
+              onClick={() => {
+                playServo('click');
+                setIsPauseMenuOpen(true);
+              }}
+              aria-label="Menu"
+              title="Menu"
+            >
+              <Menu size={18} />
+            </button>
+          </div>
+        </header>
+      )}
+
+      {/* 3D WebGL Canvas Stage Zone */}
+      <div className="showroom-stage-zone">
+        <div ref={containerRef} className="showroom-webgl-container" onClick={handleCanvasTap} />
+
+        {/* Prev / Next Arrows inside 3D Stage Zone (Mobile Portrait Only) */}
+        {isPhonePortrait && !isDialogVisible && filteredVehicles.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="showroom-stage-arrow is-prev"
+              onClick={handlePrev}
+              aria-label="Previous spacecraft"
+              title="Previous spacecraft (←)"
+            >
+              <ChevronLeft size={24} aria-hidden="true" />
+            </button>
+
+            {(() => {
+              const nextIdx = (currentIndex + 1) % filteredVehicles.length;
+              const nextVehicle = filteredVehicles[nextIdx];
+              const isNextLocked = !isArcadeMode && nextVehicle && !isCraftUnlocked(nextVehicle.id, filteredVehicles, progression);
+
+              return (
+                <button
+                  type="button"
+                  className={`showroom-stage-arrow is-next ${isNextLocked ? 'is-locked' : ''}`}
+                  onClick={handleNext}
+                  aria-label={isNextLocked ? 'Next spacecraft (Locked)' : 'Next spacecraft'}
+                  title={
+                    isNextLocked
+                      ? `${nextVehicle?.name || 'Next craft'} is locked`
+                      : 'Next spacecraft (→)'
+                  }
+                >
+                  {isNextLocked ? <Lock size={20} aria-hidden="true" /> : <ChevronRight size={24} aria-hidden="true" />}
+                </button>
+              );
+            })()}
+          </>
+        )}
+
+        {/* Orbit Overview / Inspect Craft Chip */}
+        {isOrbitalView && (
+          <button
+            type="button"
+            className="showroom-orbit-zoom-chip"
+            onClick={handleToggleOrbiterZoom}
+            aria-label={isHeroZoomed ? 'Orbit Overview' : 'Inspect Craft'}
+          >
+            {isHeroZoomed ? <Orbit size={13} /> : <Eye size={13} />}
+            <span>{isHeroZoomed ? (activeLang === 'ar' ? 'نظرة مدارية' : 'ORBIT OVERVIEW') : (activeLang === 'ar' ? 'فحص المركبة' : 'INSPECT CRAFT')}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Mobile Pagination Counter Strip (portrait phone only, between stage and info panel) */}
+      {isPhonePortrait && filteredVehicles.length > 1 && (
+        <div
+          className="showroom-mobile-pagination-strip"
+          onTouchStart={handlePanelTouchStart}
+          onTouchEnd={handlePanelTouchEnd}
+          dir={activeLang === 'ar' ? 'rtl' : 'ltr'}
+        >
+          <span className="mobile-pagination-counter">
+            LOG {currentIndex + 1} / {filteredVehicles.length}
+          </span>
+          <div className="mobile-pagination-dots" role="tablist" aria-label="Craft selection dots">
+            {filteredVehicles.map((v, i) => {
+              const isAccessible = isArcadeMode || isCraftUnlocked(v.id, filteredVehicles, progression);
+              const isSolved = Boolean(progression.completedQuizzes?.[v.id]);
+              return (
+                <span
+                  key={v.id}
+                  className={`mobile-prog-dot ${i === currentIndex ? 'is-active' : ''} ${
+                    !isAccessible ? 'is-locked' : isSolved ? 'is-completed' : ''
+                  }`}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Loading HUD Screen while 3D models load */}
       {isLoading3D && !loadError && (
@@ -2341,59 +2701,7 @@ export default function PlanetaryShowroom({
         </div>
       )}
 
-      {/* Top Header HUD Bar — NASA Branding, Project Title, Settings & Menu buttons */}
-      {!isDialogVisible && (
-        <header className="showroom-top-bar" role="banner" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
-          <div className="showroom-branding">
-            <div className="showroom-branding-logo" aria-hidden="true">
-              <NasaMeatballLogo size={36} />
-            </div>
-            <span className="showroom-branding-sep" aria-hidden="true" />
-            <span className="showroom-branding-title">ABANDONED BUT NOT FORGOTTEN</span>
 
-            {isOrbitalView && (
-              <button
-                type="button"
-                className="showroom-surface-return-btn"
-                onClick={handleReturnToSurface}
-                aria-label="Return to surface exploration"
-                title="Descend back to surface exploration view"
-              >
-                <Compass size={14} />
-                <span className="btn-label">{t.surfaceView || 'SURFACE VIEW'}</span>
-              </button>
-            )}
-          </div>
-
-          <div className="showroom-hdr-actions">
-            <button
-              type="button"
-              className="showroom-hdr-icon-btn"
-              onClick={() => {
-                playServo('click');
-                setSettingsOpen(true);
-              }}
-              aria-label="Settings"
-              title="Settings"
-            >
-              <Settings size={18} />
-            </button>
-
-            <button
-              type="button"
-              className="showroom-hdr-icon-btn"
-              onClick={() => {
-                playServo('click');
-                setIsPauseMenuOpen(true);
-              }}
-              aria-label="Menu"
-              title="Menu"
-            >
-              <Menu size={18} />
-            </button>
-          </div>
-        </header>
-      )}
 
       {/* Task 1: Accessible Pause Menu Modal */}
       {isPauseMenuOpen && (
@@ -2491,11 +2799,6 @@ export default function PlanetaryShowroom({
                 onClick={() => {
                   resetStoryProgression();
                   setIsPauseMenuOpen(false);
-                  showToast(
-                    activeLang === 'ar'
-                      ? 'تمت إعادة ضبط تقدم الحملة بنجاح.'
-                      : 'Campaign progression has been reset.'
-                  );
                 }}
               >
                 <RotateCcw size={18} />
@@ -2525,7 +2828,19 @@ export default function PlanetaryShowroom({
       {/* Task 3: Mission Details Panel with Info, Task, Quiz tabs */}
       {!isDialogVisible && isDetailsOpen && (
         <aside className={`showroom-details-panel ${isDetailsLeaving ? 'is-leaving' : ''}`} role="region" aria-label="Mission Details">
-          <div className="details-top-header">
+          {isPhonePortrait && (
+            <div
+              className="details-sheet-drag-handle"
+              onTouchStart={handleSheetTouchStart}
+              onTouchEnd={handleSheetTouchEnd}
+              aria-hidden="true"
+            />
+          )}
+          <div
+            className="details-top-header"
+            onTouchStart={handleSheetTouchStart}
+            onTouchEnd={handleSheetTouchEnd}
+          >
             <div className="details-title-group">
               <p className="details-eyebrow">
                 {currentVehicle.planet} // {currentVehicle.status}
@@ -2552,7 +2867,11 @@ export default function PlanetaryShowroom({
               role="tab"
               aria-selected={detailTab === 'info'}
               className={`details-tab-btn ${detailTab === 'info' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
-              onClick={() => setDetailTab('info')}
+              onClick={() => {
+                dispatchAudioCue('tab_switch');
+                setDetailTab('info');
+                detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             >
               <Info size={14} />
               <span>{t.infoTab || 'INFO'}</span>
@@ -2562,7 +2881,11 @@ export default function PlanetaryShowroom({
               role="tab"
               aria-selected={detailTab === 'task'}
               className={`details-tab-btn ${detailTab === 'task' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
-              onClick={() => setDetailTab('task')}
+              onClick={() => {
+                dispatchAudioCue('tab_switch');
+                setDetailTab('task');
+                detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             >
               <CheckCircle2 size={14} />
               <span>{t.taskTab || 'TASK'}</span>
@@ -2572,7 +2895,11 @@ export default function PlanetaryShowroom({
               role="tab"
               aria-selected={detailTab === 'quiz'}
               className={`details-tab-btn ${detailTab === 'quiz' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
-              onClick={() => setDetailTab('quiz')}
+              onClick={() => {
+                dispatchAudioCue('tab_switch');
+                setDetailTab('quiz');
+                detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             >
               <HelpCircle size={14} />
               <span>{t.quizTab || 'QUIZ'}</span>
@@ -2580,7 +2907,7 @@ export default function PlanetaryShowroom({
           </nav>
 
           {/* Tab Content Body */}
-          <div className="details-content-scroll">
+          <div className="details-content-scroll" ref={detailsScrollRef}>
             {detailTab === 'info' && (
               <>
                 <p className="details-section-quote">"{currentVehicle.tagline}"</p>
@@ -2618,6 +2945,20 @@ export default function PlanetaryShowroom({
                     <strong>{currentVehicle.distanceTraveled}</strong>
                   </div>
                 </div>
+
+                {/* Bottom button: Proceed to Tasks */}
+                <button
+                  type="button"
+                  className="details-section-nav-btn"
+                  onClick={() => {
+                    dispatchAudioCue('tab_switch');
+                    setDetailTab('task');
+                    detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  <span>{t.continueToTasks || (activeLang === 'ar' ? 'الانتقال إلى مهام المهمة ←' : 'CONTINUE TO MISSION TASKS →')}</span>
+                  <ChevronRight size={16} style={{ transform: activeLang === 'ar' ? 'rotate(180deg)' : 'none' }} />
+                </button>
               </>
             )}
 
@@ -2666,6 +3007,20 @@ export default function PlanetaryShowroom({
                       </div>
                     </div>
                   )}
+
+                  {/* Bottom button: Proceed to Quiz */}
+                  <button
+                    type="button"
+                    className="details-section-nav-btn"
+                    onClick={() => {
+                      dispatchAudioCue('tab_switch');
+                      setDetailTab('quiz');
+                      detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    <span>{t.proceedToQuiz || (activeLang === 'ar' ? 'الانتقال إلى الاختبار التقني ←' : 'PROCEED TO TECHNICAL QUIZ →')}</span>
+                    <ChevronRight size={16} style={{ transform: activeLang === 'ar' ? 'rotate(180deg)' : 'none' }} />
+                  </button>
                 </>
               );
             })()}
@@ -2748,8 +3103,12 @@ export default function PlanetaryShowroom({
 
                               if (outcome.isCampaignComplete) {
                                 setTimeout(() => {
-                                  setCampaignVictoryModal(true);
-                                }, 700);
+                                  if (initialDestination !== 'all' && onStoryComplete) {
+                                    onStoryComplete();
+                                  } else {
+                                    setCampaignVictoryModal(true);
+                                  }
+                                }, 1400);
                               } else if (outcome.isAreaComplete) {
                                 const nextArea = getOppositeArea(currentVehicle.destination);
                                 setTimeout(() => {
@@ -2759,21 +3118,6 @@ export default function PlanetaryShowroom({
                                     totalVehicles: filteredVehicles.length
                                   });
                                 }, 700);
-                              } else if (outcome.isNewCompletion) {
-                                const nextIdx = currentIndex + 1;
-                                const nextVehicle = filteredVehicles[nextIdx];
-                                if (nextVehicle) {
-                                  showToast(
-                                    activeLang === 'ar'
-                                      ? `✓ تم حل الاختبار بنجاح! تم فتح بيانات ${nextVehicle.name}.`
-                                      : `✓ Quiz Verified! Telemetry for ${nextVehicle.name} is now unlocked.`,
-                                    activeLang === 'ar' ? 'الانتقال للتالي' : 'NEXT CRAFT',
-                                    () => {
-                                      handleCloseDetails();
-                                      selectVehicleIndex(nextIdx, true);
-                                    }
-                                  );
-                                }
                               }
                             } else {
                               triggerEdgeFlash('wrong');
@@ -2845,8 +3189,8 @@ export default function PlanetaryShowroom({
         </aside>
       )}
 
-      {/* Opposite Sides Navigation Chevrons */}
-      {!isDialogVisible && filteredVehicles.length > 1 && (
+      {/* Opposite Sides Navigation Chevrons (Desktop & Tablet only) */}
+      {!isPhonePortrait && !isDialogVisible && filteredVehicles.length > 1 && (
         <>
           <button
             type="button"
@@ -2882,8 +3226,8 @@ export default function PlanetaryShowroom({
         </>
       )}
 
-      {/* Pagination Dots beneath Spacecraft in 3D inspection area */}
-      {!isDialogVisible && filteredVehicles.length > 1 && (
+      {/* Pagination Dots beneath Spacecraft in 3D inspection area (Desktop & Tablet only) */}
+      {!isPhonePortrait && !isDialogVisible && filteredVehicles.length > 1 && (
         <div className="showroom-inspect-dots-wrap" role="tablist" aria-label="Vehicle selection">
           {filteredVehicles.map((v, idx) => {
             const isAccessible = isArcadeMode || isCraftUnlocked(v.id, filteredVehicles, progression);
@@ -2899,16 +3243,7 @@ export default function PlanetaryShowroom({
                 onClick={() => {
                   if (!isAccessible) {
                     playServo('click');
-                    showToast(
-                      activeLang === 'ar'
-                        ? `🔒 ${v.name} مقفلة! قم بحل اختبار ${currentVehicle.name} أولاً.`
-                        : `🔒 ${v.name} is locked! Solve ${currentVehicle.name}'s quiz to unlock.`,
-                      activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
-                      () => {
-                        handleOpenDetails();
-                        setDetailTab('quiz');
-                      }
-                    );
+                    triggerHaptic('warning');
                     return;
                   }
                   selectVehicleIndex(idx, true);
@@ -2921,9 +3256,16 @@ export default function PlanetaryShowroom({
         </div>
       )}
 
-      {/* Mission Information Panel — Right column on desktop, beneath 3D scene on mobile */}
+      {/* Mission Information Panel — Right column on desktop, collapsible compact bottom panel on mobile */}
       {!isDialogVisible && !isDetailsOpen && (
-        <aside className="showroom-mission-panel" role="complementary" aria-label="Mission Information" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
+        <aside
+          className={`showroom-mission-panel ${isInfoCollapsed ? 'is-collapsed' : ''}`}
+          role="complementary"
+          aria-label="Mission Information"
+          dir={activeLang === 'ar' ? 'rtl' : 'ltr'}
+          onTouchStart={handlePanelTouchStart}
+          onTouchEnd={handlePanelTouchEnd}
+        >
           <div className="mission-panel-card">
             <div className="mission-panel-header">
               <span className="mission-panel-status-dot" aria-hidden="true" />
@@ -2931,56 +3273,73 @@ export default function PlanetaryShowroom({
                 <h2 className="mission-panel-title">{currentVehicle.name}</h2>
                 <span className="mission-panel-subtitle">{currentVehicle.role || currentVehicle.codename}</span>
               </div>
+              {isPhonePortrait && (
+                <button
+                  type="button"
+                  className={`mission-collapse-toggle-btn ${isInfoCollapsed ? 'is-collapsed' : ''}`}
+                  onClick={() => setIsInfoCollapsed(!isInfoCollapsed)}
+                  aria-label={isInfoCollapsed ? 'Expand information' : 'Collapse information'}
+                  title={isInfoCollapsed ? 'Expand' : 'Collapse'}
+                >
+                  <ChevronDown size={18} />
+                </button>
+              )}
             </div>
 
-            <div className="mission-panel-divider" aria-hidden="true" />
+            {!isPhonePortrait && (
+              <>
+                <div className="mission-panel-divider" aria-hidden="true" />
 
-            <p className="mission-panel-desc">{currentVehicle.description}</p>
+                <p className="mission-panel-desc">{currentVehicle.description}</p>
 
-            <div className="mission-meta-list">
-              <div className="mission-meta-item">
-                <div className="mission-meta-label-group">
-                  <Calendar size={15} className="mission-meta-icon" aria-hidden="true" />
-                  <span className="mission-meta-label">{activeLang === 'ar' ? 'تاريخ المهمة' : 'Mission Date'}</span>
+                <div className="mission-meta-list">
+                  <div className="mission-meta-item">
+                    <div className="mission-meta-label-group">
+                      <Calendar size={15} className="mission-meta-icon" aria-hidden="true" />
+                      <span className="mission-meta-label">{activeLang === 'ar' ? 'تاريخ المهمة' : 'Mission Date'}</span>
+                    </div>
+                    <span className="mission-meta-value">{currentVehicle.launchDate}</span>
+                  </div>
+
+                  <div className="mission-meta-item">
+                    <div className="mission-meta-label-group">
+                      <MapPin size={15} className="mission-meta-icon" aria-hidden="true" />
+                      <span className="mission-meta-label">{activeLang === 'ar' ? 'الموقع' : 'Location'}</span>
+                    </div>
+                    <span className="mission-meta-value">{currentVehicle.landingSite}</span>
+                  </div>
+
+                  <div className="mission-meta-item">
+                    <div className="mission-meta-label-group">
+                      <CheckCircle2 size={15} className="mission-meta-icon is-status" aria-hidden="true" />
+                      <span className="mission-meta-label">{activeLang === 'ar' ? 'الحالة' : 'Status'}</span>
+                    </div>
+                    <span className="mission-meta-value is-status">
+                      {currentVehicle.status}
+                    </span>
+                  </div>
                 </div>
-                <span className="mission-meta-value">{currentVehicle.launchDate}</span>
-              </div>
 
-              <div className="mission-meta-item">
-                <div className="mission-meta-label-group">
-                  <MapPin size={15} className="mission-meta-icon" aria-hidden="true" />
-                  <span className="mission-meta-label">{activeLang === 'ar' ? 'الموقع' : 'Location'}</span>
-                </div>
-                <span className="mission-meta-value">{currentVehicle.landingSite}</span>
-              </div>
-
-              <div className="mission-meta-item">
-                <div className="mission-meta-label-group">
-                  <CheckCircle2 size={15} className="mission-meta-icon is-status" aria-hidden="true" />
-                  <span className="mission-meta-label">{activeLang === 'ar' ? 'الحالة' : 'Status'}</span>
-                </div>
-                <span className="mission-meta-value is-status">
-                  {currentVehicle.status}
-                </span>
-              </div>
-            </div>
-
-            {currentVehicle.tagline && (
-              <blockquote className="mission-panel-quote">
-                <Quote size={13} className="mission-quote-icon" aria-hidden="true" />
-                <span>{currentVehicle.tagline}</span>
-              </blockquote>
+                {currentVehicle.tagline && (
+                  <blockquote className="mission-panel-quote">
+                    <Quote size={13} className="mission-quote-icon" aria-hidden="true" />
+                    <span>{currentVehicle.tagline}</span>
+                  </blockquote>
+                )}
+              </>
             )}
 
-            <button
-              type="button"
-              className="mission-view-details-btn"
-              onClick={handleOpenDetails}
-              aria-label="View Details"
-            >
-              <Search size={15} aria-hidden="true" />
-              <span>{activeLang === 'ar' ? 'عرض التفاصيل' : 'View Details'}</span>
-            </button>
+            {(!isPhonePortrait || !isInfoCollapsed) && (
+              <button
+                type="button"
+                className="mission-view-details-btn"
+                onClick={handleOpenDetails}
+                aria-label="View Details"
+              >
+                <Search size={15} aria-hidden="true" />
+                <span>{activeLang === 'ar' ? 'عرض التفاصيل' : 'VIEW DETAILS'}</span>
+              </button>
+            )}
           </div>
         </aside>
       )}
@@ -3080,34 +3439,7 @@ export default function PlanetaryShowroom({
         </div>
       )}
 
-      {/* Story Progression Notification Toast */}
-      {progressionToast && (
-        <div className="showroom-progression-toast" role="status" aria-live="polite">
-          <div className="progression-toast-content">
-            <span>{progressionToast.message}</span>
-            {progressionToast.actionLabel && (
-              <button
-                type="button"
-                className="progression-toast-action-btn"
-                onClick={() => {
-                  progressionToast.onAction?.();
-                  setProgressionToast(null);
-                }}
-              >
-                {progressionToast.actionLabel}
-              </button>
-            )}
-          </div>
-          <button
-            type="button"
-            className="progression-toast-close"
-            onClick={() => setProgressionToast(null)}
-            aria-label="Dismiss notification"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
+
 
       {/* Sector / Area Complete Transition Modal */}
       {areaCompleteModal && (
@@ -3235,11 +3567,23 @@ export default function PlanetaryShowroom({
 
               <button
                 type="button"
-                className="progression-btn-primary"
+                className="progression-btn-secondary"
                 onClick={() => setCampaignVictoryModal(false)}
               >
                 <Sparkles size={16} />
-                <span>{activeLang === 'ar' ? 'الاستكشاف الحر' : 'FREE ROAM ALL WORLDS'}</span>
+                <span>{activeLang === 'ar' ? 'الاستكشاف الحر' : 'FREE ROAM'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="progression-btn-primary"
+                onClick={() => {
+                  setCampaignVictoryModal(false);
+                  if (onStoryComplete) onStoryComplete();
+                }}
+              >
+                <ArrowRight size={16} style={{ transform: activeLang === 'ar' ? 'rotate(180deg)' : 'none' }} />
+                <span>{activeLang === 'ar' ? 'شاهد النهاية وفريق العمل ←' : 'THE END & CREDITS →'}</span>
               </button>
             </div>
           </div>

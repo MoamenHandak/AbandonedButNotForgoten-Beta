@@ -35,7 +35,8 @@
     position: fixed;
     inset: 0;
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
     z-index: 150;
     overflow: hidden;
     user-select: none;
@@ -2896,27 +2897,27 @@
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: rgba(4, 12, 24, 0.78);
+    background: rgba(0, 0, 0, 0.75);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1.5px solid rgba(0, 229, 255, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.55);
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65), 0 0 15px rgba(0, 229, 255, 0.15);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
     transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, color 0.2s ease;
     z-index: 95;
     padding: 0;
 }
 
 .showroom-inspect-nav-btn:hover {
-    background: rgba(8, 24, 48, 0.9);
-    color: #00e5ff;
-    border-color: #00e5ff;
-    transform: translateY(-50%) scale(1.06);
-    box-shadow: 0 0 20px rgba(0, 229, 255, 0.45);
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: 0 0 18px rgba(255, 255, 255, 0.45);
 }
 
 .showroom-inspect-nav-btn:active {
@@ -2929,6 +2930,16 @@
 
 .showroom-inspect-nav-btn.is-next {
     right: calc(clamp(340px, 26vw, 420px) + clamp(20px, 2.5vw, 40px) + clamp(20px, 2.5vw, 40px));
+}
+
+[dir="rtl"] .showroom-inspect-nav-btn.is-prev {
+    left: auto;
+    right: clamp(20px, 2.5vw, 40px);
+}
+
+[dir="rtl"] .showroom-inspect-nav-btn.is-next {
+    right: auto;
+    left: calc(clamp(340px, 26vw, 420px) + clamp(20px, 2.5vw, 40px) + clamp(20px, 2.5vw, 40px));
 }
 
 .showroom-inspect-nav-btn.is-locked {
@@ -2946,34 +2957,27 @@
     box-shadow: 0 0 12px rgba(255, 170, 85, 0.35);
 }
 
-/* Centered Pagination Dots Beneath Spacecraft in 3D Area */
+/* Centered Pagination Dots Beneath Spacecraft in 3D Area (Template Match: Center bottom) */
 .showroom-inspect-dots-wrap {
     position: fixed;
     bottom: clamp(24px, 4vh, 42px);
-    left: calc((100vw - clamp(340px, 26vw, 420px) - clamp(20px, 2.5vw, 40px)) / 2);
+    left: 50%;
     transform: translateX(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 6px 14px;
-    background: rgba(3, 8, 20, 0.72);
-    border: 1px solid rgba(0, 229, 255, 0.25);
-    border-radius: 20px;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 229, 255, 0.15);
+    gap: 12px;
     z-index: 95;
     pointer-events: auto;
 }
 
 .showroom-inspect-dot {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     padding: 0;
     margin: 0;
     background: transparent;
-    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    border: 1.5px solid rgba(255, 255, 255, 0.65);
     border-radius: 50%;
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -2981,14 +2985,13 @@
 
 .showroom-inspect-dot:hover {
     transform: scale(1.3);
-    border-color: #00e5ff;
+    border-color: #ffffff;
 }
 
 .showroom-inspect-dot.is-active {
-    background: #00e5ff;
-    border-color: #00e5ff;
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.9);
-    transform: scale(1.2);
+    background: #00e676;
+    border-color: #00e676;
+    box-shadow: 0 0 10px rgba(0, 230, 118, 0.85);
 }
 
 .showroom-inspect-dot.is-locked {
@@ -2998,14 +3001,16 @@
     cursor: not-allowed;
 }
 
-.showroom-inspect-dot.is-solved {
+.showroom-inspect-dot.is-solved,
+.showroom-inspect-dot.is-completed {
     border-color: #55ff99;
-    box-shadow: 0 0 6px rgba(85, 255, 153, 0.35);
 }
 
-.showroom-inspect-dot.is-solved.is-active {
-    background: #55ff99;
-    box-shadow: 0 0 10px rgba(85, 255, 153, 0.85);
+.showroom-inspect-dot.is-solved.is-active,
+.showroom-inspect-dot.is-completed.is-active {
+    background: #00e676;
+    border-color: #00e676;
+    box-shadow: 0 0 10px rgba(0, 230, 118, 0.85);
 }
 
 /* ==========================================================================
@@ -3024,6 +3029,11 @@
     animation: missionPanelFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+[dir="rtl"] .showroom-mission-panel {
+    right: auto;
+    left: clamp(20px, 2.5vw, 40px);
+}
+
 @keyframes missionPanelFadeIn {
     from {
         opacity: 0;
@@ -3036,12 +3046,12 @@
 }
 
 .mission-panel-card {
-    background: rgba(0, 0, 0, 0.88);
+    background: rgba(3, 7, 18, 0.98);
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 12px;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.95);
     padding: 22px 24px;
     display: flex;
     flex-direction: column;
@@ -3160,29 +3170,29 @@
 .mission-panel-quote {
     margin: 0;
     padding: 10px 14px;
-    background: rgba(4, 18, 36, 0.55);
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 6px;
     font-family: var(--hud-theme-font, 'NMSFuturaProBook', sans-serif);
     font-size: 12.5px;
     font-style: italic;
-    color: rgba(230, 245, 255, 0.9);
+    color: rgba(255, 255, 255, 0.85);
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: 8px;
     line-height: 1.45;
 }
 
 [dir="rtl"] .mission-panel-quote {
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 6px;
 }
 
 .mission-quote-icon {
     flex-shrink: 0;
-    margin-top: 1px;
-    color: #00e5ff;
-    fill: #00e5ff;
+    margin-top: 2px;
+    color: rgba(255, 255, 255, 0.6);
+    fill: transparent;
 }
 
 .mission-view-details-btn {
@@ -3191,26 +3201,25 @@
     justify-content: center;
     gap: 10px;
     width: 100%;
-    padding: 11px 20px;
-    background: rgba(4, 18, 36, 0.65);
-    border: 1.5px solid rgba(0, 229, 255, 0.6);
-    border-radius: 22px;
+    padding: 12px 18px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #ffffff;
+    border-radius: 8px;
     color: #ffffff;
     font-family: var(--hud-theme-font-head, 'NMSGeoSans', sans-serif);
     font-size: 13px;
     font-weight: 700;
-    letter-spacing: 1.2px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
     cursor: pointer;
     transition: all 0.2s ease;
     margin-top: 4px;
-    box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
 }
 
 .mission-view-details-btn:hover {
-    background: #00e5ff;
+    background: #ffffff;
     color: #000000;
-    border-color: #00e5ff;
-    box-shadow: 0 0 20px rgba(0, 229, 255, 0.55);
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
     transform: translateY(-1px);
 }
 
@@ -3230,68 +3239,377 @@
     }
 
     .showroom-inspect-dots-wrap {
-        top: calc(48vh - 28px);
-        bottom: auto;
-        left: 50%;
-        transform: translateX(-50%);
+        display: none !important;
+    }
+}
+
+/* ==========================================================================
+   MOBILE PORTRAIT 3-ZONE FLEX COLUMN LAYOUT (max-width: 640px)
+   Zone 1: Header (~48px)
+   Zone 2: 3D Stage (flex: 1, min 45% height) + 48px circular chevrons
+   Zone 3: Mobile pagination strip with "X / 12" counter and mini dots
+   Zone 4: Compact collapsible info panel (~30% height) with VIEW DETAILS
+   Zone 5: Details bottom sheet (~70dvh) with drag handle
+   ========================================================================== */
+@media (max-width: 640px) and (orientation: portrait), (max-width: 520px) {
+    .showroom-viewport {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        height: calc(var(--vh, 1vh) * 100);
+        overflow: hidden;
     }
 
+    /* Zone 1: Header (~48px, one row) */
+    .showroom-top-bar {
+        position: relative;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 48px;
+        min-height: 48px;
+        padding-top: max(6px, env(safe-area-inset-top, 0px));
+        padding-inline: max(12px, env(safe-area-inset-left, 0px));
+        background: rgba(2, 4, 9, 0.90);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .showroom-branding {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow: hidden;
+        flex: 1;
+    }
+
+    .showroom-branding-title {
+        font-size: 11px;
+        letter-spacing: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+    }
+
+    .showroom-surface-return-btn {
+        padding: 5px 8px;
+        font-size: 10px;
+    }
+
+    .showroom-surface-return-btn .btn-label {
+        display: none;
+    }
+
+    /* Zone 2: Dedicated 3D Stage Zone (flex: 1, at least 45% of height) */
+    .showroom-stage-zone {
+        position: relative;
+        flex: 1;
+        min-height: 45%;
+        width: 100%;
+        overflow: hidden;
+        background: #000205;
+    }
+
+    .showroom-stage-zone .showroom-webgl-container {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+    }
+
+    /* 48px rounded-rect prev/next buttons vertically centered on stage edges (Template match) */
+    .showroom-stage-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 25;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        touch-action: manipulation;
+    }
+
+    .showroom-stage-arrow:active {
+        transform: translateY(-50%) scale(0.92);
+        background: #ffffff;
+        color: #000000;
+        border-color: #ffffff;
+    }
+
+    .showroom-stage-arrow.is-prev {
+        left: max(10px, env(safe-area-inset-left, 0px));
+    }
+
+    .showroom-stage-arrow.is-next {
+        right: max(10px, env(safe-area-inset-right, 0px));
+    }
+
+    .showroom-stage-arrow.is-locked {
+        opacity: 0.55;
+        border-color: rgba(255, 180, 50, 0.5);
+    }
+
+    [dir="rtl"] .showroom-stage-arrow.is-prev {
+        left: auto;
+        right: max(10px, env(safe-area-inset-right, 0px));
+    }
+
+    [dir="rtl"] .showroom-stage-arrow.is-next {
+        right: auto;
+        left: max(10px, env(safe-area-inset-left, 0px));
+    }
+
+    /* Orbit Overview / Hero Zoom Chip (Template match) */
+    .showroom-orbit-zoom-chip {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.85);
+        border: 1px solid #ffffff;
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-family: var(--font-display, 'Tajawal', sans-serif);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        z-index: 28;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+        touch-action: manipulation;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .showroom-orbit-zoom-chip:active {
+        background: #ffffff;
+        color: #000000;
+    }
+
+    /* Zone 3: Mobile Pagination Counter Strip */
+    .showroom-mobile-pagination-strip {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 16px;
+        background: rgba(2, 5, 12, 0.95);
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        width: 100%;
+        z-index: 30;
+        user-select: none;
+        touch-action: pan-y;
+    }
+
+    .mobile-pagination-counter {
+        font-family: var(--font-display, 'Tajawal', sans-serif);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #ffffff;
+    }
+
+    .mobile-pagination-dots {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .mobile-prog-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.25);
+        transition: all 0.2s ease;
+    }
+
+    .mobile-prog-dot.is-active {
+        width: 18px;
+        border-radius: 4px;
+        background: #ffffff;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.85);
+    }
+
+    .mobile-prog-dot.is-completed {
+        background: #00e676;
+    }
+
+    /* Zone 4: Compact Collapsible Info Panel (~30% height) */
     .showroom-mission-panel {
-        top: 48vh;
-        left: 16px;
-        right: 16px;
-        width: auto;
-        max-height: calc(52vh - 16px);
-        bottom: 16px;
+        position: relative;
+        top: auto;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        width: 100%;
+        max-height: none;
+        background: rgba(4, 8, 16, 0.96);
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 12px 16px max(14px, env(safe-area-inset-bottom, 0px));
+        z-index: 35;
+        overflow: visible;
+        animation: none;
+        touch-action: pan-y;
+    }
+
+    .showroom-mission-panel.is-collapsed {
+        padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
     }
 
     .mission-panel-card {
-        padding: 16px 18px;
-        gap: 12px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+        gap: 10px;
+    }
+
+    .mission-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .mission-panel-title-wrap {
+        flex: 1;
+        overflow: hidden;
     }
 
     .mission-panel-title {
-        font-size: 17px;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .mission-panel-desc {
-        font-size: 12.5px;
+    .mission-panel-subtitle {
+        font-size: 11px;
+        opacity: 0.75;
     }
 
-    .mission-meta-list {
-        padding: 8px 12px;
-        gap: 8px;
+    .mission-collapse-toggle-btn {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .mission-collapse-toggle-btn svg {
+        transition: transform 0.25s ease;
+    }
+
+    .mission-collapse-toggle-btn.is-collapsed svg {
+        transform: rotate(180deg);
+    }
+
+    /* Move description and telemetry grid to Details sheet on mobile portrait */
+    .mission-panel-desc,
+    .mission-meta-list,
+    .mission-panel-divider,
+    .mission-panel-quote {
+        display: none !important;
     }
 
     .mission-view-details-btn {
-        padding: 10px 14px;
-        font-size: 12px;
+        width: 100%;
+        min-height: 46px;
+        background: #ffffff;
+        color: #000000;
+        border: 1px solid #ffffff;
+        border-radius: 8px;
+        font-family: var(--font-display, 'Tajawal', sans-serif);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 4px;
+        touch-action: manipulation;
     }
 
+    /* Zone 5: Details Bottom Sheet (~70dvh) */
     .showroom-details-panel {
+        position: fixed;
         top: auto;
         bottom: 0;
         left: 0;
         right: 0;
         width: 100%;
         max-width: 100%;
-        max-height: 72vh;
-        border-radius: 16px 16px 0 0;
-        border-left: none;
-        border-right: none;
+        height: 70dvh;
+        height: calc(var(--vh, 1vh) * 70);
+        max-height: 70dvh;
+        border-radius: 20px 20px 0 0;
+        border: 1px solid rgba(255, 255, 255, 0.3);
         border-bottom: none;
-        border-top: 1px solid #ffffff;
+        background: rgba(5, 10, 20, 0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.85);
         z-index: 120;
+        padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+        display: flex;
+        flex-direction: column;
     }
 
-    @keyframes detailsSlideIn {
-        from { opacity: 0; transform: translateY(40px); }
-        to { opacity: 1; transform: translateY(0); }
+    .details-sheet-drag-handle {
+        width: 44px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.35);
+        border-radius: 3px;
+        margin: 10px auto 4px;
+        cursor: grab;
     }
 
-    @keyframes detailsSlideOut {
-        from { opacity: 1; transform: translateY(0); }
-        to { opacity: 0; transform: translateY(40px); }
+    .details-tabs-bar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(5, 10, 20, 0.96);
+    }
+
+    .details-content-scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
     }
 
     .showroom-pause-modal {
@@ -3303,6 +3621,66 @@
         min-height: 50px;
         padding: 12px 14px;
         font-size: 13px;
+    }
+}
+
+/* Landscape Phone Mode (max-height: 500px) */
+@media (max-height: 500px) and (orientation: landscape) {
+    .showroom-viewport {
+        display: grid;
+        grid-template-rows: 36px 1fr;
+        grid-template-columns: 60% 40%;
+        height: 100dvh;
+        height: calc(var(--vh, 1vh) * 100);
+        overflow: hidden;
+    }
+
+    .showroom-top-bar {
+        grid-column: 1 / -1;
+        height: 36px;
+        min-height: 36px;
+        padding: 4px 16px;
+    }
+
+    .showroom-stage-zone {
+        grid-column: 1;
+        grid-row: 2;
+        width: 100%;
+        height: 100%;
+        min-height: auto;
+        position: relative;
+    }
+
+    .showroom-stage-zone .showroom-webgl-container {
+        position: absolute;
+        inset: 0;
+    }
+
+    .showroom-mission-panel {
+        grid-column: 2;
+        grid-row: 2;
+        width: 100%;
+        height: 100%;
+        max-height: calc(100dvh - 36px);
+        overflow-y: auto;
+        border-left: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 12px;
+        position: relative;
+        top: auto;
+        right: auto;
+    }
+
+    .showroom-mobile-pagination-strip {
+        display: none !important;
+    }
+}
+
+/* Tablet Layout (min-width: 641px and max-width: 1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+    .showroom-mission-panel,
+    .showroom-details-panel {
+        width: clamp(320px, 34vw, 380px);
+        right: max(16px, env(safe-area-inset-right, 0px));
     }
 }
 
@@ -3547,15 +3925,16 @@
     color: #ffffff;
 }
 
-/* Quiz Next Step Button */
-.details-quiz-next-btn {
+/* Quiz Next Step & Stepped Flow Buttons */
+.details-quiz-next-btn,
+.details-section-nav-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     width: 100%;
-    margin-top: 10px;
-    padding: 10px 16px;
+    margin-top: 16px;
+    padding: 12px 18px;
     border-radius: 6px;
     background: #ffffff;
     color: #000000;
@@ -3569,7 +3948,8 @@
     transition: all 0.2s ease;
 }
 
-.details-quiz-next-btn:hover {
+.details-quiz-next-btn:hover,
+.details-section-nav-btn:hover {
     background: transparent;
     color: #ffffff;
     box-shadow: 0 0 14px rgba(255, 255, 255, 0.4);

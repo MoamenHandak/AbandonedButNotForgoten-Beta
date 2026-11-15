@@ -18,6 +18,7 @@ import { prefetchGLB, preloadImage, resolveAssetUrl } from '../utils/modelCache'
 import { getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
 import { getTranslations } from '../constants/translations';
 import { getStoryProgression, recordInitialChoice, isAreaLocked } from '../utils/storyProgression';
+import TheEndScreen from './TheEndScreen';
 import '../styles/story.css';
 
 const loadShowroom = () => import('./PlanetaryShowroom');
@@ -45,6 +46,7 @@ function StoryDialogueBox({
   activeLang = 'en'
 }) {
   const [currentLine, setCurrentLine] = useState(0);
+  const [isTyping, setIsTyping] = useState(true);
 
   const isLastLine = currentLine >= lines.length - 1;
   const line = lines[currentLine] || lines[0] || {};
@@ -53,8 +55,19 @@ function StoryDialogueBox({
     if (!isLastLine) {
       window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'camera_servo' } }));
       setCurrentLine((prev) => prev + 1);
+      setIsTyping(true);
     } else {
       onComplete();
+    }
+  };
+
+  const handleStageClick = (e) => {
+    if (e.target.closest('button, a, input, select')) return;
+    if (isTyping) {
+      window.dispatchEvent(new CustomEvent('typewriterSkip'));
+      setIsTyping(false);
+    } else {
+      handleAdvance();
     }
   };
 
@@ -62,25 +75,36 @@ function StoryDialogueBox({
     const handleKey = (e) => {
       if (['Space', 'Enter', 'ArrowRight'].includes(e.code) && !e.repeat) {
         e.preventDefault();
-        handleAdvance();
+        if (isTyping) {
+          window.dispatchEvent(new CustomEvent('typewriterSkip'));
+          setIsTyping(false);
+        } else {
+          handleAdvance();
+        }
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [currentLine, isLastLine]);
+  }, [currentLine, isLastLine, isTyping]);
 
   const currentBg = line.bgImage || '/assets/story/room_bg.jpg';
   const expression = line.expression || 'curious';
   const isArabic = activeLang === 'ar';
 
   return (
-    <section className="story-cinematic-stage" aria-label={`Story Scene: ${chapter}`} dir={isArabic ? 'rtl' : 'ltr'}>
+    <section
+      className="story-cinematic-stage"
+      aria-label={`Story Scene: ${chapter}`}
+      dir={isArabic ? 'rtl' : 'ltr'}
+      onClick={handleStageClick}
+    >
       {/* 100vw x 100dvh Full-screen Background with cross-fade & zoom */}
       <img
         key={currentBg}
         src={resolveAssetUrl(currentBg)}
         alt="Atmospheric story scene illustration"
         className="story-cinematic-bg"
+        decoding="async"
       />
       <div className="story-cinematic-vignette" />
 
@@ -90,30 +114,51 @@ function StoryDialogueBox({
         <span>{chapter}</span>
       </div>
 
+      {/* Skip Button on Scene */}
+      <button
+        type="button"
+        className="story-skip-btn story-stage-skip"
+        onClick={(e) => {
+          e.stopPropagation();
+          onComplete();
+        }}
+        aria-label={isArabic ? 'تخطي المشهد' : 'Skip Prologue'}
+      >
+        <span>{isArabic ? 'تخطي' : 'SKIP'}</span>
+        <FastForward size={14} />
+      </button>
+
       {/* Luna Character Cut-Out (Bottom-Left overlapping stage) */}
       <div className={`story-character-cutout ${line.isLogbook ? 'is-dimmed' : ''}`} aria-hidden="true">
-        <img
-          key={expression}
-          src={resolveAssetUrl(`/assets/story/luna/luna_${expression}.webp`)}
-          alt="Luna the young explorer"
-          className="story-character-cutout-img"
-        />
+        <picture>
+          <source srcSet={resolveAssetUrl(`/assets/story/luna/luna_${expression}.webp`)} type="image/webp" />
+          <img
+            key={expression}
+            src={resolveAssetUrl(`/assets/story/luna/luna_${expression}.webp`)}
+            alt="Luna the young explorer"
+            className="story-character-cutout-img"
+            decoding="async"
+          />
+        </picture>
       </div>
 
       {/* Open Glowing NASA Hologram Book Cut-Out (Opposite side of dialogue box from Luna) */}
       <div className={`story-book-cutout ${line.isLogbook ? 'is-active' : ''}`} aria-hidden="true">
-        <img
-          src={resolveAssetUrl('/assets/story/nasa_book_open.png')}
-          alt="Glowing open NASA logbook"
-          className="story-book-cutout-img"
-        />
+        <picture>
+          <source srcSet={resolveAssetUrl('/assets/story/nasa_book_open.webp')} type="image/webp" />
+          <img
+            src={resolveAssetUrl('/assets/story/nasa_book_open.png')}
+            alt="Glowing open NASA logbook"
+            className="story-book-cutout-img"
+            decoding="async"
+          />
+        </picture>
       </div>
 
       {/* Dialogue Box (Centered bottom glass panel matching user template) */}
       <div className="story-dialogue-wrapper">
         <div
           className={`story-dialogue-box ${line.isLogbook ? 'is-logbook' : ''}`}
-          onClick={handleAdvance}
           role="button"
           tabIndex={0}
           aria-label={isArabic ? 'انقر أو اضغط مسافة للمتابعة' : 'Click or press Space to advance dialogue'}
@@ -130,6 +175,7 @@ function StoryDialogueBox({
               text={line.text}
               isArabic={isArabic}
               isLogbook={Boolean(line.isLogbook)}
+              onTypingStateChange={(typing) => setIsTyping(typing)}
             />
           </div>
 
@@ -153,7 +199,7 @@ function StoryDialogueBox({
               </button>
             ) : (
               <span className="dialogue-advance-prompt">
-                <span>{isArabic ? 'انقر أو اضغط مسافة للمتابعة' : 'CLICK OR PRESS SPACE TO ADVANCE'}</span>
+                <span>{isTyping ? (isArabic ? 'انقر لتخطي الكتابة' : 'CLICK TO FINISH') : (isArabic ? 'انقر أو اضغط مسافة للمتابعة' : 'CLICK OR PRESS SPACE TO ADVANCE')}</span>
                 <span>▼</span>
               </span>
             )}
@@ -164,8 +210,8 @@ function StoryDialogueBox({
   );
 }
 
-export default function StoryGame({ onBackToMenu }) {
-  // Scene states: 'prologue' -> 'choice' -> 'moon' | 'mars'
+export default function StoryGame({ onBackToMenu, onOpenCredits }) {
+  // Scene states: 'prologue' -> 'choice' -> 'moon' | 'mars' | 'the_end'
   const [currentScene, setCurrentScene] = useState('prologue');
   const [craftBrowse, setCraftBrowse] = useState(false);
   const [progression, setProgression] = useState(getStoryProgression);
@@ -237,6 +283,22 @@ export default function StoryGame({ onBackToMenu }) {
 
   const isExploring = ['moon', 'mars'].includes(currentScene);
   const isPrologue = ['prologue', 'book', 'drift'].includes(currentScene);
+
+  // Looping Story Music during the prologue dialogue part before choosing destination
+  useEffect(() => {
+    if (isPrologue) {
+      window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'story_music' } }));
+    } else {
+      window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'story_music_stop' } }));
+    }
+    return () => {
+      window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'story_music_stop' } }));
+    };
+  }, [isPrologue]);
+
+  if (currentScene === 'the_end') {
+    return <TheEndScreen onJumpToCredits={onOpenCredits || onBackToMenu} />;
+  }
 
   return (
     <div className={`story-container ${isExploring ? 'is-exploring' : ''}`}>
@@ -331,27 +393,18 @@ export default function StoryGame({ onBackToMenu }) {
             <div className="choice-destinations-grid choice-grid-2">
               {/* Destination 1: 3D MOON */}
               {(() => {
-                const isMoonLocked = isAreaLocked('moon', progression);
                 const isMoonDone = Boolean(progression.completedAreas?.moon);
-                const isMoonActive = progression.firstChoice === 'moon';
 
                 return (
-                  <article className={`planet-choice-card moon-choice-card ${isMoonLocked ? 'is-locked' : ''}`}>
-                    <span className={`card-hud-badge ${isMoonDone ? 'is-completed' : isMoonLocked ? 'is-locked' : isMoonActive ? 'is-active' : ''}`}>
+                  <article className="planet-choice-card moon-choice-card">
+                    <span className={`card-hud-badge ${isMoonDone ? 'is-completed' : 'is-active'}`}>
                       {isMoonDone ? (
                         <>
                           <CheckCircle2 size={12} />
                           <span>{activeLang === 'ar' ? '✓ تم إكمال قطاع القمر' : '✓ SECTOR 01 COMPLETE'}</span>
                         </>
-                      ) : isMoonLocked ? (
-                        <>
-                          <Lock size={12} />
-                          <span>{activeLang === 'ar' ? 'مغلق // أكمل المريخ أولاً' : 'LOCKED // COMPLETE MARS FIRST'}</span>
-                        </>
-                      ) : isMoonActive ? (
-                        <span>{activeLang === 'ar' ? '★ القطاع النشط' : '★ ACTIVE SECTOR'}</span>
                       ) : (
-                        <span>{t.targetSector1}</span>
+                        <span>{t.targetSector1 || (activeLang === 'ar' ? '★ قطاع الانطلاق: القمر' : '★ STARTING SECTOR')}</span>
                       )}
                     </span>
 
@@ -374,20 +427,13 @@ export default function StoryGame({ onBackToMenu }) {
 
                     <button
                       type="button"
-                      className={`btn btn-primary choice-dest-btn ${isMoonLocked ? 'is-disabled' : ''}`}
+                      className="btn btn-primary choice-dest-btn"
                       onClick={() => {
-                        if (isMoonLocked) return;
                         recordInitialChoice('moon');
                         goToScene('moon');
                       }}
-                      disabled={isMoonLocked}
                     >
-                      {isMoonLocked ? (
-                        <>
-                          <Lock size={16} />
-                          <span>{activeLang === 'ar' ? 'مغلق' : 'LOCKED'}</span>
-                        </>
-                      ) : isMoonDone ? (
+                      {isMoonDone ? (
                         <>
                           <CheckCircle2 size={16} />
                           <span>{activeLang === 'ar' ? 'إعادة استكشاف القمر' : 'REVISIT THE MOON'}</span>
@@ -407,11 +453,10 @@ export default function StoryGame({ onBackToMenu }) {
               {(() => {
                 const isMarsLocked = isAreaLocked('mars', progression);
                 const isMarsDone = Boolean(progression.completedAreas?.mars);
-                const isMarsActive = progression.firstChoice === 'mars';
 
                 return (
                   <article className={`planet-choice-card mars-choice-card ${isMarsLocked ? 'is-locked' : ''}`}>
-                    <span className={`card-hud-badge ${isMarsDone ? 'is-completed' : isMarsLocked ? 'is-locked' : isMarsActive ? 'is-active' : ''}`}>
+                    <span className={`card-hud-badge ${isMarsDone ? 'is-completed' : isMarsLocked ? 'is-locked' : 'is-active'}`}>
                       {isMarsDone ? (
                         <>
                           <CheckCircle2 size={12} />
@@ -422,10 +467,8 @@ export default function StoryGame({ onBackToMenu }) {
                           <Lock size={12} />
                           <span>{activeLang === 'ar' ? 'مغلق // أكمل القمر أولاً' : 'LOCKED // COMPLETE MOON FIRST'}</span>
                         </>
-                      ) : isMarsActive ? (
-                        <span>{activeLang === 'ar' ? '★ القطاع النشط' : '★ ACTIVE SECTOR'}</span>
                       ) : (
-                        <span>{t.targetSector2}</span>
+                        <span>{t.targetSector2 || (activeLang === 'ar' ? '★ القطاع التالي: المريخ' : '★ NEXT SECTOR')}</span>
                       )}
                     </span>
 
@@ -459,7 +502,7 @@ export default function StoryGame({ onBackToMenu }) {
                       {isMarsLocked ? (
                         <>
                           <Lock size={16} />
-                          <span>{activeLang === 'ar' ? 'مغلق' : 'LOCKED'}</span>
+                          <span>{activeLang === 'ar' ? 'مغلق // أكمل القمر أولاً' : 'LOCKED'}</span>
                         </>
                       ) : isMarsDone ? (
                         <>
@@ -492,6 +535,9 @@ export default function StoryGame({ onBackToMenu }) {
               onBackToChoice={() => goToScene('choice')}
               onAreaComplete={(completedArea, nextArea) => {
                 goToScene(nextArea);
+              }}
+              onStoryComplete={() => {
+                goToScene('the_end');
               }}
             />
           </Suspense>

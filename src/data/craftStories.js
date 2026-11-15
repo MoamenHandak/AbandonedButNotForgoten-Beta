@@ -726,6 +726,80 @@ export const CRAFT_STORIES = {
     sources: [SOURCE_BY_ID['nasa-insight']],
   },
 
+  'moon-orbit-system': {
+    id: 'moon-orbit-system',
+    name: L('Lunar Orbital System', 'النظام المداري للقمر'),
+    operator: L('NASA / International Space Network', 'ناسا / الشبكة الفضائية الدولية'),
+    location: 'moon',
+    launch: L('1966 – Present', '1966 – حتى الآن'),
+    landing: L('Circumlunar Orbital Constellation', 'كوكبة المدار القمري المحيطي'),
+    status: 'active',
+    statusNote: L(
+      'Planetary overview of the Moon and its orbiting spacecraft paths. Orbit tracks are illustrative.',
+      'نظرة كوكبية شاملة للقمر ومسارات المركبات الفضائية المدارية. المسارات توضيحية.'
+    ),
+    lastVerified: '2026-11-15',
+    story: {
+      question: L(
+        'How do orbiting spacecraft map the Moon and protect historic surface sites from above?',
+        'كيف تقوم المركبات الفضائية في المدار برسم خرائط القمر وحماية المواقع التاريخية على السطح؟'
+      ),
+      device: L(
+        'A network of polar and equatorial orbiters carrying high-resolution cameras, laser altimeters, and spectrometers.',
+        'شبكة من المسابير المدارية القطبية والاستوائية المزودة بكاميرات فائقة الدقة ومقاييس ليزر ومطياف.'
+      ),
+      experiment: L(
+        'Orbiters scan the lunar surface continuously, measuring gravitational anomalies, mineral maps, and ice signatures.',
+        'تمسح المسابير سطح القمر باستمرار لقياس شذوذ الجاذبية وخرائط المعادن وآثار الجليد المائي.'
+      ),
+      discovery: L(
+        'Discovered polar water ice in permanently shadowed craters and confirmed that humanity\'s Apollo sites remain intact.',
+        'اكتشفت جليد الماء في الفوهات المظللة دائمًا عند القطبين وأكدت بقاء مواقع أبولو التاريخية سليمة تمامًا.'
+      ),
+      ending: L(
+        'The lunar orbit system remains humanity\'s primary observational gateway to the Moon.',
+        'يظل النظام المداري للقمر البوابة الرصدية الأساسية للبشرية لاستكشاف القمر.'
+      ),
+    },
+    quiz: {
+      prompt: L(
+        'What is the primary role of the Lunar Orbital System before descending to surface landing sites?',
+        'ما هو الدور الأساسي لنظام المدار القمري قبل الهبوط على مواقع السطح؟'
+      ),
+      options: [
+        L(
+          'Mapping surface topography, identifying water ice, and tracking safe landing zones.',
+          'رسم تضاريس السطح وتحديد مواقع الجليد المائي واكتشاف مناطق الهبوط الآمنة.'
+        ),
+        L(
+          'Mining core minerals remotely from high orbit.',
+          'تعدين معادن لب القمر عن بعد من المدار العالي.'
+        ),
+        L(
+          'Building artificial atmospheres around lunar craters.',
+          'بناء غلاف جوي اصطناعي حول الفوهات القمرية.'
+        ),
+      ],
+      correctIndex: 0,
+      explanation: L(
+        'Lunar orbiters perform comprehensive high-resolution reconnaissance, measuring terrain elevation and ice concentrations to guide exploration.',
+        'تجري المسابير المدارية استطلاعًا شاملاً عالي الدقة، وتقيس ارتفاعات التضاريس وتركيزات الجليد لتوجيه الاستكشاف.'
+      ),
+    },
+    visitDecision: {
+      prompt: L('OBSERVE THE LUNAR ORBITAL HIGHWAY?', 'هل تتأمل المسارات المدارية للقمر؟'),
+      approachOutcome: L(
+        'Observing the orbital tracks provides a global planetary understanding of humanity\'s presence around the Moon.',
+        'يوفر تأمل المسارات المدارية فهمًا كوكبيًا شاملاً لوجود البشرية المستمر حول القمر.'
+      ),
+      keepDistanceOutcome: L(
+        'Preserving orbital distance respects the delicate tracking parameters of active lunar mappers.',
+        'الحفاظ على المسافة المدارية يحترم معايير التتبع الدقيقة للمسابير العاملة.'
+      ),
+    },
+    sources: [SOURCE_BY_ID['nasa-heritage-2011']],
+  },
+
   'lro-orbiter': {
     id: 'lro-orbiter',
     name: L('Lunar Reconnaissance Orbiter (LRO)', 'مسبار استكشاف القمر المداري (LRO)'),
@@ -860,6 +934,80 @@ export const CRAFT_STORIES = {
       ),
     },
     sources: [SOURCE_BY_ID['nasa-lro']],
+  },
+
+  'mars-orbit-system': {
+    id: 'mars-orbit-system',
+    name: L('Martian Orbital System', 'النظام المداري للمريخ'),
+    operator: L('NASA / JPL / International Network', 'ناسا / مختبر الدفع النفاث / الشبكة الدولية'),
+    location: 'mars',
+    launch: L('1971 – Present', '1971 – حتى الآن'),
+    landing: L('Areocentric Orbit Network', 'شبكة المدار المريخي'),
+    status: 'active',
+    statusNote: L(
+      'Planetary overview of Mars, its natural moons Phobos & Deimos, and the primary orbital network. Orbit tracks are illustrative.',
+      'نظرة كوكبية شاملة للمريخ وقمريه فوبوس وديموس والشبكة المدارية الرئيسية. المسارات توضيحية.'
+    ),
+    lastVerified: '2026-11-15',
+    story: {
+      question: L(
+        'Why is an orbital constellation indispensable for exploring the surface of Mars?',
+        'لماذا تُعد الكوكبة المدارية لا غنى عنها لاستكشاف سطح المريخ؟'
+      ),
+      device: L(
+        'A fleet of orbiters equipped with high-resolution telephoto cameras, spectrometers, atmospheric sounders, and UHF relay transceivers.',
+        'أسطول من المسابير المدارية المزودة بكاميرات مقربة فائقة الدقة ومطياف وأجهزة رصد للغلاف الجوي وأجهزة إعادة إرسال UHF.'
+      ),
+      experiment: L(
+        'Orbiters act as the telecommunications backbone, receiving data packets from surface rovers and relaying multi-gigabit science files back to the Deep Space Network.',
+        'تعمل المسابير كالعمود الفقري للاتصالات اللاسلكية، حيث تستقبل البيانات من مركبات السطح وترسلها إلى شبكة الفضاء السحيق على الأرض.'
+      ),
+      discovery: L(
+        'Revealed seasonal water frost, tracked global dust storms, mapped mineral deposits that guided rover landings, and captured high-definition views of rovers from space.',
+        'كشفت عن صقيع الماء الموسمي، وتتبعت العواصف الترابية العالمية، ورسمت خرائط المعادن التي وجهت هبوط الروفرات، والتقطت صوراً دقيقة للمركبات على السطح من الفضاء.'
+      ),
+      ending: L(
+        'The Martian orbital highway remains active 24/7, linking humanity\'s robotic scouts across two worlds.',
+        'تواصل شبكة مسارات المريخ المدارية العمل على مدار الساعة، رابطة المستكشفات الآلية بين عالمين.'
+      ),
+    },
+    quiz: {
+      prompt: L(
+        'What critical role do Mars orbiters perform for surface rovers like Opportunity and Curiosity?',
+        'ما هو الدور الحيوي الذي تؤديه مسابير المريخ المدارية لمركبات السطح مثل أوبورتيونيتي وكيريوسيتي؟'
+      ),
+      options: [
+        L(
+          'Acting as UHF telecommunications relays to beam science data and photos back to Earth.',
+          'العمل كمحطات إعادة إرسال لاسلكية لنقل البيانات العلمية والصور فائقة الدقة إلى الأرض.'
+        ),
+        L(
+          'Refueling rover battery cells directly with laser beams from orbit.',
+          'إعادة شحن بطاريات الروفرات مباشرة بواسطة حزم الليزر من المدار.'
+        ),
+        L(
+          'Physically lifting rovers out of sand traps using magnetic tow ropes.',
+          'سحب الروفرات ماديًا من مصائد الرمال باستخدام حبال سحب مغناطيسية.'
+        ),
+      ],
+      correctIndex: 0,
+      explanation: L(
+        'Mars orbiters like Odyssey and MRO relay over 95% of all data from surface missions back to Earth, radically increasing the data volume possible from Mars.',
+        'تنقل مسابير المريخ مثل أوديسي وMRO أكثر من 95% من كافة بيانات المهمات السطحية إلى الأرض، مما يضاعف حجم البيانات العلمية المستلمة.'
+      ),
+    },
+    visitDecision: {
+      prompt: L('INSPECT THE MARTIAN CONSTELLATION?', 'هل تتفحص كوكبة المريخ المدارية؟'),
+      approachOutcome: L(
+        'Surveying the constellation reveals the multi-decade network of orbiters silently watching over Mars.',
+        'استعراض الكوكبة يكشف شبكة المسابير التي تراقب المريخ بهدوء عبر عقود متعددة.'
+      ),
+      keepDistanceOutcome: L(
+        'The wide vantage captures Mars and its moons Phobos and Deimos circling in timeless cosmic rhythm.',
+        'المنظور الشامل يظهر كوكب المريخ وقمريه فوبوس وديموس يدوران بتناغم كوني مهيب.'
+      ),
+    },
+    sources: [SOURCE_BY_ID['nasa-opportunity']],
   },
 
   'mgs-orbiter': {

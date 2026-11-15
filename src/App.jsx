@@ -16,12 +16,14 @@ const loadShowroom = () => import('./components/PlanetaryShowroom');
 const loadSettingsModal = () => import('./components/SettingsModal');
 const loadCreditsModal = () => import('./components/CreditsModal');
 const loadSourcesModal = () => import('./components/SourcesModal');
+const loadTheEndScreen = () => import('./components/TheEndScreen');
 
 const StoryGame = lazy(loadStoryGame);
 const PlanetaryShowroom = lazy(loadShowroom);
 const SettingsModal = lazy(loadSettingsModal);
 const CreditsModal = lazy(loadCreditsModal);
 const SourcesModal = lazy(loadSourcesModal);
+const TheEndScreen = lazy(loadTheEndScreen);
 
 export default function App() {
   const [activeModal, setActiveModal] = useState(null); // 'settings' | 'credits' | 'sources' | 'spacecraft' | null
@@ -141,7 +143,13 @@ export default function App() {
           </div>
         }
       >
-        <StoryGame onBackToMenu={() => setInGame(false)} />
+        <StoryGame
+          onBackToMenu={() => setInGame(false)}
+          onOpenCredits={() => {
+            setInGame(false);
+            setActiveModal('credits');
+          }}
+        />
       </Suspense>
     );
   }
@@ -276,6 +284,18 @@ export default function App() {
             isOpen={true}
             onClose={() => setActiveModal(null)}
             initialDestination="all"
+            onStoryComplete={() => setActiveModal('the_end')}
+          />
+        </Suspense>
+      )}
+
+      {/* The End Screen (Standalone from arcade / direct trigger) */}
+      {activeModal === 'the_end' && (
+        <Suspense fallback={null}>
+          <TheEndScreen
+            onJumpToCredits={() => {
+              setActiveModal('credits');
+            }}
           />
         </Suspense>
       )}

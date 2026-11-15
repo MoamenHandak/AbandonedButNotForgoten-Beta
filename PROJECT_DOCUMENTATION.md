@@ -7,15 +7,18 @@
 
 ## 1. Executive Summary & Tech Stack
 
-"Abandoned But Not Forgotten" allows users to experience ground-level explorations of human spacecraft resting in silence across the Moon and Mars. Users transition seamlessly from a story-driven prologue into panoramic planetary horizons, inspect spacecraft in 360° detail, and examine technical instruments via NASA JPL telemetry HUD overlays.
+"Abandoned But Not Forgotten" is a high-fidelity web application that honors human robotic pioneers left behind across the Moon and Mars. Combining visual-novel storytelling with an interactive Three.js 3D planetary and orbital showroom, the application allows users to explore 12 historic spacecraft across ground-level landscapes and circumplanetary orbits.
 
 | Category | Technology | Purpose |
 | :--- | :--- | :--- |
 | **Framework & UI** | React 18, Vite 6 | Component lifecycle, route/view lazy code splitting (`React.lazy`), fast HMR bundling |
-| **3D Engine** | Three.js (`three@0.187.0`) | Shared Three.js preview canvases (`ModelPreviewCanvas`), menu background crafts, and unified planetary surface environments with PBR materials |
-| **Asset Caching & Decoders** | Singleton `GLTFLoader`, `DRACOLoader` (`/draco/`), `MeshoptDecoder` | Deduplicated fetches, streaming progress, bounded LRU buffer cache, and local WebAssembly Draco decoding |
-| **Audio Engine** | Web Audio API Synthesizer | Procedural thrusters, mechanical servos, thin Martian wind, Lunar vacuum hum |
-| **Visual Language** | Vanilla CSS + Lucide React | Unified NMS template styling: `NMSGeoSans` headings, `NMSFuturaProBook` UI/body (`Tajawal` Arabic fallback), `rgba(0, 0, 0, 0.9)` panels with `1px solid #ffffff` borders, `10px` card radii, and `5px` monochrome buttons |
+| **3D Graphics Engine** | Three.js (`three@0.187.0`) | Surface terrains, 3D planetary globes, orbital mechanics layer (`orbitLayer.js`), responsive camera auto-framing (`cameraAutoFit.js`), PBR materials, and shared preview canvases (`ModelPreviewCanvas`) |
+| **Asset Pipeline & Decoders** | Singleton `GLTFLoader`, `DRACOLoader` (`/draco/`), WebP textures | Draco mesh compression, WebP texture compression, deduplicated fetches, streaming progress, and bounded LRU buffer cache (`modelCache.js`) |
+| **Audio Engine** | Web Audio API Synthesizer | 100% procedural sound synthesis: cold-gas thrusters, mechanical camera servos, Martian winds, Lunar vacuum hum, and polyphonic space ambient music |
+| **Progression Engine** | Custom LocalStorage State Machine | Persistent campaign progression (`abnf_story_progression_v1`), destination lock/unlock, sequential craft discovery, and custom event dispatches |
+| **Responsive Viewport** | Dynamic `100dvh` + `--vh` Engine | Viewport engine (`viewport.js`) handling dynamic iOS Safari toolbars, notch safe-areas (`env(safe-area-inset-*)`), and mobile collapsible bottom sheets |
+| **Design Language** | Vanilla CSS + Lucide React | Unified HUD template: rounded black cards (`rgba(0, 0, 0, 0.95)`), 1px solid white borders, high-contrast typography (white text, bold keywords, zero multi-color clutter), and authentic NASA styling |
+| **Localization** | Custom Multilingual Dictionary | Bilingual English and Arabic (`en`, `ar`) with logical CSS properties (`padding-inline`, `margin-inline`) ensuring seamless RTL layout stabilization |
 
 ---
 
@@ -23,114 +26,143 @@
 
 ```mermaid
 flowchart TD
-    A["Main Menu Splash (Instant Interactive Entry)"] --> B["Main Menu (ModelPreviewCanvas Tiles & Space Background)"]
-    B --> C["Mission Briefing -> Journey Story Flow (Attic -> Drift -> Destination Choice)"]
-    B --> D["Spacecraft Archive (Direct Showroom)"]
-    C --> E["Planetary Horizon Vista (Moon / Mars)"]
-    D --> E
-    E --> F["Spacecrafts Selection Dialog & Prev/Next Controls"]
-    F --> G["Cinematic Camera Fly-To (Cubic Ease-In-Out)"]
-    G --> H["360° Vehicle Inspection & PBR Regolith Floor"]
-    H --> I["Part Hotspots & Dynamic SVG Leader Lines to Physical Parts"]
-    I --> J["Active Instrument Dossier with Telemetry Curve"]
-    H --> K["Multi-Craft Surface Gliding (Next / Prev / Swipe)"]
-    H --> E
+    A["Main Menu Splash (Instant Interactive Entry)"] --> B["Main Menu (3D Preview Tiles & Cosmic Background)"]
+    B --> C["Story Mode (Visual Novel Prologue & Character Dialogue)"]
+    B --> D["Arcade Mode (Direct Spacecraft Archive Showroom)"]
+    
+    C --> E["Prologue Cutscenes: Bedroom -> Attic -> NASA Logbook Light -> Cosmic Drift"]
+    E --> F["Destination Choice Screen (Sector 01 Moon vs. Sector 02 Mars)"]
+    F -->|Progression Locked| G["Planetary Showroom (Chosen Sector)"]
+    D -->|All Unlocked| G
+    
+    G --> H{"View Mode Selection"}
+    H -->|Surface View| I["Planetary Surface Vista (PBR Soil, Terrains & Rovers/Landers)"]
+    H -->|Orbit View| J["Cinematic Orbit Overview Phase (Planet Globe & Orbital Paths)"]
+    
+    I --> K["360° Ground Vehicle Inspection (LRV, Falcon, Opportunity, Ingenuity, Viking, InSight)"]
+    J --> L["Orbital Spacecraft Inspection (LRO, LADEE, MGS, Odyssey, MRO, MAVEN)"]
+    
+    K --> M["Dynamic SVG Leader Lines & Calibrated Part Hotspots"]
+    L --> M
+    M --> N["Technical Instrument Dossier & Telemetry Readout"]
+    N --> O["Knowledge Check Quiz & Educational Verification"]
+    O --> P["Luna Reaction Toast (Telemetry Synced Feedback)"]
+    P --> Q["Story Progression Engine (Unlocks Next Spacecraft)"]
+    Q --> R["All 12 Solved -> Grand Campaign Completion"]
 ```
 
 ---
 
-## 3. Detailed Component Breakdown
+## 3. Narrative Story Mode & Character Systems
 
-### 3.1 Instant Splash Entry, Code Splitting & Lazy Preloading
-- **Location**: `src/App.jsx`, `src/utils/modelCache.js`, `src/styles/menu.css`
-- **Features**:
-  - No blocking full-screen preloader on initial startup: the title splash (`ABANDONED BUT NOT FORGOTTEN`) renders immediately alongside lightweight `CosmicBackground` animations.
-  - Non-menu views (`StoryGame`, `PlanetaryShowroom`), dialogs (`SettingsModal`, `CreditsModal`, `MissionBriefingDialog`), and `Three.js` vendor chunks are code-split via `React.lazy` and `vite.config.js` `manualChunks`.
-  - Background menu assets warm opportunistically via `prefetchGLB` after splash entry without blocking UI interaction.
-  - Starting the story preloads only the `StoryGame` chunk and initial Scene 1/2 images (with inline error/retry handling), deferring Moon/Mars showroom terrains until the user chooses a destination.
+### 3.1 Visual Novel Story Mode Rebuild (`src/components/StoryGame.jsx`, `story.css`)
+- **Full-Screen Immersive Canvas**: Replaced legacy 16:9 framed stages with borderless `100vw x 100dvh` cinematic background art (`object-fit: cover`, `object-position: center`) featuring Ken Burns subtle ambient zoom, cross-fades between shots, and soft vignetting.
+- **Character Cut-out (Luna)**:
+  - Standing character cut-out positioned bottom-left at 75–85vh height with subtle idle breathing animation and entry slide/fade.
+  - Dynamically switches expressions (`neutral`, `thinking`, `happy`, `surprised`) synchronized with story dialogue.
+- **Grandpa's NASA Logbook Mode**:
+  - When the Mission Logbook speaks, Luna dims subtly while a glowing vintage NASA Logbook illustration (`nasa_book_open.webp`) materializes opposite her on the right side of the screen with a warm amber ambient glow.
+- **HUD Dialogue Box Template**:
+  - Centered at the bottom (85–92% viewport width, max 960px).
+  - Dark semi-transparent card (`rgba(0, 0, 0, 0.95)` with 1px light border, `border-radius: 12px`, and backdrop blur).
+  - Speaker identification banner sits directly inside the top header of the card in high-contrast cyan/amber.
+  - Body text uses clean typography with `**bold**` keyword highlights, strictly eliminating distracting multi-color spans.
+  - Keyboard/touch navigation: `Space`, `Enter`, or screen tap advances lines; includes "LOG X / Y" progress counter and instant skip button.
+- **Cinematic 5-Shot Sequence**:
+  1. *Shot 1*: Luna at her window gazing at the night sky, pondering forgotten robots.
+  2. *Shot 2*: Discovering her grandfather's vintage NASA mission logbook in the attic.
+  3. *Shot 3*: Opening the logbook as warm golden light erupts: *"To remember is to bring them home."*
+  4. *Shot 4*: Holographic celestial projections and orbital trajectories fill the room.
+  5. *Shot 5*: Floating above Earth in cosmic space, unlocking Scene 3 (The Destination Choice).
 
-### 3.2 Main Menu, Shared 3D Previews & Space Background
-- **Location**: `src/components/MainMenu.jsx`, `src/components/ModelPreviewCanvas.jsx`, `src/components/CosmicBackground.jsx`, `src/components/StarfieldCanvas.jsx`, `src/components/FloatingCraftsCanvas.jsx`
-- **Features**:
-  - **Smooth Splash-to-Menu Entry**: `.nms-splash` and `.nms-horizon-glow` transition exclusively via compositor properties (`opacity`, `transform`), and `<ModelPreviewCanvas>` menu tile WebGL contexts mount staggered after the `nmsRise` entrance settles so keypress/tap transition stays jank-free.
-  - `ModelPreviewCanvas`: Shared Three.js preview component replacing `@google/model-viewer`, using `modelCache.js`, `ResizeObserver`, `IntersectionObserver`, `document.visibilitychange`, `paused` prop control, `prefers-reduced-motion` support, and WebGL context-loss recovery.
-  - `CosmicBackground`: 2D multi-layer `StarfieldCanvas` (static frame under `prefers-reduced-motion`, DPR & density scaled by active Graphics Quality preset) paired with `FloatingCraftsCanvas` (staggered lazy loading of optimized `*-opt.glb` models via shared cache). Remains animated behind `CreditsModal` while pausing hidden menu tile canvases (`menuTilesPaused`), and pauses cleanly on opaque/blocking dialogs (`SettingsModal`, `SourcesModal`, launch screen).
-  - `SettingsModal` (`src/constants/settings.js` defaults + audio, **Graphics Quality** (`Quality` default, `Balanced`, `Performance`), and language persistence in `localStorage`), `CreditsModal` (rolling credits dialog), and lazy-loaded `SourcesModal` (linked from Main Menu `Sources` button).
+### 3.2 Luna Reaction System (`src/components/LunaReactionToast.jsx`)
+- Non-blocking, visual-novel styled toast dialog appearing after successfully passing any spacecraft knowledge quiz in Story Mode.
+- Features Luna's circular avatar, telemetry sync icon, and localized reassuring commentary praising the restoration of historic telemetry records.
+- Automatically dismisses after 5 seconds or via tap/click.
 
-### 3.3 Narrative Journey & Educational Storytelling Layer
-- **Location**: `src/components/StoryGame.jsx`, `src/data/craftStories.js`, `src/components/StatusBadge.jsx`, `src/components/ShowroomStoryPanel.jsx`, `src/components/MoreEquipmentModal.jsx`, `src/components/SourcesModal.jsx`
-- **Features**:
-  - **Storybook Framing (`StoryGame.jsx`)**: Each prologue and choice stage displays concise grandfather logbook opening notes (`.story-logbook-note`) paired with preloaded cutscenes (`book` -> `drift` -> `choice`).
-  - **Bilingual Story Data Layer (`src/data/craftStories.js`)**: Stores bilingual `{ en, ar }` records (`getCraftStory`, `getArchiveEquipment`, `getAllCraftSources`, `useActiveLanguage`) synced with `SettingsModal` language state (`gameSettingsChange`). Strictly enforces verified NASA claims (surface craft are *remaining equipment* / *mission relics* / *halted spacecraft*; ancient liquid water is distinguished from confirmed life; unreviewed details — including **Ingenuity** and **Viking 1** — are flagged `status: 'unverified'` and display `"Unconfirmed in the sources we reviewed"`).
-  - **Extended Dossier & Status HUD**: Active Dossier cards feature reusable `<StatusBadge />` (`HALTED`, `PASSIVE & STILL USEFUL`, `ACTIVE AS OF LAST UPDATE`, `UNVERIFIED`) + `"VERIFIED: <date>"` chips, matching status dots on bottom craft selector pills, collapsible story sections (`THE QUESTION`, `THE EXPERIMENT`, `THE DISCOVERY`, `THE END`, `VERIFY`), a non-punitive Knowledge Check (`quiz`), and `"DO WE APPROACH THE INSTRUMENT?"` referencing NASA's 2011 Lunar Heritage technical recommendations (`playLock`/`playUnlock`/`playServo` cues).
-  - **Lazy-Loaded Archive & Sources Modals**: `"MORE EQUIPMENT"` opens `MoreEquipmentModal.jsx` with region filters and 2D archive cards (Moon ALSEP/Retroreflectors, Mars Pathfinder/Sojourner/Spirit/Phoenix/InSight, plus Deep Space contrast timeline for Pioneer 10 vs Voyager 1/2 & New Horizons); `"VIEW ALL SOURCES"` opens `SourcesModal.jsx`.
+### 3.3 Campaign Progression Engine (`src/utils/storyProgression.js`)
+- **Persistent Key**: `abnf_story_progression_v1` in `localStorage`.
+- **Linear Moon-First Progression**: In Story Mode, the Moon (Sector 01) is the mandatory starting sector. Mars (Sector 02) is strictly locked with a warning badge until the player completes all spacecraft quizzes across the Moon (`completedAreas.moon === true`). Once the Moon is conquered, Sector 02 (Mars) unlocks automatically.
+- **Sequential Spacecraft Unlocks**: Within a sector, only the first craft is initially unlocked. Subsequent crafts unlock sequentially as the player passes each craft's interactive knowledge quiz.
+- **Event Bus Integration**: Dispatches `window.dispatchEvent(new CustomEvent('storyProgressionUpdated'))` and `gameAudioCue` events on every progression change, allowing reactive UI updates across all components.
+- **Arcade Mode**: Accessible from the Main Menu, providing unrestricted free-flight access to all 12 spacecraft without progression gating.
 
 ---
 
 ## 4. Planetary Showroom & 3D Environments
 
-### 4.1 The Moon Landscape & Earthrise
-- **Terrain**: `moon_surface-opt.glb` (7.37 MiB welded single-mesh scene-Draco + WebP q90 derivative of `models/moon_surface.glb`, 50.25 MiB).
-  - Elevation offset calibrated to `y = 239.28`, placing the central crater floor flush at `y = 0.000`.
-  - Camera `far` increased to `8000` to preserve the complete 10-kilometer lunar crater and mountain rim vistas.
-  - Zero flat gray obstruction: artificial planar ground skirt removed, uncovering the continuous 3D lunar soil, crater bowls, and natural mountain horizons without tile seam cracks.
-  - Linear vacuum horizon blend: `THREE.Fog(0x020409, 3500, 7500)` ensures 100% vacuum clarity across the entire exploration crater (0–3500m) while softly dissolving distant geometry into the starfield.
-- **Starfield**: 3,000 randomized Three.js point stars in deep vacuum.
-- **Coherent Lighting & PBR Calibration**:
-  - **Key Solar Radiance**: Directional sun (`#fffaea`, intensity 2.45) with `±24m` shadow bounds, `shadow.normalBias = 0.025`, `shadow.radius = 2`, and `THREE.PCFShadowMap` for crisp, realistic shadows without acne.
-  - **Earthshine Directional Fill**: Cool blue directional light (`#4080bf`, intensity 0.6) originating from Earth's coordinates `[-65, 38, -120]` towards the rover.
-  - **Hemisphere Ambient & IBL**: Dual-tone balance (`#587296` deep space sky / `#242428` regolith bounce, intensity 0.42) and attenuated terrain `envMapIntensity = 0.14` preserving high Apollo crater contrast while revealing rover undercarriage/foil details.
-- **3D Earthrise**:
-  - Utilizes `realistic_earth-opt.glb` (1.04 MiB derivative of `models/realistic_earth.glb`, 39.16 MiB) positioned at `[-65, 38, -120]` in the lunar sky.
-  - Natural celestial appearance: 2D planar ring geometry removed, letting the spherical Earth rotate naturally against the starfield.
-  - Frame-rate independent orbital rotation using `THREE.Timer` (`earthMesh.rotation.y += 0.036 * dt`, paused cleanly under `prefers-reduced-motion` or modal overlays).
-- **Spacecraft on the Moon**:
-  - **Apollo Lunar Roving Vehicle (LRV)** (`lunar_rover-opt.glb`, 2.65 MiB derivative of `models/mondfahrzeug_lunar_rover.glb`, 50.56 MiB):
-    - Position: `[0, 0, 0]`, rotation: `[0, -0.4, 0]`.
-    - Camera: Focus `[2.8, 1.25, 3.4]`, LookAt `[0, 0.65, 0]`.
-    - Dedicated PBR Material Calibration:
-      - Woven Wire Wheels: `metalness: 0.55`, `roughness: 0.38` (metallic wire sheen).
-      - High-Gain Antenna Dish: `metalness: 0.65`, `roughness: 0.32` (gold mesh alloy).
-      - TV Camera Lens: `metalness: 0.30`, `roughness: 0.12` (optical glass).
-      - Astronaut Seats: `metalness: 0.28`, `roughness: 0.48` (aluminum tubing).
-      - T-Handle Console: `metalness: 0.22`, `roughness: 0.42`.
-      - Damping & Suspension: `metalness: 0.50`, `roughness: 0.35`.
+The showroom supports two distinct planetary theaters: **The Moon** and **Mars**. Each theater features both ground-level surface exploration and true 3D circumplanetary orbital flight.
 
-### 4.2 Mars Landscape (`mud_of_mars-opt.glb`) & Fleet Scattering
-- **Terrain**: Real Martian terrain `mud_of_mars-opt.glb` (537.26 KiB derivative of `models/mud_of_mars.glb`, 19.52 MiB).
-  - Expanded scale: Scaled horizontally to `140.0` (spanning 280 meters across) and vertically to `35.0` (elevation offset `y = 0.319`), creating expansive rolling red dunes and regolith with genuine 3D relief.
-  - High-frequency texture density: 6x repeatable UV wrapping on diffuse and normal maps preserving micro-fissures, pebbles, and fine dust textures without blur or stretching.
-  - Seamless non-square circular perimeter taper: Vertices beyond radius `0.60` (84m from center) smoothly taper via S-curve down to the circular ground skirt (`y = -0.21`), completely eliminating square edges and 90-degree corners.
-  - Boundless 600m circular horizon skirt (`#762f1a`) and matching atmospheric dust fog (`#240d08`, linear `35m` to `175m`), ensuring the horizon dissolves into an endless 360° Martian desert.
-  - Warm golden directional sun (`#ffc58e`, intensity 2.5) with wide frustum shadow coverage spanning all separated spacecraft (`normalBias: 0.02`), and atmospheric hemisphere ambient bounce (`#ffbe85` dusty amber / `#6e311f` iron oxide red, intensity 0.85).
-- **Separated Martian Fleet**:
-  - **MER-B Opportunity Rover** (`mer_rover-opt.glb`, 715.61 KiB derivative of `models/24883_MER_static.glb`, 11.36 MiB):
-    - Central foreground at `[0, 0, 0]`, rotation `[0, 0.35, 0]`.
-    - Camera: Focus `[2.5, 1.25, 2.9]`, LookAt `[0, 0.65, 0]`.
-    - Calibrated PBR response (`metalness: 0.35`, `roughness: 0.45`) preventing dark specular clipping.
-  - **Ingenuity Mars Helicopter** (`ingenuity-opt.glb`, 344.68 KiB derivative of `models/Ingenuity Mars Helicopter.glb`, 1.93 MiB):
-    - Separated to the left on a flight ridge at `[-14.0, 0.02, -7.0]` (~15.7m from Opportunity).
-    - Camera: Focus `[-12.8, 1.03, -5.6]`, LookAt `[-14.0, 0.48, -7.0]`.
-    - Calibrated composite carbon and aluminum response (`metalness: 0.35`, `roughness: 0.40`).
-  - **Viking 1 Lander** (`viking_lander-opt.glb`, 243.48 KiB derivative of `models/Viking Lander.glb`, 1.76 MiB):
-    - Separated to the right on a scientific plain at `[16.0, -0.08, -8.0]` (~17.9m from Opportunity, ~30m from Ingenuity).
-    - Camera: Focus `[17.6, 1.46, -6.4]`, LookAt `[16.0, 0.66, -8.0]`.
-    - Custom PBR material pass (`roughness: 0.58`, `metalness: 0.25`, diffuse tone) eliminating specular whiteout.
+### 4.1 The Complete 12-Spacecraft Fleet
+
+| Destination | Realm | Spacecraft | Role / Historic Context | 3D Model |
+| :--- | :--- | :--- | :--- | :--- |
+| **The Moon** | Surface | **Apollo Lunar Roving Vehicle (LRV)** | Humanity's first electric rover; parked at Hadley Rille | `lunar_rover-opt.glb` |
+| | Surface | **Apollo 15 Lunar Module (Falcon)** | Crewed lander descent stage serving as launch platform | `lunar_module-opt.glb` |
+| | Orbit | **Lunar Reconnaissance Orbiter (LRO)** | Polar mapping orbiter mapping lunar topography in sub-meter detail | `lro-opt.glb` |
+| | Orbit | **LADEE Atmosphere Explorer** | Tenuous exosphere & dust probe; demonstrated LLCD laser comms | `ladee-opt.glb` |
+| **Mars** | Surface | **MER-B Opportunity Rover** | Marathon exploration rover; 5,111 sols in Meridiani Planum | `mer_rover-opt.glb` |
+| | Surface | **Ingenuity Mars Helicopter** | First powered aerial flight on another world; 72 flights | `ingenuity-opt.glb` |
+| | Surface | **Viking 1 Lander** | First long-duration robotic surface science station on Mars | `viking_lander-opt.glb` |
+| | Surface | **InSight Mars Lander** | Geophysical station recording Martian seismic pulses (marsquakes) | `insight-opt.glb` |
+| | Orbit | **Mars Global Surveyor (MGS)** | Global cartographer that discovered hematite water deposits | `mgs-opt.glb` |
+| | Orbit | **2001 Mars Odyssey** | Longest continuously operating spacecraft at Mars; mapped water ice | `odyssey-opt.glb` |
+| | Orbit | **Mars Reconnaissance Orbiter (MRO)** | HiRISE camera providing 30cm/px imaging and UHF relay | `mro-opt.glb` |
+| | Orbit | **MAVEN Atmospheric Observatory** | Investigating how solar winds stripped away the Martian atmosphere | `maven-opt.glb` |
+
+### 4.2 Surface View Environments
+- **Moon Surface (`moon_surface-opt.glb`)**:
+  - Welded single-mesh scene elevation offset to `y = 239.28`, placing the central crater floor at `y = 0.000`.
+  - Camera `far = 8000` preserving 10km lunar mountain horizons without flat planar artifacts.
+  - Linear vacuum fog (`THREE.Fog(0x020409, 3500, 7500)`) maintaining crystal-clear vacuum clarity within the crater.
+  - Rotating 3D Earthrise (`realistic_earth-opt.glb`) positioned at `[-65, 38, -120]` with cool blue directional earthshine.
+  - Directional sun radiance (`#fffaea`, intensity 2.45) with `THREE.PCFShadowMap` and shadow normal bias calibration.
+- **Mars Surface (`mud_of_mars-opt.glb`)**:
+  - Scaled horizontally to `140.0` (280m span) and vertically to `35.0` (elevation offset `y = 0.319`).
+  - Circular perimeter taper smoothly tapering vertices beyond radius 84m down to the ground skirt (`y = -0.21`).
+  - Warm directional sun (`#ffc58e`, intensity 2.5) with wide frustum shadow coverage and dusty atmospheric fog (`#240d08`, 35m–175m).
+  - Spatial separation of surface fleet: Opportunity at origin `[0, 0, 0]`, Ingenuity at `[-14, 0.02, -7]`, Viking 1 at `[16, -0.08, -8]`, and InSight at `[0, 0, -22]`.
+
+### 4.3 Orbital Mechanics & Orbit Overview Phase (`src/scene/orbitLayer.js`, `cameraAutoFit.js`)
+- **Interactive Orbit Layer (`orbitLayer.js`)**:
+  - Central 3D planetary globe with PBR surface textures, terminator shadowing, and physical axial spin (`spinSpeed = 0.012–0.014`).
+  - Real-time orbital propagation along true 3D elliptical orbits with realistic inclination angles and flight tangents.
+  - Martian moons: Phobos and Deimos modeled with elliptical orbits encircling the Red Planet.
+  - Glowing HUD orbit trajectories with radial tick markers wrapped directly around the planet sphere.
+  - Interactive orbital beacon tags and labels (`LRO`, `LADEE`, `MGS`, `ODY`, `MRO`, `MAVEN`).
+- **Cinematic Orbit Overview Phase**:
+  - When entering Orbit View (or upon clicking "ORBIT OVERVIEW" in the top HUD), a dedicated overview phase activates.
+  - Camera pulls back dynamically to frame the entire planetary globe, all orbital paths, and the natural satellites in a single breathtaking vista.
+  - Clicking or scrolling forwards transitions smoothly from the global vantage down to hero inspection framing of the selected orbiter.
+- **Camera Auto-Fit Engine (`cameraAutoFit.js`)**:
+  - Calculates dynamic camera distance based on the object's 3D bounding sphere and the viewport's limiting field of view (limiting vertical FOV in landscape, horizontal FOV in portrait):
+    $$d = \frac{r}{\sin(\min(\theta_v, \theta_h) / 2)} \times \text{margin}$$
+  - Ensures orbiters never clip, appear oversized, or get obscured by interface panels.
 
 ---
 
 ## 5. 3D HUD Pointers & Dynamic Telemetry Leader Lines
 
-Every vehicle part has synchronized SVG leader lines projecting from 3D world space onto the 2D screen.
+Every vehicle part has synchronized SVG leader lines projecting from 3D world space coordinates onto the 2D screen.
 
 ### 5.1 Calibrated Part Hotspots Table
 
-| Spacecraft | Hotspot ID | Part Name | Calibrated World Position | Pointer Offset |
+| Spacecraft | Hotspot ID | Part Name | World Position `[x, y, z]` | Offset `{x, y}` |
 | :--- | :--- | :--- | :--- | :--- |
 | **Lunar Rover** | `lrv-tv` | Color TV Camera | `[0.68, 1.15, 0.40]` | `{ x: 80, y: -50 }` |
 | | `lrv-hga` | High-Gain Umbrella Dish | `[0.99, 1.55, 0.14]` | `{ x: 85, y: -65 }` |
 | | `lrv-wheel` | Woven Wire Wheels | `[0.29, 0.38, 0.75]` | `{ x: -85, y: -35 }` |
 | | `lrv-battery`| 36V Dual Ag-Zn Battery | `[0.12, 0.75, 0.35]` | `{ x: 85, y: 40 }` |
+| **Apollo Lunar Module** | `lm-descent` | Descent Stage & Engine | `[-18.0, 0.85, 10.0]` | `{ x: -85, y: 40 }` |
+| | `lm-footpad` | Landing Gear & Footpad | `[-15.8, 0.35, 12.2]` | `{ x: 85, y: 45 }` |
+| | `lm-mesa` | Modular Equipment Stowage | `[-18.8, 1.65, 8.8]` | `{ x: -85, y: -35 }` |
+| | `lm-antenna` | S-Band Steerable Antenna | `[-17.3, 3.85, 11.2]` | `{ x: 85, y: -55 }` |
+| **LRO Orbiter** | `lro-hga` | High-Gain Antenna (HGA) | `[16.58, -10.52, 2.95]` | `{ x: 85, y: -45 }` |
+| | `lro-cam` | LROC Narrow Angle Camera | `[15.58, -11.12, 2.50]` | `{ x: -85, y: -35 }` |
+| | `lro-solar` | Solar Array Wing | `[15.08, -10.92, 3.15]` | `{ x: 85, y: 35 }` |
+| **LADEE Orbiter** | `ladee-laser` | LLCD Optical Laser Terminal | `[-15.27, -10.16, 16.03]` | `{ x: 85, y: -40 }` |
+| | `ladee-dust` | Lunar Dust Experiment | `[-16.02, -10.76, 15.53]` | `{ x: -85, y: 35 }` |
+| | `ladee-cells` | Body Solar Array Panels | `[-16.12, -10.31, 16.18]` | `{ x: -85, y: -30 }` |
 | **Opportunity** | `oppy-pancam` | Pancam/Navcam Mast | `[-0.04, 1.55, 0.34]` | `{ x: 80, y: -50 }` |
 | | `oppy-solar` | Solar Array Wings | `[0.92, 1.10, -0.29]` | `{ x: 85, y: -25 }` |
 | | `oppy-arm` | 5-Joint Arm & RAT | `[-0.04, 0.50, 0.75]` | `{ x: -85, y: 35 }` |
@@ -139,149 +171,186 @@ Every vehicle part has synchronized SVG leader lines projecting from 3D world sp
 | | `ing-rotor-upper` | Upper Rotor Blade | `[-13.75, 0.66, -6.85]` | `{ x: -85, y: -35 }` |
 | | `ing-rotor-lower` | Lower Rotor Blade | `[-14.25, 0.54, -7.15]` | `{ x: 85, y: -20 }` |
 | | `ing-camera` | Nav Eye & Horizon Cam | `[-13.95, 0.34, -6.90]` | `{ x: -85, y: 40 }` |
-| **Viking 1** | `viking-hga` | High-Gain S-Band Dish | `[16.05, 1.27, -8.25]` | `{ x: 85, y: -55 }` |
+| **Viking 1 Lander** | `viking-hga` | High-Gain S-Band Dish | `[16.05, 1.27, -8.25]` | `{ x: 85, y: -55 }` |
 | | `viking-camera`| Surface Facsimile Cameras | `[15.95, 1.17, -7.85]` | `{ x: -85, y: -45 }` |
 | | `viking-arm` | Soil Sampler Boom & Scoop| `[16.55, 0.37, -7.65]` | `{ x: 85, y: 35 }` |
 | | `viking-rtg` | SNAP-19 RTG Power | `[15.55, 0.67, -8.15]` | `{ x: -85, y: 30 }` |
+| **InSight Lander** | `insight-solar` | UltraFlex Solar Array | `[-2.10, 0.85, -22.0]` | `{ x: -85, y: -45 }` |
+| | `insight-arm` | Instrument Deployment Arm | `[0.75, 0.65, -21.15]` | `{ x: 85, y: -35 }` |
+| | `insight-wts` | Wind & Thermal Shield | `[0.20, 0.78, -22.2]` | `{ x: -85, y: 35 }` |
+| | `insight-antenna`| UHF Relay Antenna & Mast | `[-0.05, 1.25, -22.15]` | `{ x: 85, y: 45 }` |
+| **Mars Global Surveyor** | `mgs-dish` | 1.5m High-Gain Antenna | `[17.78, 0.64, 2.97]` | `{ x: 85, y: -45 }` |
+| | `mgs-camera` | Mars Orbiter Camera (MOC)| `[16.73, -0.06, 2.52]` | `{ x: -85, y: -35 }` |
+| | `mgs-solar` | Solar Array & Drag Flaps | `[15.88, 0.24, 2.87]` | `{ x: -85, y: 40 }` |
+| **2001 Mars Odyssey** | `ody-boom` | GRS Instrument Boom | `[0.90, 6.88, 18.02]` | `{ x: 85, y: -45 }` |
+| | `ody-themis` | THEMIS Thermal Imager | `[-0.30, 6.33, 17.57]` | `{ x: -85, y: -35 }` |
+| | `ody-antenna`| High-Gain Parabolic Dish | `[0.35, 7.13, 17.67]` | `{ x: 85, y: 35 }` |
+| **MRO Orbiter** | `mro-dish` | 3.0m High-Gain Dish | `[-16.56, 14.71, -3.78]` | `{ x: 85, y: -50 }` |
+| | `mro-hirise` | HiRISE Telescope Camera | `[-17.96, 13.66, -4.38]` | `{ x: -85, y: -35 }` |
+| | `mro-solar` | UltraFlex Solar Wings | `[-18.86, 14.11, -3.93]` | `{ x: -85, y: 40 }` |
+| **MAVEN Orbiter** | `maven-artemis`| SWEA / Magnetometer Boom | `[11.20, -28.9, -63.5]` | `{ x: 85, y: -45 }` |
+| | `maven-dish` | 2.0m High-Gain Antenna | `[10.10, -27.8, -61.2]` | `{ x: -85, y: -35 }` |
+| | `maven-solar` | Aerodynamic Gulwing Wings | `[11.90, -28.1, -62.4]` | `{ x: 85, y: 40 }` |
 
-### 5.2 Technical Drawing Leader Line Mechanics
-- **Anchor**: Sits directly on the 3D coordinate with a glowing dot and pulsing radar ping (`transform-box: fill-box; transform-origin: center;`).
-- **Elbow Leader**: An SVG path segment connects `(partX, partY)` to an elbow point, then runs horizontally into the telemetry badge.
-- **Active Dossier Telemetry Curve**: When a part is selected, a quadratic bezier curve with an animated dash (`dossierDash`) dynamically routes from the physical part into the dossier card header.
+### 5.2 Dynamic SVG Leader Line Mechanics
+- **Radar Anchor**: Sits directly on the projected 3D coordinates with a glowing dot and pulsing radar beacon.
+- **Elbow Leader Path**: Dynamic SVG path connects `(partX, partY)` to an elbow point, extending horizontally into the HUD telemetry card.
 - **Frustum Test**: Guarded with `toPoint.dot(camDir) > 0.05` to guarantee zero inverted or back-facing artifacts.
 
 ---
 
-## 6. Wide Horizon Vista, Spacecrafts Briefing & Render Loop Management
+## 6. Handheld & Mobile Viewport Engine (`src/utils/viewport.js`)
 
-- **Wide Vista Perspective**:
-  - Moon Vista: `[0, 1.8, 14.5]` looking at `[0, 0.9, 0]`.
-  - Mars Vista: `[0, 2.0, 12.0]` looking at `[0, 0.75, -1.0]`.
-- **Mission Control Typewriter Briefing & Gliding Navigation**:
-  - Entering any showroom (or clicking `SPACECRAFTS` in the HUD) displays the live wide planetary horizon while playing the bottom `MISSION CONTROL` `.ui-dialogue` typewriter briefing (`MissionBriefingDialog`) without freezing background rendering.
-  - Finishing or skipping the dialog smoothly glides the camera (`focusDuration = 1.6s`) directly into 360° orbit inspection of index `0` (Lunar Rover on Moon / All, **MER Opportunity** on Mars).
-  - Next/Prev buttons, bottom pills, keyboard arrow keys, and mobile swipe switch directly across all vehicles on the surface.
-- **Lifecycle, Render-Loop & Reliability Controls**:
-  - **Parallel Loading & Cancellation**: Uses `Promise.all` with `AbortController` + load token tracking via `modelCache.js` to prevent duplicate downloads or stale destination switches.
-  - **Demand Rendering & Pause**: Stops `requestAnimationFrame` immediately when `document.hidden`, while `showStoryModal` is open, and when idle on Mars (or `prefers-reduced-motion` on Moon); wakes cleanly on orbit interaction, resize, camera fly-to, or vehicle selection.
-  - **GPU Disposal & Context Recovery**: Calls `clearAndDisposeGroup` across switches/unmounts, resolves effective Three.js pixel ratio, shadows, star density, and antialiasing from the user's selected **Graphics Quality** preset (`Quality`, `Balanced`, or `Performance`) via `resolveGraphicsProfile` (without silently overriding user choice), handles `webglcontextlost`/`webglcontextrestored`, and renders inline error/retry + WebGL fallback UI if needed.
+To solve mobile browser URL bar and bottom toolbar obstruction issues (particularly in iOS Safari portrait), the application features a dedicated viewport and safe-area engine.
 
----
+### 6.1 Viewport Configuration & Safe Areas
+- **Dynamic Viewport Unit**: Replaces all `100vh` styling with `100dvh`. For browsers lacking native `dvh` support, a JS fallback `--vh` property is maintained (`window.innerHeight * 0.01`), updated continuously via `resize`, `orientationchange`, and `visualViewport` events.
+- **Safe Area Padding**: Bottom-anchored elements apply `padding-bottom: max(12px, env(safe-area-inset-bottom))`. Header and lateral controls respect `env(safe-area-inset-top)`, `env(safe-area-inset-left)`, and `env(safe-area-inset-right)`.
+- **App Shell Constraint**: `html, body, #root` locked at 100% height with `overflow: hidden; overscroll-behavior: none`. Internal scroll regions are explicitly isolated with `overflow-y: auto; overscroll-behavior: contain`.
 
-## 7. Procedural Web Audio Engine
-
-- **Location**: `src/audio/surfaceAudio.js`
-- **Zero MP3 Assets**: All sounds are synthesized in real time using the browser's Web Audio API.
-- **Cues & Synthesizers**:
-  - `playThruster`: Cold-gas and hydrazine bursts using white noise buffer through resonant bandpass filters with exponential gain envelope decay.
-  - `playServo`: Dual-oscillator pitch-gliding frequency sweeps simulating camera gimbal servos.
-  - `playLock` / `playUnlock`: Two-tone frequency pings for part inspection lock/release.
-  - `startSurfaceAmbience`:
-    - Mars: Dual pink-noise wind generators through low-pass filters with subtle frequency modulation.
-    - Moon: Deep 58Hz vacuum electrical hum with subtle radio carrier frequency shifts.
-  - **Auto-Unlock**: Automatically unlocks Web Audio context on the first user interaction (`pointerdown`, `touchstart`, `keydown`).
+### 6.2 Mobile Showroom Layout (`max-width: 640px`)
+- **Header (~48px single row)**: NASA meatball logo, truncated title with ellipsis, settings button, and menu hamburger. "SURFACE VIEW" / "ORBIT VIEW" toggles are streamlined.
+- **Dedicated 3D Viewport Zone (Flex: 1, >= 45% height)**: The WebGL canvas renders exclusively in this zone, preventing the 3D model from being obscured behind UI cards. Left and right navigation arrows are centered on viewport edges as 48px semi-transparent circular buttons.
+- **Collapsible Bottom Info Panel (~30% height)**: Displays craft name, subtitle, status chip, and "VIEW DETAILS" button above the safe area. Can be collapsed down to a title bar via chevron.
+- **Sliding Details Bottom Sheet**: Opens to `70dvh` with a drag handle and internal tabs (`INFO`, `TASK`, `QUIZ`). Swipe down, backdrop tap, or `Esc` closes the sheet.
+- **Prompt Isolation**: Distinct display logic separates desktop keyboard prompts (`Space to pause`, `Esc to close`) from handheld touch hints (`Tap to pause/close`), preventing overlapping text.
 
 ---
 
-## 8. 3D Asset Pipeline & Repository Structure
+## 7. Hybrid Soundtracked & Procedural Audio Engine (`src/audio/surfaceAudio.js`)
 
-### 8.1 Offline Optimization Pipeline (`scripts/optimize-models.mjs`)
-- Run via `npm run optimize:models` (`@gltf-transform/cli`).
-- All raw source `.glb` models are archived intact inside root `models/` (never deleted or overwritten).
-- Runtime derivatives (`*-opt.glb`) in `public/models/` apply Draco mesh compression (`KHR_draco_mesh_compression`) and WebP textures (`EXT_texture_webp`) while preserving origins, UV tiling, and named PBR materials (`'Chassis'`, `'Wheels'`, `'Antenne'`, etc.).
-- Total size of the 10 active runtime models dropped from **203.24 MiB** (`213.11 MB`) in `models/` to **14.88 MiB** (`15.61 MB`) in `public/models/`.
-- Decoders are served locally from `public/draco/` (`draco_decoder.js`, `draco_decoder.wasm`, `draco_wasm_wrapper.js`) with Web Worker concurrency capped cleanly.
+The application features three dedicated looping soundtracks paired with real-time procedural Web Audio API synthesis for interactive sound effects and planetary environments:
 
-### 8.2 File Structure & Asset Inventory
+- **Looping Soundtracks**:
+  1. **Menu Theme (`/audio/menu_theme.mp3`)**: Seamlessly loops on the initial Title Splash screen ("PRESS ANY KEY OR CLICK TO CONTINUE") and continues uninterrupted through the Main Navigation Menu right behind it.
+  2. **Story Narrative Music (`/audio/story_music.mp3`)**: Seamlessly loops during the visual-novel prologue dialogue sequence before choosing the destination, ducking automatically during typewriter speech and stopping cleanly upon reaching the Destination Choice screen.
+  3. **Space Ambient Music (`/audio/space_music.mp3`)**: Loops continuously across the entirety of 3D space—covering all Moon surface and orbital missions, all Mars surface and orbital missions, and the complete Arcade Mode showroom.
+- **Audio Controls & Synchronization**:
+  - All three soundtracks are centrally managed by `SurfaceAudioEngine`, automatically syncing with the Master Volume slider, Music Volume slider, and Mute Audio toggle from the in-game Settings modal.
+  - Automatically handles browser autoplay policies by registering one-time unlock handlers on first interaction (`pointerdown`, `keydown`, `touchstart`).
+  - Pauses cleanly when browser tabs are hidden (`document.hidden`) and resumes upon return.
+- **Procedural Synthesizers & Sound Effects**:
+  - `playThruster`: Cold-gas and hydrazine bursts synthesized using filtered white noise buffers routed through resonant bandpass filters with exponential gain envelope decay.
+  - `playServo`: Dual-oscillator pitch-gliding frequency sweeps simulating robotic camera servos.
+  - `playLock` / `playUnlock`: Two-tone harmonic frequency pings for part inspection lock and release.
+  - `startSurfaceAmbience`: Dual pink-noise wind generators for Mars, deep 58Hz vacuum electrical hum for the Moon, layering with `space_music.mp3`.
+  - **Interaction Auto-Unlock**: Automatically initializes and resumes the audio context upon the first user interaction (`pointerdown`, `touchstart`, `keydown`).
+
+---
+
+## 8. Credits, 3D Providers & "The End" Screen Sequence
+
+### 8.1 Cinematic "The End" Screen (`TheEndScreen.jsx`)
+- **Trigger**: Appears automatically upon completing all 12 spacecraft across the Moon and Mars campaign in Story Mode, or via the `THE END & CREDITS` action in the Campaign Victory modal.
+- **Cinematic Presentation**: Displays the grand title `THE END` (Arabic: `النـهـايـة`), project subtitle `ABANDONED BUT NOT FORGOTTEN`, the poetic tribute quote (`"To every machine that reached beyond the dust..."`), and the team signature `BY BEYOND THE DUST`.
+- **Immediate Jump to Credits**: Holds gracefully for 3.8 seconds with an active prompt and countdown before automatically jumping right away into the rolling credits, or immediately upon user click / spacebar / enter.
+
+### 8.2 Rolling Credits Modal (`CreditsModal.jsx`)
+The rolling credits modal pays tribute to both human creators, open archives, and the robotic pioneers left among the stars:
+
+- **Team Attribution**: Features `<div className="cr-block cr-team team" id="team">` directly preceding the project leader, celebrating the team name: **`Beyond The Dust`**.
+- **Cinematic Roll Timing**: Paced at 85 seconds (`animation: creditsRoll 85s linear 0.6s forwards`) for comfortable, reflective reading.
+- **Interactive Controls**: `Space` pauses and resumes the roll; `Esc` or clicking/tapping anywhere closes the modal.
+- **Dedicated 3D Model Providers Section**:
+  - **NASA 3D Resources**: Science Visualization Studio, Jet Propulsion Laboratory (JPL), Ames Research Center, Langley Research Center, and Goddard Space Flight Center.
+  - **Sketchfab 3D Community**: Historical spacecraft reconstructions and planetary open-source telemetry models.
+- **Soundtrack & Music Attribution**:
+  - Original space ambient music, prologue narrative score, and exploration themes sourced from YouTube creators.
+- **Complete 12-Spacecraft Roster**: Every spacecraft is listed alongside its mission dates, planetary landing/orbit coordinates, and historical contribution.
+
+---
+
+## 9. 3D Asset Pipeline & Repository Structure
+
+### 9.1 Offline Optimization Pipeline (`scripts/optimize-models.mjs`)
+- Executed via `npm run optimize:models` using `@gltf-transform/cli`.
+- Untouched raw `.glb` source assets are archived intact in `models/` (never overwritten).
+- Optimized runtime derivatives in `public/models/` apply Draco mesh compression (`KHR_draco_mesh_compression`) and WebP textures (`EXT_texture_webp`) while preserving named PBR materials (`'Chassis'`, `'Wheels'`, `'Antenne'`).
+- Decoders are served locally from `public/draco/` with Web Worker concurrency control.
+
+### 9.2 File Structure & Asset Inventory
 
 ```
 NASA hackton/
-├── models/                        # Untouched original raw GLB sources & legacy provenance backups
+├── models/                           # Untouched original raw GLB sources & provenance models
 ├── public/
-│   ├── assets/story/              # Story scene paintings & character illustrations
-│   ├── draco/                     # Local Three.js glTF Draco WASM/JS decoders
-│   └── models/                    # 10 Draco + WebP optimized runtime *-opt.glb files (13.80 MiB total)
-│       ├── lunar_rover-opt.glb    # Apollo Lunar Roving Vehicle (2.65 MiB)
-│       ├── mer_rover-opt.glb      # Mars Exploration Rover Opportunity (715.61 KiB)
-│       ├── ingenuity-opt.glb      # Mars Helicopter Ingenuity (344.68 KiB)
-│       ├── viking_lander-opt.glb  # Viking 1 Lander (243.48 KiB)
-│       ├── astronaut_helmet-opt.glb # Menu Archive tile model (419.41 KiB)
-│       ├── moon_surface-opt.glb   # Welded Moon crater terrain (7.37 MiB)
-│       ├── mud_of_mars-opt.glb    # Martian mud & rock regolith terrain (537.26 KiB)
-│       ├── realistic_earth-opt.glb # 3D Earth backdrop globe (1.04 MiB)
-│       ├── moon-opt.glb           # Interactive Moon globe for Choice screen (465.34 KiB)
-│       └── mars-opt.glb           # Interactive Mars globe for Choice screen (69.75 KiB)
+│   ├── assets/story/                 # Narrative cutscenes & illustrations (shot1-5, nasa_book_open.webp)
+│   ├── audio/                        # Looping audio soundtracks
+│   │   ├── menu_theme.mp3            # Title splash & main navigation menu theme
+│   │   ├── story_music.mp3           # Visual-novel prologue dialogue narrative score
+│   │   └── space_music.mp3           # Universal 3D space theme (Moon, Mars, Arcade)
+│   ├── draco/                        # Local Three.js glTF Draco WASM/JS decoders
+│   ├── manifest.webmanifest          # PWA web application manifest
+│   └── models/                       # Draco + WebP optimized runtime *-opt.glb models
+│       ├── lunar_rover-opt.glb       # Apollo Lunar Roving Vehicle (2.65 MiB)
+│       ├── lunar_module-opt.glb      # Apollo Lunar Module Falcon (558 KiB)
+│       ├── lro-opt.glb               # Lunar Reconnaissance Orbiter (279 KiB)
+│       ├── ladee-opt.glb             # LADEE Lunar Atmosphere Explorer (227 KiB)
+│       ├── mer_rover-opt.glb         # Mars Exploration Rover Opportunity (715 KiB)
+│       ├── ingenuity-opt.glb         # Mars Helicopter Ingenuity (344 KiB)
+│       ├── viking_lander-opt.glb     # Viking 1 Lander (243 KiB)
+│       ├── insight-opt.glb           # InSight Mars Lander (1.28 MiB)
+│       ├── mgs-opt.glb               # Mars Global Surveyor (269 KiB)
+│       ├── odyssey-opt.glb           # 2001 Mars Odyssey (702 KiB)
+│       ├── mro-opt.glb               # Mars Reconnaissance Orbiter (766 KiB)
+│       ├── maven-opt.glb             # MAVEN Atmospheric Observatory (475 KiB)
+│       ├── moon_surface-opt.glb      # Welded Moon crater terrain (7.37 MiB)
+│       ├── mud_of_mars-opt.glb       # Martian mud & rock regolith terrain (537 KiB)
+│       ├── realistic_earth-opt.glb   # 3D Earth backdrop globe (1.04 MiB)
+│       ├── moon-opt.glb              # Interactive Moon globe (465 KiB)
+│       └── mars-opt.glb              # Interactive Mars globe (450 KiB)
 ├── scripts/
-│   └── optimize-models.mjs        # Reproducible original -> *-opt.glb transform script
+│   ├── optimize-models.mjs           # GLTF-transform Draco + WebP pipeline
+│   └── process_character.py          # Character cutout extraction & sprite processor
 ├── src/
 │   ├── audio/
-│   │   └── surfaceAudio.js        # Web Audio API procedural synthesis engine
+│   │   └── surfaceAudio.js           # Web Audio API procedural synthesis engine
 │   ├── components/
-│   │   ├── CosmicBackground.jsx   # Starfield + floating crafts host with pause forwarding
-│   │   ├── CreditsModal.jsx       # Lazy-loaded rolling credits modal
-│   │   ├── FloatingCraftsCanvas.jsx # Staggered lazy 3D menu craft flybys (paused when covered)
-│   │   ├── MainMenu.jsx           # Instant title splash, staggered ModelPreviewCanvas tiles & side list
-│   │   ├── MissionBriefingDialog.jsx # Lazy-loaded typewriter briefing dialog (+ secondary actions)
-│   │   ├── ModelPreviewCanvas.jsx # Shared Three.js preview component (replaces model-viewer)
-│   │   ├── MoreEquipmentModal.jsx # Lazy-loaded 2D Moon/Mars/Deep Space equipment archive modal
-│   │   ├── PlanetaryShowroom.jsx  # Unified Three.js Moon/Mars showroom, dossier & briefing flow
-│   │   ├── SettingsModal.jsx      # Lazy-loaded audio, graphics quality & language dialog
-│   │   ├── ShowroomStoryPanel.jsx # Collapsible story sections, quiz & heritage decision HUD
-│   │   ├── SourcesModal.jsx       # Lazy-loaded verification & primary source index modal
-│   │   ├── StarfieldCanvas.jsx    # Preset-scaled, reduced-motion & pause-aware 2D starfield
-│   │   ├── StatusBadge.jsx        # Reusable HUD craft status badge + VERIFIED date chip
-│   │   └── StoryGame.jsx          # Lazy-loaded narrative prologue, logbook notes & destination flow
+│   │   ├── CosmicBackground.jsx      # Starfield + floating crafts host
+│   │   ├── CreditsModal.jsx          # Cinematic rolling credits with 3D provider attributions
+│   │   ├── FloatingCraftsCanvas.jsx  # Staggered lazy 3D menu craft flybys
+│   │   ├── LunaReactionToast.jsx     # Visual novel feedback toast upon quiz completion
+│   │   ├── MainMenu.jsx              # Instant title splash & mode selection
+│   │   ├── MissionBriefingDialog.jsx # Mission Control typewriter briefing dialog
+│   │   ├── ModelPreviewCanvas.jsx    # Shared Three.js preview canvas component
+│   │   ├── MoreEquipmentModal.jsx    # 2D archive modal (ALSEP, Pathfinder, Deep Space)
+│   │   ├── PlanetaryShowroom.jsx     # Unified surface & orbit showroom orchestrator
+│   │   ├── SettingsModal.jsx         # Audio, Graphics Quality & language settings
+│   │   ├── ShowroomStoryPanel.jsx    # Collapsible story sections, quiz & heritage HUD
+│   │   ├── SourcesModal.jsx          # Verification & primary source index modal
+│   │   ├── StarfieldCanvas.jsx       # Preset-scaled 2D starfield canvas
+│   │   ├── StatusBadge.jsx           # Reusable HUD craft status badge + date chip
+│   │   ├── StoryGame.jsx             # Visual novel prologue & destination choice flow
+│   │   ├── TheEndScreen.jsx          # Cinematic "The End" sequence jumping to credits
+│   │   └── TypewriterText.jsx        # Smooth typewriter dialogue renderer
 │   ├── constants/
-│   │   └── settings.js            # Default settings, language list & Graphics Quality presets
+│   │   ├── settings.js               # Settings defaults & graphics quality profiles
+│   │   └── translations.js           # Complete bilingual {en, ar} dictionary
 │   ├── data/
-│   │   └── craftStories.js        # Bilingual {en, ar} educational stories, quizzes & verified sources
+│   │   └── craftStories.js           # Archival stories, technical dossiers & quizzes
+│   ├── scene/
+│   │   ├── cameraAutoFit.js          # Responsive bounding-sphere camera framing engine
+│   │   └── orbitLayer.js             # Three.js circumplanetary orbital simulation
 │   ├── styles/
-│   │   ├── menu.css               # Main menu, shared HUD tokens, splash & modal styles
-│   │   ├── story.css              # Narrative cutscenes, logbook notes, choice cards & reduced-motion
-│   │   └── spacecraft.css         # Showroom viewport, dossier, quiz, status badges & archive UI
+│   │   ├── menu.css                  # Main menu, HUD tokens, splash & modal styles
+│   │   ├── spacecraft.css            # Showroom, dossier, bottom sheet & orbit HUD styles
+│   │   └── story.css                 # Visual novel cutscenes, dialogue box & Luna styles
 │   ├── utils/
-│   │   └── modelCache.js          # Singleton GLTFLoader/DRACOLoader, fetch dedupe & LRU buffer cache
-│   ├── App.jsx                    # Top-level lazy route/modal orchestration & preloading
-│   └── main.jsx                   # React root mount
-├── index.html
+│   │   ├── modelCache.js             # Singleton GLTF/DRACO loader, LRU buffer cache
+│   │   ├── storyProgression.js       # Persistent progression engine & custom event bus
+│   │   └── viewport.js               # Viewport engine, iOS Safari safe area & haptics
+│   ├── App.jsx                       # Top-level route & modal orchestration
+│   └── main.jsx                      # React 18 root mount
+├── index.html                        # Viewport-fit meta & PWA headers
 ├── package.json
-└── vite.config.js                 # Vite 6 config with vendor manualChunks splitting
+└── vite.config.js                    # Vite 6 config with vendor manualChunks splitting
 ```
 
 ---
 
-## 9. Verification & Operational Status
+## 10. Operational Verification & Build
 
-- **Optimization Pipeline**: `npm run optimize:models` verified against untouched originals in `models/` generating all 10 `public/models/*-opt.glb` runtime assets cleanly.
-- **Production Build & Browser Verification**: Verify with `npm run build` (`vite build`) and live headless browser profiling against `vite preview` before shipping changes.
-
----
-
-## 10. Unified UI, Multi-Language & Audio Architecture (Update)
-
-### 10.1 Unified Design Template
-- **Dialogue Boxes**: Standardized to rounded black cards (`rgba(0, 0, 0, 0.95)`, `1px solid #ffffff`, `12px` border radius, `0 16px 48px rgba(0, 0, 0, 0.85)` elevation). The character name is embedded cleanly within the top of the box in bold white text, followed by high-contrast dialogue text.
-- **Settings & Modals**: Features a clean black card with a 1px solid white border, diamond-thumb volume slider, boxed `<` and `>` arrow buttons, and solid white rectangular action buttons (`[ Graphics: ... ]`, `[ Audio: ... ]`, `[ Back ]`) with black text.
-- **Floating Artifact Removal**: The unneeded `?` circular bubble over the choice character prompt was eliminated cleanly from the DOM and CSS.
-
-### 10.2 Showroom Inspection UI
-- **Side Screen Navigation**: Left (`<`) and right (`>`) navigation arrows are positioned on the far screen edges (vertically centered, 44px square boxes with thin white borders, black background, and hover transitions).
-- **Bottom Center Dock**: Displays the current spacecraft name and status cleanly at bottom-center, with minimal circular dots (`● ○ ○ ○`) spaced evenly beneath it, replacing the cramped pill layout.
-
-### 10.3 Universal Minimalist White Scrollbars
-- Custom cross-browser scrollbars styled globally (`scrollbar-width: thin`, `::-webkit-scrollbar` with white thumb `rgba(255, 255, 255, 0.6)` and semi-transparent track `rgba(255, 255, 255, 0.05)`).
-- Eliminates native grey Windows scrollbars across all modals (`SourcesModal`, `MoreEquipmentModal`, `SettingsModal`, `CreditsModal`), dossier drawers, and scrollable panels.
-
-### 10.4 Multilingual System (EN, AR, FR, ES)
-- **Centralized Dictionary (`src/constants/translations.js`)**: Complete translations across all 4 supported languages covering:
-  - Main Menu (splash kickers, titles, nav buttons, hints)
-  - Prologue & Story cutscenes (Luna and Mission Logbook dialogue)
-  - Destination Choice Screen (Sector 01 Moon, Sector 02 Mars, descriptions, prompts)
-  - Planetary Showroom (top bar, tabs, telemetry, quiz feedback, pause menu)
-  - Settings & Credits
-- **Arabic RTL Stabilization**: `.ui-lang` locked with `direction: ltr !important` and `transform: none` on stepper arrow buttons, ensuring `<` is always on the left and `>` is always on the right regardless of document direction.
-
-### 10.5 Procedural Space Soundtrack Engine (`src/audio/surfaceAudio.js`)
-- **Main Menu Ambient Music (`menu_music`)**: Web Audio API synthesis generating a deep space sub-bass drone (55Hz / 82.4Hz), ethereal pad chord swells (C minor / Eb major space harmony) with sweeping lowpass LFO filters, and random crystalline pentatonic chime pings (523Hz–1046Hz).
-- **Credits Space Music (`credits_music`)**: Warm reflective soundtrack honoring the machines, featuring foundational F-bass drones, lush F-maj9 chord swells, and gentle starfield bell chimes.
-- Seamlessly loops without external network downloads or audio assets, respecting global volume sliders and mute toggles.
+- **Development Server**: Run `npm run dev` to launch Vite on `http://localhost:3000/`.
+- **Production Build**: Run `npm run build` to verify clean chunk compilation and zero syntax errors.
+- **Model Optimization**: Run `npm run optimize:models` whenever new 3D assets are introduced.
+- **Browser Compatibility**: Validated on Google Chrome, Mozilla Firefox, Apple Safari (desktop & iOS portrait/landscape), and Android Chromium.
