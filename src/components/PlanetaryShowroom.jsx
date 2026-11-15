@@ -187,7 +187,7 @@ export const VEHICLES_DATA = [
     sector: 'LUNAR POLAR ORBIT // MAPPING',
     modelSrc: '/models/lro-opt.glb',
     alt: '3D model of Lunar Reconnaissance Orbiter circling the Moon',
-    scale: 0.85,
+    scale: 0.070,
     position: [32.0, -22.1, 5.4],
     rotation: [0.1, 0.4, 0],
     focusCamPos: [35.6, -23.8, 8.2],
@@ -228,7 +228,7 @@ export const VEHICLES_DATA = [
     sector: 'LUNAR EQUATORIAL ORBIT // RETIRED',
     modelSrc: '/models/ladee-opt.glb',
     alt: '3D model of LADEE lunar atmosphere probe',
-    scale: 1.45,
+    scale: 0.036,
     position: [-31.3, -21.1, 31.6],
     rotation: [0.15, 0.5, 0],
     focusCamPos: [-35.8, -22.4, 34.2],
@@ -433,7 +433,7 @@ export const VEHICLES_DATA = [
     sector: 'AEROBRAKING ORBIT // ARCHIVE',
     modelSrc: '/models/mgs-opt.glb',
     alt: '3D model of Mars Global Surveyor orbiter',
-    scale: 0.35,
+    scale: 0.020,
     position: [50.8, 0.5, 8.2],
     rotation: [0.1, 0.35, 0],
     focusCamPos: [55.6, 1.8, 9.6],
@@ -474,7 +474,7 @@ export const VEHICLES_DATA = [
     sector: 'CIRCULAR POLAR ORBIT // ACTIVE',
     modelSrc: '/models/odyssey-opt.glb',
     alt: '3D model of Mars Odyssey 2001 spacecraft',
-    scale: 0.44,
+    scale: 0.011,
     position: [0.4, 18.5, 53.2],
     rotation: [0.2, 0.4, 0],
     focusCamPos: [0.8, 20.2, 58.8],
@@ -515,7 +515,7 @@ export const VEHICLES_DATA = [
     sector: 'LOW MARTIAN ORBIT // HI-RES',
     modelSrc: '/models/mro-opt.glb',
     alt: '3D model of Mars Reconnaissance Orbiter with large dish',
-    scale: 0.040,
+    scale: 0.026,
     position: [-51.4, 41.5, -12.1],
     rotation: [0.1, 0.5, 0],
     focusCamPos: [-55.8, 44.8, -13.2],
@@ -556,7 +556,7 @@ export const VEHICLES_DATA = [
     sector: 'ELLIPTICAL SCIENCE ORBIT',
     modelSrc: '/models/maven-opt.glb',
     alt: '3D model of MAVEN Mars orbiter',
-    scale: 0.27,
+    scale: 0.175,
     position: [10.5, -28.2, -61.8],
     rotation: [0.15, 0.45, 0],
     focusCamPos: [11.8, -30.5, -67.2],
@@ -723,8 +723,6 @@ export default function PlanetaryShowroom({
     }
     window.dispatchEvent(new CustomEvent('gameSettingsChange', { detail: normalized }));
   }, []);
-
-  const hotspotRef = useRef(null);
 
   const activeLang = useActiveLanguage();
   const storyUi = getStoryUiCopy(activeLang);
@@ -1296,35 +1294,6 @@ export default function PlanetaryShowroom({
       renderer.render(scene, camera);
       prevCamPos.copy(camera.position);
       prevTarget.copy(controls.target);
-
-      if (hotspotRef.current) {
-        const cv = currentVehicleRef.current;
-        if (cv) {
-          let worldPos = null;
-          if (cv.isOrbiter && threeRef.current.orbitLayer) {
-            worldPos = threeRef.current.orbitLayer.getOrbiterPosition(cv.id);
-          }
-          if (!worldPos && controls) {
-            if (cv.vistaAnchor && !cv.isOrbiter) {
-              worldPos = _hotspotPos.set(...cv.vistaAnchor);
-            } else {
-              worldPos = controls.target;
-            }
-          }
-          if (worldPos) {
-            _hotspotPos.copy(worldPos);
-            _hotspotPos.project(camera);
-            if (_hotspotPos.z < 1.0) {
-              const x = (_hotspotPos.x * 0.5 + 0.5) * window.innerWidth;
-              const y = (-(_hotspotPos.y * 0.5) + 0.5) * window.innerHeight;
-              hotspotRef.current.style.display = 'flex';
-              hotspotRef.current.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%) translateY(-14px)`;
-            } else {
-              hotspotRef.current.style.display = 'none';
-            }
-          }
-        }
-      }
     };
     threeRef.current.renderOnce = renderOnce;
 
@@ -1390,35 +1359,6 @@ export default function PlanetaryShowroom({
 
       prevCamPos.copy(s.camera.position);
       prevTarget.copy(s.controls.target);
-
-      if (hotspotRef.current && s.camera) {
-        const cv = currentVehicleRef.current;
-        if (cv) {
-          let worldPos = null;
-          if (cv.isOrbiter && s.orbitLayer) {
-            worldPos = s.orbitLayer.getOrbiterPosition(cv.id);
-          }
-          if (!worldPos && s.controls) {
-            if (cv.vistaAnchor && !cv.isOrbiter) {
-              worldPos = _hotspotPos.set(...cv.vistaAnchor);
-            } else {
-              worldPos = s.controls.target;
-            }
-          }
-          if (worldPos) {
-            _hotspotPos.copy(worldPos);
-            _hotspotPos.project(s.camera);
-            if (_hotspotPos.z < 1.0) {
-              const x = (_hotspotPos.x * 0.5 + 0.5) * window.innerWidth;
-              const y = (-(_hotspotPos.y * 0.5) + 0.5) * window.innerHeight;
-              hotspotRef.current.style.display = 'flex';
-              hotspotRef.current.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%) translateY(-14px)`;
-            } else {
-              hotspotRef.current.style.display = 'none';
-            }
-          }
-        }
-      }
 
       s.renderer.render(s.scene, s.camera);
     };
@@ -1506,7 +1446,6 @@ export default function PlanetaryShowroom({
       }
       clearAndDisposeGroup(terrainGroup);
       clearAndDisposeGroup(vehiclesGroup);
-      if (hotspotRef.current) hotspotRef.current.style.display = 'none';
       if (terrainGroup) terrainGroup.visible = false;
       if (vehiclesGroup) vehiclesGroup.visible = false;
       activeSunLight = null;
@@ -2602,12 +2541,10 @@ export default function PlanetaryShowroom({
               type="button"
               className="details-close-btn"
               onClick={handleCloseDetails}
-              aria-label="Close details and inspect 3D model"
-              title="Close panel to inspect 3D model unobstructed"
+              aria-label="Close details"
+              title="Close details (Esc)"
             >
-              <Eye size={13} />
-              <span>VIEW MODEL</span>
-              <X size={13} />
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
 
@@ -2863,27 +2800,6 @@ export default function PlanetaryShowroom({
             })()}
           </div>
         </aside>
-      )}
-
-      {/* Interactive Floating 3D Model Beacon ("!" Hotspot) */}
-      {!isDialogVisible && !isDetailsOpen && (
-        <div
-          ref={hotspotRef}
-          className="showroom-model-hotspot"
-          onClick={handleOpenDetails}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') handleOpenDetails();
-          }}
-          aria-label={`Open mission dossier for ${currentVehicle.name}`}
-          title="Click to view mission details, tasks and quiz"
-        >
-          <div className="model-hotspot-badge">
-            <span className="model-hotspot-exclamation">!</span>
-          </div>
-          <span className="model-hotspot-label">{currentVehicle.name} • INSPECT</span>
-        </div>
       )}
 
       {/* Opposite Sides Navigation Chevrons */}

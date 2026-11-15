@@ -46,8 +46,8 @@ const ORBIT_CONFIGS = {
       inclination: [1.45, 0.2, 0.1], // Near-polar mapping orbit ~85 deg
       speed: 0.18, // rad/s
       initialAngle: 0.85,
-      ambientScale: 0.12,
-      heroScale: 0.85, // Hero inspection span ~3.57 units
+      ambientScale: 0.026, // Native span 33.28m -> ambient span ~0.86 units
+      heroScale: 0.070, // Hero inspection span ~2.33 units
       color: 0x00e5ff,
     },
     {
@@ -60,8 +60,8 @@ const ORBIT_CONFIGS = {
       inclination: [0.35, 0.45, 0.2],
       speed: 0.14,
       initialAngle: 2.7,
-      ambientScale: 0.18,
-      heroScale: 1.45, // Hero inspection span ~3.48 units
+      ambientScale: 0.013, // Native span 63.90m -> ambient span ~0.83 units
+      heroScale: 0.036, // Hero inspection span ~2.30 units
       color: 0x8de1ff,
     },
   ],
@@ -76,8 +76,8 @@ const ORBIT_CONFIGS = {
       inclination: [0.55, 0.25, 0.1],
       speed: 0.14,
       initialAngle: 0.4,
-      ambientScale: 0.05,
-      heroScale: 0.35, // Hero inspection span ~3.68 units
+      ambientScale: 0.009, // Native span 115.88m -> ambient span ~1.04 units
+      heroScale: 0.020, // Hero inspection span ~2.32 units
       stationedPos: [50.8, 0.5, 8.2],
       color: 0x00e5ff,
     },
@@ -91,8 +91,8 @@ const ORBIT_CONFIGS = {
       inclination: [-0.42, 0.35, 0.2],
       speed: 0.12,
       initialAngle: 1.9,
-      ambientScale: 0.07,
-      heroScale: 0.44, // Hero inspection span ~3.61 units
+      ambientScale: 0.005, // Native span 215.92m -> ambient span ~1.08 units
+      heroScale: 0.011, // Hero inspection span ~2.37 units
       stationedPos: [0.4, 18.5, 53.2],
       color: 0x64d2ff,
     },
@@ -106,8 +106,8 @@ const ORBIT_CONFIGS = {
       inclination: [1.5, -0.25, 0.15], // Hi-res polar reconnaissance
       speed: 0.10,
       initialAngle: 3.6,
-      ambientScale: 0.007,
-      heroScale: 0.040, // Hero inspection span ~3.58 units
+      ambientScale: 0.011, // Native span 89.74m -> ambient span ~0.99 units
+      heroScale: 0.026, // Hero inspection span ~2.33 units
       stationedPos: [-51.4, 41.5, -12.1],
       color: 0x00e5ff,
     },
@@ -121,8 +121,8 @@ const ORBIT_CONFIGS = {
       inclination: [-0.65, 0.45, 0.35], // Dipping elliptical atmosphere science orbit
       speed: 0.08,
       initialAngle: 5.1,
-      ambientScale: 0.045,
-      heroScale: 0.27, // Hero inspection span ~3.64 units
+      ambientScale: 0.075, // Native span 13.44m -> ambient span ~1.01 units
+      heroScale: 0.175, // Hero inspection span ~2.35 units
       stationedPos: [10.5, -28.2, -61.8],
       color: 0xffcc73,
     },

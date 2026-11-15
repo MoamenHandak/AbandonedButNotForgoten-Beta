@@ -39,18 +39,27 @@ const SCENE_1_LINES = [
   {
     speaker: 'LUNA',
     role: 'CURIOUS EXPLORER',
-    text: "What's happening?! The pages... an old NASA mission logbook found among Grandpa's relics is starting to glow!"
-  },
-  {
-    speaker: "MISSION LOGBOOK",
-    role: "APOLLO ARCHIVE",
-    isLogbook: true,
-    text: "They didn't vanish. They stayed right where their last command ended—silent sentinels on distant worlds."
+    bgImage: '/assets/story/shot1.png',
+    text: "Late at night, when the city quiets down, I look at the stars outside my window. Humanity sent so many brave explorers into the deep unknown—rovers, landers, orbiters... Are they still waiting out there in the dark?"
   },
   {
     speaker: 'LUNA',
     role: 'CURIOUS EXPLORER',
-    text: "Holographic constellations and miniature planets are spiraling into the room, whispering the tales of machines humanity left behind among the stars!"
+    bgImage: '/assets/story/shot2.jpg',
+    text: "Wait... this old archive logbook from Grandpa's NASA days. The classic insignia is faded, but the cover is warm to the touch... like telemetry pulses humming softly under the leather."
+  },
+  {
+    speaker: 'LUNA',
+    role: 'CURIOUS EXPLORER',
+    bgImage: '/assets/story/shot3.jpg',
+    text: "It's opening! The pages aren't just paper—they're glowing with orbital trajectory maps and telemetry beacons!"
+  },
+  {
+    speaker: "MISSION LOGBOOK",
+    role: "DEEP SPACE ARCHIVE",
+    bgImage: '/assets/story/shot3.jpg',
+    isLogbook: true,
+    text: "ARCHIVE LINK ESTABLISHED: Project 'Abandoned, But Not Forgotten'. Relaying telemetry beacons across the Solar System. To remember is to bring them home."
   }
 ];
 
@@ -58,18 +67,28 @@ const SCENE_2_LINES = [
   {
     speaker: 'LUNA',
     role: 'CURIOUS EXPLORER',
-    text: "Where am I?! The bedroom walls dissolved into an infinite expanse of stellar dust and planetary orbits!"
+    bgImage: '/assets/story/shot4.jpg',
+    text: "Whoa! Miniature glowing planets, celestial rings, and spiral galaxies are spinning right into my bedroom! It's like the entire cosmos came to tell its story!"
   },
   {
     speaker: "MISSION LOGBOOK",
     role: "COSMIC ARCHIVE",
+    bgImage: '/assets/story/shot4.jpg',
     isLogbook: true,
-    text: "Space is not empty. It carries the echoes of humanity's greatest endeavors—waiting for someone to remember them."
+    text: "From the airless craters of the Moon to the windswept dunes of Mars, every silent machine stands as an enduring monument to human curiosity."
   },
   {
     speaker: 'LUNA',
     role: 'CURIOUS EXPLORER',
-    text: "The telemetry coordinates to the forgotten explorers are locking in... time to choose which world to investigate first!"
+    bgImage: '/assets/story/shot5.jpg',
+    text: "The bedroom walls dissolved completely... I'm floating in weightless orbit high above planet Earth! The logbook is unlocking deep-space exploration trajectories!"
+  },
+  {
+    speaker: "MISSION LOGBOOK",
+    role: "NAVIGATION SYSTEM",
+    bgImage: '/assets/story/shot5.jpg',
+    isLogbook: true,
+    text: "Telemetry vectors primed. Choose your destination, explorer: uncover the frozen silence of the Moon, or journey across the void to the Red Planet."
   }
 ];
 
@@ -107,9 +126,11 @@ function StoryDialogueBox({
     return () => window.removeEventListener('keydown', handleKey);
   }, [currentLine, isLastLine]);
 
+  const currentBg = line?.bgImage || bgImage;
+
   return (
     <section className="story-cinematic-stage" aria-label={`Story Scene: ${chapter}`}>
-      <img src={resolveAssetUrl(bgImage)} alt={bgAlt} className="story-cinematic-bg" />
+      <img key={currentBg} src={resolveAssetUrl(currentBg)} alt={bgAlt} className="story-cinematic-bg" />
       <div className="story-cinematic-vignette" />
 
       <div className="story-chapter-chip">
@@ -199,6 +220,11 @@ export default function StoryGame({ onBackToMenu }) {
       const id = setTimeout(() => {
         prefetchGLB('/models/moon-opt.glb');
         prefetchGLB('/models/mars-opt.glb');
+        preloadImage('/assets/story/shot1.png');
+        preloadImage('/assets/story/shot2.jpg');
+        preloadImage('/assets/story/shot3.jpg');
+        preloadImage('/assets/story/shot4.jpg');
+        preloadImage('/assets/story/shot5.jpg');
         preloadImage('/assets/story/girl_thinking.png');
       }, 200);
       return () => clearTimeout(id);

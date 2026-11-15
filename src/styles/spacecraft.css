@@ -2298,27 +2298,25 @@
 
 .details-close-btn {
     background: transparent;
-    border: 1px solid #ffffff;
-    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 6px;
     color: #ffffff;
-    padding: 6px 12px;
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-family: var(--font-ui, 'Tajawal', sans-serif);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    justify-content: center;
+    padding: 0;
     cursor: pointer;
-    transition: background-color 0.25s ease, color 0.2s ease, transform 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
     flex-shrink: 0;
 }
 
 .details-close-btn:hover {
     background: #ffffff;
+    border-color: #ffffff;
     color: #000000;
-    transform: scale(1.02);
+    transform: scale(1.06);
 }
 
 .details-tabs-bar {
