@@ -8,7 +8,8 @@ import {
   normalizeSettings,
 } from './constants/settings';
 import { installSurfaceAudio } from './audio/surfaceAudio';
-import { preloadImage } from './utils/modelCache';
+import { preloadImage, preloadAllCoreAssets } from './utils/modelCache';
+import { resetStoryProgression } from './utils/storyProgression';
 import './styles/menu.css';
 
 const loadStoryGame = () => import('./components/StoryGame');
@@ -32,11 +33,30 @@ export default function App() {
   const [inGame, setInGame] = useState(false);
   const [settings, setSettings] = useState(() => readStoredSettings());
   const [loadProgress, setLoadProgress] = useState(0);
+  const [loadingPhase, setLoadingPhase] = useState('Opening Mission Logbook');
 
   // Title screen state (press any key to reveal menu)
   const [isTitleEntered, setIsTitleEntered] = useState(false);
 
+  // Allow resetting story progression via ?reset=1 or ?reset=true query parameter
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.toLowerCase().includes('reset')) {
+      resetStoryProgression();
+      const url = new URL(window.location.href);
+      url.searchParams.delete('reset');
+      window.history.replaceState({}, '', url.pathname + (url.search || ''));
+    }
+  }, []);
+
   useEffect(() => installSurfaceAudio(), []);
+
+  // Idle warm-up of core audio and scene backgrounds in background cache
+  useEffect(() => {
+    const timerId = setTimeout(() => {
+      preloadAllCoreAssets(() => {}).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(timerId);
+  }, []);
 
   // Load settings on initial mount and sync global audio/graphics defaults immediately
   useEffect(() => {
@@ -85,12 +105,12 @@ export default function App() {
     );
   };
 
-  // Launch Journey sequence — loads ONLY the StoryGame chunk + Scene 1 & 2 story paintings;
-  // heavy terrain GLBs are deferred until the user selects Moon or Mars.
+  // Launch Journey sequence — loads code bundles, visual-novel paintings, character poses, audio soundtracks, and 3D assets
   const handleStartJourney = async () => {
     setIsLaunching(true);
     setLaunchError(null);
-    setLoadProgress(10);
+    setLoadProgress(5);
+    setLoadingPhase(settings?.language === 'ar' ? 'جاري تهيئة سجل المهمة...' : 'INITIALIZING MISSION LOGBOOK...');
 
     window.dispatchEvent(
       new CustomEvent('gameAudioCue', {
@@ -99,29 +119,37 @@ export default function App() {
     );
 
     try {
-      let doneSteps = 0;
-      const totalSteps = 3;
-      const tickStep = () => {
-        doneSteps += 1;
-        setLoadProgress(Math.round((doneSteps / totalSteps) * 100));
-      };
+      // Step 1: Preload code bundles in parallel
+      setLoadingPhase(settings?.language === 'ar' ? 'تحميل أرشيف القصة والواجهة...' : 'LOADING NARRATIVE ARCHIVES...');
+      await Promise.allSettled([loadStoryGame(), loadShowroom()]);
+      setLoadProgress(20);
 
-      const [storyOk] = await Promise.all([
-        loadStoryGame().then(() => {
-          tickStep();
-          return true;
-        }),
-        preloadImage('/assets/story/scene1_book.jpg').then(() => tickStep()),
-        preloadImage('/assets/story/scene2_drift.jpg').then(() => tickStep())
-      ]);
+      // Step 2: Comprehensive preload of images, Luna poses, audio soundtracks, and initial 3D models
+      await preloadAllCoreAssets((pct) => {
+        const mapped = 20 + Math.round(pct * 0.75);
+        setLoadProgress(mapped);
+        if (pct < 35) {
+          setLoadingPhase(settings?.language === 'ar' ? 'مزامنة المقاطع الصوتية الفضائية...' : 'SYNCHRONIZING AUDIO SOUNDTRACKS...');
+        } else if (pct < 70) {
+          setLoadingPhase(settings?.language === 'ar' ? 'تخزين رسومات السجل والشخصيات...' : 'CACHING LOGBOOK PAINTINGS & CHARACTERS...');
+        } else {
+          setLoadingPhase(settings?.language === 'ar' ? 'تحميل مجسمات الفضاء ثلاثية الأبعاد...' : 'PREPARING 3D SPACECRAFT ASSETS...');
+        }
+      });
 
-      if (storyOk) {
+      setLoadProgress(100);
+      setLoadingPhase(settings?.language === 'ar' ? 'فتح سجل الجد لونا...' : 'OPENING LOGBOOK...');
+      setTimeout(() => {
         setInGame(true);
         setIsLaunching(false);
-      }
+      }, 350);
     } catch (err) {
       console.error('Failed to launch story module:', err);
-      setLaunchError('Unable to load the Mission Archive module. Check your connection and retry.');
+      setLaunchError(
+        settings?.language === 'ar'
+          ? 'تعذر تحميل بيانات المهمة. يرجى التحقق من اتصالك والمحاولة مرة أخرى.'
+          : 'Unable to load mission assets. Check your connection and retry.'
+      );
     }
   };
 
@@ -208,7 +236,7 @@ export default function App() {
                   <span style={{ width: `${loadProgress}%` }} />
                 </div>
                 <p className="initial-loading-details" style={{ justifyContent: 'center' }}>
-                  <span>{loadProgress}% · Opening Mission Logbook</span>
+                  <span>{loadProgress}% · {loadingPhase}</span>
                 </p>
               </>
             ) : (

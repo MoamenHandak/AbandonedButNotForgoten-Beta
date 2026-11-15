@@ -780,6 +780,7 @@ export default function PlanetaryShowroom({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false); // Default hidden so 3D model is visible first
   const [isDetailsLeaving, setIsDetailsLeaving] = useState(false); // Controls smooth slide-out exit animation
   const [detailTab, setDetailTab] = useState('info'); // 'info' | 'task' | 'quiz'
+  const [readSectionsUnlocked, setReadSectionsUnlocked] = useState({}); // Per-craft read-wall unlocks: { [craftId]: { task: boolean, quiz: boolean } }
   const [quizState, setQuizState] = useState({});
   const [isOrbitalView, setIsOrbitalView] = useState(false);
   const [isOrbitTransitioning, setIsOrbitTransitioning] = useState(false);
@@ -2860,51 +2861,67 @@ export default function PlanetaryShowroom({
             </button>
           </div>
 
-          {/* 3 Tabs Bar: Info, Task, Quiz */}
-          <nav className="details-tabs-bar" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={detailTab === 'info'}
-              className={`details-tab-btn ${detailTab === 'info' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
-              onClick={() => {
-                dispatchAudioCue('tab_switch');
-                setDetailTab('info');
-                detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              <Info size={14} />
-              <span>{t.infoTab || 'INFO'}</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={detailTab === 'task'}
-              className={`details-tab-btn ${detailTab === 'task' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
-              onClick={() => {
-                dispatchAudioCue('tab_switch');
-                setDetailTab('task');
-                detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              <CheckCircle2 size={14} />
-              <span>{t.taskTab || 'TASK'}</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={detailTab === 'quiz'}
-              className={`details-tab-btn ${detailTab === 'quiz' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
-              onClick={() => {
-                dispatchAudioCue('tab_switch');
-                setDetailTab('quiz');
-                detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              <HelpCircle size={14} />
-              <span>{t.quizTab || 'QUIZ'}</span>
-            </button>
-          </nav>
+          {/* 3 Tabs Bar: Info, Task, Quiz (Locked behind educational read wall) */}
+          {(() => {
+            const currentUnlocked = readSectionsUnlocked[currentVehicle?.id] || {};
+            const isTaskUnlocked = Boolean(currentUnlocked.task);
+            const isQuizUnlocked = Boolean(currentUnlocked.quiz);
+
+            const handleTabClick = (targetTab) => {
+              if (targetTab === 'task' && !isTaskUnlocked) {
+                playServo('click');
+                triggerHaptic('warning');
+                return;
+              }
+              if (targetTab === 'quiz' && !isQuizUnlocked) {
+                playServo('click');
+                triggerHaptic('warning');
+                return;
+              }
+              dispatchAudioCue('tab_switch');
+              setDetailTab(targetTab);
+              detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            return (
+              <nav className="details-tabs-bar" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === 'info'}
+                  className={`details-tab-btn ${detailTab === 'info' ? 'is-active' : ''} ${!isMoon ? 'is-mars' : ''}`}
+                  onClick={() => handleTabClick('info')}
+                >
+                  <Info size={14} />
+                  <span>{t.infoTab || 'INFO'}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === 'task'}
+                  aria-disabled={!isTaskUnlocked}
+                  className={`details-tab-btn ${detailTab === 'task' ? 'is-active' : ''} ${!isTaskUnlocked ? 'is-locked' : ''} ${!isMoon ? 'is-mars' : ''}`}
+                  onClick={() => handleTabClick('task')}
+                  title={!isTaskUnlocked ? (activeLang === 'ar' ? 'مغلق: يرجى تأكيد قراءة قسم المعلومات أولاً' : 'Locked: Read Info and confirm to unlock') : (t.taskTab || 'TASK')}
+                >
+                  {!isTaskUnlocked ? <Lock size={12} className="details-tab-lock-icon" /> : <CheckCircle2 size={14} />}
+                  <span>{t.taskTab || 'TASK'}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === 'quiz'}
+                  aria-disabled={!isQuizUnlocked}
+                  className={`details-tab-btn ${detailTab === 'quiz' ? 'is-active' : ''} ${!isQuizUnlocked ? 'is-locked' : ''} ${!isMoon ? 'is-mars' : ''}`}
+                  onClick={() => handleTabClick('quiz')}
+                  title={!isQuizUnlocked ? (activeLang === 'ar' ? 'مغلق: يرجى تأكيد قراءة قسم المهام أولاً' : 'Locked: Read Mission Tasks and confirm to unlock') : (t.quizTab || 'QUIZ')}
+                >
+                  {!isQuizUnlocked ? <Lock size={12} className="details-tab-lock-icon" /> : <HelpCircle size={14} />}
+                  <span>{t.quizTab || 'QUIZ'}</span>
+                </button>
+              </nav>
+            );
+          })()}
 
           {/* Tab Content Body */}
           <div className="details-content-scroll" ref={detailsScrollRef}>
@@ -2946,17 +2963,25 @@ export default function PlanetaryShowroom({
                   </div>
                 </div>
 
-                {/* Bottom button: Proceed to Tasks */}
+                {/* Bottom button: Proceed to Tasks (Unlocks Task section) */}
                 <button
                   type="button"
-                  className="details-section-nav-btn"
+                  className="details-section-nav-btn is-confirm"
                   onClick={() => {
                     dispatchAudioCue('tab_switch');
+                    triggerHaptic('selection');
+                    setReadSectionsUnlocked((prev) => ({
+                      ...prev,
+                      [currentVehicle.id]: {
+                        ...(prev[currentVehicle.id] || {}),
+                        task: true
+                      }
+                    }));
                     setDetailTab('task');
                     detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
-                  <span>{t.continueToTasks || (activeLang === 'ar' ? 'الانتقال إلى مهام المهمة ←' : 'CONTINUE TO MISSION TASKS →')}</span>
+                  <span>{activeLang === 'ar' ? 'تأكيد القراءة والانتقال إلى المهام ←' : 'CONFIRM ARCHIVE & PROCEED TO TASKS →'}</span>
                   <ChevronRight size={16} style={{ transform: activeLang === 'ar' ? 'rotate(180deg)' : 'none' }} />
                 </button>
               </>
@@ -3008,17 +3033,26 @@ export default function PlanetaryShowroom({
                     </div>
                   )}
 
-                  {/* Bottom button: Proceed to Quiz */}
+                  {/* Bottom button: Proceed to Quiz (Unlocks Quiz section) */}
                   <button
                     type="button"
-                    className="details-section-nav-btn"
+                    className="details-section-nav-btn is-confirm"
                     onClick={() => {
                       dispatchAudioCue('tab_switch');
+                      triggerHaptic('selection');
+                      setReadSectionsUnlocked((prev) => ({
+                        ...prev,
+                        [currentVehicle.id]: {
+                          ...(prev[currentVehicle.id] || {}),
+                          task: true,
+                          quiz: true
+                        }
+                      }));
                       setDetailTab('quiz');
                       detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    <span>{t.proceedToQuiz || (activeLang === 'ar' ? 'الانتقال إلى الاختبار التقني ←' : 'PROCEED TO TECHNICAL QUIZ →')}</span>
+                    <span>{activeLang === 'ar' ? 'تأكيد المهام وبدء اختبار القياس ←' : 'CONFIRM TASKS & COMMENCE QUIZ →'}</span>
                     <ChevronRight size={16} style={{ transform: activeLang === 'ar' ? 'rotate(180deg)' : 'none' }} />
                   </button>
                 </>

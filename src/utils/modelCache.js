@@ -192,6 +192,91 @@ export function preloadImage(url) {
   });
 }
 
+/**
+ * Preloads and warms audio buffer in the browser cache.
+ * Resolves on canplaythrough / loadeddata, or graceful safety timeout.
+ */
+export function preloadAudio(url) {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(true);
+    try {
+      const resolved = resolveAssetUrl(url);
+      const audio = new Audio();
+      let settled = false;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        audio.removeEventListener('canplaythrough', finish);
+        audio.removeEventListener('loadeddata', finish);
+        audio.removeEventListener('error', finish);
+        resolve(true);
+      };
+
+      audio.addEventListener('canplaythrough', finish, { once: true });
+      audio.addEventListener('loadeddata', finish, { once: true });
+      audio.addEventListener('error', finish, { once: true });
+      audio.preload = 'auto';
+      audio.src = resolved;
+      audio.load();
+
+      // Safety fallback: continue after 3.5s so slow network does not freeze user
+      setTimeout(finish, 3500);
+    } catch {
+      resolve(true);
+    }
+  });
+}
+
+/**
+ * Comprehensive preloader that loads:
+ * 1. Visual-novel story backgrounds and illustrations
+ * 2. Luna character poses
+ * 3. All audio soundtracks (menu, story, space)
+ * 4. Critical 3D terrain and spacecraft models
+ */
+export async function preloadAllCoreAssets(onProgress) {
+  const images = [
+    '/assets/story/room_bg.jpg',
+    '/assets/story/space_bg.jpg',
+    '/assets/story/nasa_book_open.webp',
+    '/assets/story/nasa_book_open.png',
+    '/assets/story/luna/luna_reading.webp',
+    '/assets/story/luna/luna_curious.webp',
+    '/assets/story/luna/luna_wonder.webp',
+    '/assets/story/luna/luna_surprised.webp'
+  ];
+
+  const audio = [
+    '/audio/menu_theme.mp3',
+    '/audio/story_music.mp3',
+    '/audio/space_music.mp3'
+  ];
+
+  const models = [
+    '/models/moon-opt.glb',
+    '/models/lunar_rover-opt.glb'
+  ];
+
+  const total = images.length + audio.length + models.length;
+  let done = 0;
+
+  const tick = () => {
+    done += 1;
+    if (onProgress) {
+      onProgress(Math.min(100, Math.round((done / total) * 100)));
+    }
+  };
+
+  const tasks = [
+    ...images.map((img) => preloadImage(img).then(tick)),
+    ...audio.map((aud) => preloadAudio(aud).then(tick)),
+    ...models.map((mod) => prefetchGLB(mod).then(tick))
+  ];
+
+  await Promise.allSettled(tasks);
+}
+
 const MATERIAL_TEXTURE_SLOTS = [
   'map',
   'normalMap',
