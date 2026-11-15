@@ -8,12 +8,15 @@ import {
   ChevronRight,
   Layers,
   BookOpen,
-  Rocket
+  Rocket,
+  Lock,
+  CheckCircle2
 } from 'lucide-react';
 import ModelPreviewCanvas from './ModelPreviewCanvas';
 import { prefetchGLB, preloadImage, resolveAssetUrl } from '../utils/modelCache';
 import { getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
 import { getTranslations } from '../constants/translations';
+import { getStoryProgression, recordInitialChoice, isAreaLocked } from '../utils/storyProgression';
 import '../styles/story.css';
 
 const loadShowroom = () => import('./PlanetaryShowroom');
@@ -174,9 +177,20 @@ export default function StoryGame({ onBackToMenu }) {
   // Scene states: 'book' -> 'drift' -> 'choice' -> 'moon' | 'mars'
   const [currentScene, setCurrentScene] = useState('book');
   const [craftBrowse, setCraftBrowse] = useState(false);
+  const [progression, setProgression] = useState(getStoryProgression);
+
   const activeLang = useActiveLanguage();
   const storyUi = getStoryUiCopy(activeLang);
   const t = getTranslations(activeLang).story;
+
+  useEffect(() => {
+    const onProgressionUpdate = (e) => {
+      if (e.detail) setProgression(e.detail);
+      else setProgression(getStoryProgression());
+    };
+    window.addEventListener('storyProgressionUpdated', onProgressionUpdate);
+    return () => window.removeEventListener('storyProgressionUpdated', onProgressionUpdate);
+  }, []);
 
   // Progressive scene-by-scene warming: pre-warm Choice globes during Scene 1/2,
   // and only warm PlanetaryShowroom JS code when reaching Choice
@@ -341,66 +355,152 @@ export default function StoryGame({ onBackToMenu }) {
 
             <div className="choice-destinations-grid choice-grid-2">
               {/* Destination 1: 3D MOON */}
-              <article className="planet-choice-card moon-choice-card">
-                <span className="card-hud-badge">{t.targetSector1}</span>
+              {(() => {
+                const isMoonLocked = isAreaLocked('moon', progression);
+                const isMoonDone = Boolean(progression.completedAreas?.moon);
+                const isMoonActive = progression.firstChoice === 'moon';
 
-                <div className="planet-3d-viewport">
-                  <ModelPreviewCanvas
-                    src="/models/moon-opt.glb"
-                    alt="Interactive 3D model of Earth's Moon"
-                    autoRotate
-                    rotationPerSecond={8}
-                    cameraControls
-                    exposure={1.1}
-                    paused={craftBrowse}
-                  />
-                </div>
+                return (
+                  <article className={`planet-choice-card moon-choice-card ${isMoonLocked ? 'is-locked' : ''}`}>
+                    <span className={`card-hud-badge ${isMoonDone ? 'is-completed' : isMoonLocked ? 'is-locked' : isMoonActive ? 'is-active' : ''}`}>
+                      {isMoonDone ? (
+                        <>
+                          <CheckCircle2 size={12} />
+                          <span>{activeLang === 'ar' ? '✓ تم إكمال قطاع القمر' : '✓ SECTOR 01 COMPLETE'}</span>
+                        </>
+                      ) : isMoonLocked ? (
+                        <>
+                          <Lock size={12} />
+                          <span>{activeLang === 'ar' ? 'مغلق // أكمل المريخ أولاً' : 'LOCKED // COMPLETE MARS FIRST'}</span>
+                        </>
+                      ) : isMoonActive ? (
+                        <span>{activeLang === 'ar' ? '★ القطاع النشط' : '★ ACTIVE SECTOR'}</span>
+                      ) : (
+                        <span>{t.targetSector1}</span>
+                      )}
+                    </span>
 
-                <h3 className="planet-choice-name">{t.theMoon}</h3>
-                <p className="planet-telemetry">
-                  {t.moonDesc}
-                </p>
+                    <div className="planet-3d-viewport">
+                      <ModelPreviewCanvas
+                        src="/models/moon-opt.glb"
+                        alt="Interactive 3D model of Earth's Moon"
+                        autoRotate
+                        rotationPerSecond={8}
+                        cameraControls
+                        exposure={1.1}
+                        paused={craftBrowse}
+                      />
+                    </div>
 
-                <button
-                  type="button"
-                  className="btn btn-primary choice-dest-btn"
-                  onClick={() => goToScene('moon')}
-                >
-                  <Orbit size={16} />
-                  <span>{t.goToMoon}</span>
-                </button>
-              </article>
+                    <h3 className="planet-choice-name">{t.theMoon}</h3>
+                    <p className="planet-telemetry">
+                      {t.moonDesc}
+                    </p>
+
+                    <button
+                      type="button"
+                      className={`btn btn-primary choice-dest-btn ${isMoonLocked ? 'is-disabled' : ''}`}
+                      onClick={() => {
+                        if (isMoonLocked) return;
+                        recordInitialChoice('moon');
+                        goToScene('moon');
+                      }}
+                      disabled={isMoonLocked}
+                    >
+                      {isMoonLocked ? (
+                        <>
+                          <Lock size={16} />
+                          <span>{activeLang === 'ar' ? 'مغلق' : 'LOCKED'}</span>
+                        </>
+                      ) : isMoonDone ? (
+                        <>
+                          <CheckCircle2 size={16} />
+                          <span>{activeLang === 'ar' ? 'إعادة استكشاف القمر' : 'REVISIT THE MOON'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Orbit size={16} />
+                          <span>{t.goToMoon}</span>
+                        </>
+                      )}
+                    </button>
+                  </article>
+                );
+              })()}
 
               {/* Destination 2: 3D MARS */}
-              <article className="planet-choice-card mars-choice-card">
-                <span className="card-hud-badge">{t.targetSector2}</span>
+              {(() => {
+                const isMarsLocked = isAreaLocked('mars', progression);
+                const isMarsDone = Boolean(progression.completedAreas?.mars);
+                const isMarsActive = progression.firstChoice === 'mars';
 
-                <div className="planet-3d-viewport">
-                  <ModelPreviewCanvas
-                    src="/models/mars-opt.glb"
-                    alt="Interactive 3D model of Planet Mars"
-                    autoRotate
-                    rotationPerSecond={-8}
-                    cameraControls
-                    exposure={1.15}
-                    paused={craftBrowse}
-                  />
-                </div>
+                return (
+                  <article className={`planet-choice-card mars-choice-card ${isMarsLocked ? 'is-locked' : ''}`}>
+                    <span className={`card-hud-badge ${isMarsDone ? 'is-completed' : isMarsLocked ? 'is-locked' : isMarsActive ? 'is-active' : ''}`}>
+                      {isMarsDone ? (
+                        <>
+                          <CheckCircle2 size={12} />
+                          <span>{activeLang === 'ar' ? '✓ تم إكمال قطاع المريخ' : '✓ SECTOR 02 COMPLETE'}</span>
+                        </>
+                      ) : isMarsLocked ? (
+                        <>
+                          <Lock size={12} />
+                          <span>{activeLang === 'ar' ? 'مغلق // أكمل القمر أولاً' : 'LOCKED // COMPLETE MOON FIRST'}</span>
+                        </>
+                      ) : isMarsActive ? (
+                        <span>{activeLang === 'ar' ? '★ القطاع النشط' : '★ ACTIVE SECTOR'}</span>
+                      ) : (
+                        <span>{t.targetSector2}</span>
+                      )}
+                    </span>
 
-                <h3 className="planet-choice-name">{t.mars}</h3>
-                <p className="planet-telemetry">
-                  {t.marsDesc}
-                </p>
+                    <div className="planet-3d-viewport">
+                      <ModelPreviewCanvas
+                        src="/models/mars-opt.glb"
+                        alt="Interactive 3D model of Planet Mars"
+                        autoRotate
+                        rotationPerSecond={-8}
+                        cameraControls
+                        exposure={1.15}
+                        paused={craftBrowse}
+                      />
+                    </div>
 
-                <button
-                  type="button"
-                  className="btn btn-primary choice-dest-btn"
-                  onClick={() => goToScene('mars')}
-                >
-                  <Sparkles size={16} />
-                  <span>{t.goToMars}</span>
-                </button>
-              </article>
+                    <h3 className="planet-choice-name">{t.mars}</h3>
+                    <p className="planet-telemetry">
+                      {t.marsDesc}
+                    </p>
+
+                    <button
+                      type="button"
+                      className={`btn btn-primary choice-dest-btn ${isMarsLocked ? 'is-disabled' : ''}`}
+                      onClick={() => {
+                        if (isMarsLocked) return;
+                        recordInitialChoice('mars');
+                        goToScene('mars');
+                      }}
+                      disabled={isMarsLocked}
+                    >
+                      {isMarsLocked ? (
+                        <>
+                          <Lock size={16} />
+                          <span>{activeLang === 'ar' ? 'مغلق' : 'LOCKED'}</span>
+                        </>
+                      ) : isMarsDone ? (
+                        <>
+                          <CheckCircle2 size={16} />
+                          <span>{activeLang === 'ar' ? 'إعادة استكشاف المريخ' : 'REVISIT MARS'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} />
+                          <span>{t.goToMars}</span>
+                        </>
+                      )}
+                    </button>
+                  </article>
+                );
+              })()}
             </div>
           </section>
         )}
@@ -415,6 +515,9 @@ export default function StoryGame({ onBackToMenu }) {
               initialDestination={currentScene}
               onClose={onBackToMenu}
               onBackToChoice={() => goToScene('choice')}
+              onAreaComplete={(completedArea, nextArea) => {
+                goToScene(nextArea);
+              }}
             />
           </Suspense>
         )}

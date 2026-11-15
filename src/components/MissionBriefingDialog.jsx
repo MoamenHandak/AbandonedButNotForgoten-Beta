@@ -126,10 +126,12 @@ export default function MissionBriefingDialog({
         }}
       >
         <h2 id="dlgName">{speaker}</h2>
-        <p id="dlgText" aria-live="polite">
-          <span id="dlgVis">{displayedText}</span>
-          <span id="dlgGhost" aria-hidden="true" style={{ visibility: 'hidden' }}>
+        <p id="dlgText" aria-live="polite" style={{ position: 'relative', minHeight: '3.4em' }}>
+          <span id="dlgGhost" aria-hidden="true" style={{ visibility: 'hidden', display: 'block', userSelect: 'none', pointerEvents: 'none' }}>
             {fullText}
+          </span>
+          <span id="dlgVis" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+            {displayedText}
           </span>
         </p>
         {secondaryAction && (

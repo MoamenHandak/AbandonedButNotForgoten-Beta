@@ -23,9 +23,18 @@ import {
   HelpCircle,
   Compass,
   Eye,
-  FileText
+  FileText,
+  Lock,
+  Rocket
 } from 'lucide-react';
 import { dispatchAudioCue, playServo } from '../audio/surfaceAudio';
+import {
+  getStoryProgression,
+  isCraftUnlocked,
+  recordQuizCompleted,
+  getOppositeArea,
+  resetStoryProgression
+} from '../utils/storyProgression';
 import {
   loadGLTFModel,
   disposeObject3D,
@@ -626,7 +635,8 @@ export default function PlanetaryShowroom({
   isOpen,
   onClose,
   initialDestination = 'all',
-  onBackToChoice = null
+  onBackToChoice = null,
+  onAreaComplete = null
 }) {
   const containerRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -639,6 +649,30 @@ export default function PlanetaryShowroom({
   const [loadPercent, setLoadPercent] = useState(0);
   const [loadError, setLoadError] = useState(null);
   const [isHudMinimized, setIsHudMinimized] = useState(false);
+
+  // Story Progression Campaign System
+  const [progression, setProgression] = useState(getStoryProgression);
+  const [progressionToast, setProgressionToast] = useState(null);
+  const [areaCompleteModal, setAreaCompleteModal] = useState(null);
+  const [campaignVictoryModal, setCampaignVictoryModal] = useState(false);
+  const toastTimerRef = useRef(null);
+
+  const showToast = useCallback((message, actionLabel = null, onAction = null, duration = 4800) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setProgressionToast({ message, actionLabel, onAction });
+    toastTimerRef.current = setTimeout(() => {
+      setProgressionToast(null);
+    }, duration);
+  }, []);
+
+  useEffect(() => {
+    const onProgressionUpdate = (e) => {
+      if (e.detail) setProgression(e.detail);
+      else setProgression(getStoryProgression());
+    };
+    window.addEventListener('storyProgressionUpdated', onProgressionUpdate);
+    return () => window.removeEventListener('storyProgressionUpdated', onProgressionUpdate);
+  }, []);
 
   // UX Redesign States (Tasks 1, 2, 3, 6)
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
@@ -869,24 +903,6 @@ export default function PlanetaryShowroom({
     }
   }, [filteredVehicles, currentVehicle, selectVehicleIndex]);
 
-  const handleNext = useCallback(() => {
-    const nextIdx = (currentIndex + 1) % filteredVehicles.length;
-    selectVehicleIndex(nextIdx, true);
-  }, [currentIndex, filteredVehicles.length, selectVehicleIndex]);
-
-  const handlePrev = useCallback(() => {
-    const prevIdx = (currentIndex - 1 + filteredVehicles.length) % filteredVehicles.length;
-    selectVehicleIndex(prevIdx, true);
-  }, [currentIndex, filteredVehicles.length, selectVehicleIndex]);
-
-  const handleRetryLoad = useCallback(() => {
-    const s = threeRef.current;
-    const planet = s.currentPlanet || (initialDestination === 'mars' ? 'mars' : initialDestination === 'deepspace' ? 'deepspace' : 'moon');
-    s.loadPlanetScene?.(planet);
-  }, [initialDestination]);
-
-  const isDialogVisible = isCraftDialogOpen && !isLoading3D && !loadError;
-
   const handleOpenDetails = useCallback(() => {
     dispatchAudioCue('camera_servo');
     setIsDetailsLeaving(false);
@@ -900,6 +916,60 @@ export default function PlanetaryShowroom({
       setIsDetailsLeaving(false);
     }, 280);
   }, []);
+
+  const handleNext = useCallback(() => {
+    const nextIdx = (currentIndex + 1) % filteredVehicles.length;
+    const targetV = filteredVehicles[nextIdx];
+    if (!targetV) return;
+
+    if (!isCraftUnlocked(targetV.id, filteredVehicles, progression)) {
+      playServo('click');
+      showToast(
+        activeLang === 'ar'
+          ? `🔒 ${targetV.name} مقفلة! قم بحل اختبار ${currentVehicle.name} أولاً لفتحها.`
+          : `🔒 ${targetV.name} is locked! Solve the quiz on ${currentVehicle.name} to advance.`,
+        activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
+        () => {
+          handleOpenDetails();
+          setDetailTab('quiz');
+        }
+      );
+      return;
+    }
+
+    selectVehicleIndex(nextIdx, true);
+  }, [currentIndex, filteredVehicles, progression, currentVehicle, activeLang, selectVehicleIndex, showToast, handleOpenDetails]);
+
+  const handlePrev = useCallback(() => {
+    const prevIdx = (currentIndex - 1 + filteredVehicles.length) % filteredVehicles.length;
+    const targetV = filteredVehicles[prevIdx];
+    if (!targetV) return;
+
+    if (!isCraftUnlocked(targetV.id, filteredVehicles, progression)) {
+      playServo('click');
+      showToast(
+        activeLang === 'ar'
+          ? `🔒 ${targetV.name} مقفلة! أكمل الاختبارات السابقة لفتحها.`
+          : `🔒 ${targetV.name} is locked! Complete previous quizzes to unlock.`,
+        activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
+        () => {
+          handleOpenDetails();
+          setDetailTab('quiz');
+        }
+      );
+      return;
+    }
+
+    selectVehicleIndex(prevIdx, true);
+  }, [currentIndex, filteredVehicles, progression, activeLang, selectVehicleIndex, showToast, handleOpenDetails]);
+
+  const handleRetryLoad = useCallback(() => {
+    const s = threeRef.current;
+    const planet = s.currentPlanet || (initialDestination === 'mars' ? 'mars' : initialDestination === 'deepspace' ? 'deepspace' : 'moon');
+    s.loadPlanetScene?.(planet);
+  }, [initialDestination]);
+
+  const isDialogVisible = isCraftDialogOpen && !isLoading3D && !loadError;
 
   const handleCraftDialogComplete = useCallback(() => {
     setIsCraftDialogOpen(false);
@@ -1366,7 +1436,6 @@ export default function PlanetaryShowroom({
 
       loadingInProgress = true;
       stopLoop();
-      threeRef.current.currentPlanet = planetName;
       threeRef.current.loadedVehicles = {};
       threeRef.current.earthMesh = null;
 
@@ -1381,6 +1450,9 @@ export default function PlanetaryShowroom({
       }
       clearAndDisposeGroup(terrainGroup);
       clearAndDisposeGroup(vehiclesGroup);
+      if (hotspotRef.current) hotspotRef.current.style.display = 'none';
+      if (terrainGroup) terrainGroup.visible = false;
+      if (vehiclesGroup) vehiclesGroup.visible = false;
       activeSunLight = null;
       activeContactMeshes = [];
 
@@ -2031,6 +2103,9 @@ export default function PlanetaryShowroom({
 
         if (isDisposed || signal.aborted || myToken !== loadToken) return;
 
+        threeRef.current.currentPlanet = planetName;
+        if (terrainGroup) terrainGroup.visible = true;
+        if (vehiclesGroup) vehiclesGroup.visible = true;
         loadingInProgress = false;
         setLoadPercent(100);
         setIsLoading3D(false);
@@ -2358,6 +2433,23 @@ export default function PlanetaryShowroom({
 
               <button
                 type="button"
+                className="pause-action-btn"
+                onClick={() => {
+                  resetStoryProgression();
+                  setIsPauseMenuOpen(false);
+                  showToast(
+                    activeLang === 'ar'
+                      ? 'تمت إعادة ضبط تقدم الحملة بنجاح.'
+                      : 'Campaign progression has been reset.'
+                  );
+                }}
+              >
+                <RotateCcw size={18} />
+                <span>{activeLang === 'ar' ? 'إعادة ضبط التقدم' : 'RESET STORY PROGRESSION'}</span>
+              </button>
+
+              <button
+                type="button"
                 className="pause-action-btn is-danger"
                 onClick={() => {
                   setIsPauseMenuOpen(false);
@@ -2559,11 +2651,50 @@ export default function PlanetaryShowroom({
                           className={optionClass}
                           disabled={isAnswered}
                           onClick={() => {
+                            const isSelectedCorrect = optIdx === quiz.correctIndex;
                             setQuizState((prev) => ({
                               ...prev,
                               [currentVehicle.id]: { selectedIndex: optIdx, isSubmitted: true }
                             }));
-                            playServo('click');
+                            playServo(isSelectedCorrect ? 'fly' : 'click');
+
+                            if (isSelectedCorrect) {
+                              const outcome = recordQuizCompleted(
+                                currentVehicle.id,
+                                currentVehicle.destination,
+                                filteredVehicles
+                              );
+
+                              if (outcome.isCampaignComplete) {
+                                setTimeout(() => {
+                                  setCampaignVictoryModal(true);
+                                }, 700);
+                              } else if (outcome.isAreaComplete) {
+                                const nextArea = getOppositeArea(currentVehicle.destination);
+                                setTimeout(() => {
+                                  setAreaCompleteModal({
+                                    completedArea: currentVehicle.destination,
+                                    nextArea,
+                                    totalVehicles: filteredVehicles.length
+                                  });
+                                }, 700);
+                              } else if (outcome.isNewCompletion) {
+                                const nextIdx = currentIndex + 1;
+                                const nextVehicle = filteredVehicles[nextIdx];
+                                if (nextVehicle) {
+                                  showToast(
+                                    activeLang === 'ar'
+                                      ? `✓ تم حل الاختبار بنجاح! تم فتح بيانات ${nextVehicle.name}.`
+                                      : `✓ Quiz Verified! Telemetry for ${nextVehicle.name} is now unlocked.`,
+                                    activeLang === 'ar' ? 'الانتقال للتالي' : 'NEXT CRAFT',
+                                    () => {
+                                      handleCloseDetails();
+                                      selectVehicleIndex(nextIdx, true);
+                                    }
+                                  );
+                                }
+                              }
+                            }
                           }}
                         >
                           {option}
@@ -2578,6 +2709,20 @@ export default function PlanetaryShowroom({
                         <strong>{isCorrect ? (t.verifiedKnowledge || '✓ VERIFIED KNOWLEDGE') : (t.reviewArchive || '⚠️ REVIEW THE ARCHIVE')}</strong>
                         <p style={{ margin: '6px 0 0' }}>{quiz.explanation}</p>
                       </div>
+
+                      {isCorrect && currentIndex + 1 < filteredVehicles.length && (
+                        <button
+                          type="button"
+                          className="details-quiz-next-btn"
+                          onClick={() => {
+                            handleCloseDetails();
+                            handleNext();
+                          }}
+                        >
+                          <span>{activeLang === 'ar' ? 'الانتقال إلى المركبة التالية ←' : 'PROCEED TO NEXT CRAFT →'}</span>
+                          <ChevronRight size={16} />
+                        </button>
+                      )}
 
                       {!isCorrect && (
                         <button
@@ -2666,29 +2811,64 @@ export default function PlanetaryShowroom({
               {currentVehicle.name} {currentVehicle.isOrbiter ? '• ORBITER' : ''}
             </span>
 
-            <button
-              type="button"
-              className="showroom-nav-arrow showroom-nav-next"
-              onClick={handleNext}
-              aria-label="Next spacecraft"
-              title="Next spacecraft (→)"
-            >
-              <ChevronRight size={22} aria-hidden="true" />
-            </button>
+            {(() => {
+              const nextIdx = (currentIndex + 1) % filteredVehicles.length;
+              const nextVehicle = filteredVehicles[nextIdx];
+              const isNextLocked = nextVehicle && !isCraftUnlocked(nextVehicle.id, filteredVehicles, progression);
+
+              return (
+                <button
+                  type="button"
+                  className={`showroom-nav-arrow showroom-nav-next ${isNextLocked ? 'is-locked' : ''}`}
+                  onClick={handleNext}
+                  aria-label={isNextLocked ? 'Next spacecraft (Locked)' : 'Next spacecraft'}
+                  title={
+                    isNextLocked
+                      ? `${nextVehicle.name} is locked (Solve quiz to unlock)`
+                      : 'Next spacecraft (→)'
+                  }
+                >
+                  {isNextLocked ? <Lock size={18} aria-hidden="true" /> : <ChevronRight size={22} aria-hidden="true" />}
+                </button>
+              );
+            })()}
           </div>
 
           <div className="showroom-dock-subrow">
             <div className="showroom-dock-dots" role="tablist" aria-label="Vehicle selection">
-              {filteredVehicles.map((v, idx) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  className={`showroom-dock-dot ${idx === currentIndex ? 'is-active' : ''}`}
-                  onClick={() => selectVehicleIndex(idx, true)}
-                  aria-label={`Select ${v.name}${v.isOrbiter ? ' (Orbiter)' : ''}`}
-                  title={`${v.name}${v.isOrbiter ? ' [Orbiter]' : ''}`}
-                />
-              ))}
+              {filteredVehicles.map((v, idx) => {
+                const isAccessible = isCraftUnlocked(v.id, filteredVehicles, progression);
+                const isSolved = Boolean(progression.completedQuizzes?.[v.id]);
+
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className={`showroom-dock-dot ${idx === currentIndex ? 'is-active' : ''} ${
+                      !isAccessible ? 'is-locked' : isSolved ? 'is-solved' : ''
+                    }`}
+                    onClick={() => {
+                      if (!isAccessible) {
+                        playServo('click');
+                        showToast(
+                          activeLang === 'ar'
+                            ? `🔒 ${v.name} مقفلة! قم بحل اختبار ${currentVehicle.name} أولاً.`
+                            : `🔒 ${v.name} is locked! Solve ${currentVehicle.name}'s quiz to unlock.`,
+                          activeLang === 'ar' ? 'افتح الاختبار' : 'OPEN QUIZ',
+                          () => {
+                            handleOpenDetails();
+                            setDetailTab('quiz');
+                          }
+                        );
+                        return;
+                      }
+                      selectVehicleIndex(idx, true);
+                    }}
+                    aria-label={`Select ${v.name}${v.isOrbiter ? ' (Orbiter)' : ''}`}
+                    title={`${v.name}${!isAccessible ? ' [Locked]' : isSolved ? ' [Completed]' : ''}`}
+                  />
+                );
+              })}
             </div>
             <span className="showroom-dock-hint" aria-hidden="true">
               ← → to navigate
@@ -2795,6 +2975,172 @@ export default function PlanetaryShowroom({
             >
               <span className="btn-label">CLOSE LOG</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Story Progression Notification Toast */}
+      {progressionToast && (
+        <div className="showroom-progression-toast" role="status" aria-live="polite">
+          <div className="progression-toast-content">
+            <span>{progressionToast.message}</span>
+            {progressionToast.actionLabel && (
+              <button
+                type="button"
+                className="progression-toast-action-btn"
+                onClick={() => {
+                  progressionToast.onAction?.();
+                  setProgressionToast(null);
+                }}
+              >
+                {progressionToast.actionLabel}
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            className="progression-toast-close"
+            onClick={() => setProgressionToast(null)}
+            aria-label="Dismiss notification"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Sector / Area Complete Transition Modal */}
+      {areaCompleteModal && (
+        <div className="progression-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="progression-modal-card">
+            <div className="progression-modal-header">
+              <span className="progression-modal-badge">
+                <CheckCircle2 size={14} />
+                <span>
+                  {activeLang === 'ar'
+                    ? `تم إكمال قطاع ${areaCompleteModal.completedArea === 'moon' ? 'القمر' : 'المريخ'}`
+                    : `SECTOR ${areaCompleteModal.completedArea === 'moon' ? '01' : '02'} COMPLETE`}
+                </span>
+              </span>
+            </div>
+
+            <h3 className="progression-modal-title">
+              {activeLang === 'ar'
+                ? (areaCompleteModal.completedArea === 'moon' ? 'تم استكشاف وتوثيق القمر بالكامل' : 'تم استكشاف وتوثيق المريخ بالكامل')
+                : (areaCompleteModal.completedArea === 'moon' ? 'LUNAR SECTOR TELEMETRY SECURED' : 'MARTIAN SECTOR TELEMETRY SECURED')}
+            </h3>
+
+            <div className="progression-modal-body">
+              <p>
+                {activeLang === 'ar'
+                  ? `لقد نجحت في استكشاف وحل اختبارات جميع مركبات ${areaCompleteModal.completedArea === 'moon' ? 'القمر' : 'المريخ'} الأثرية. قطاع ${areaCompleteModal.nextArea === 'mars' ? 'المريخ' : 'القمر'} أصبح متاحاً الآن للاستكشاف.`
+                  : `All missions in this sector have been thoroughly inspected and verified. Telemetry link with ${areaCompleteModal.nextArea === 'mars' ? 'Planet Mars' : "Earth's Moon"} is now fully authorized.`}
+              </p>
+
+              <div className="progression-stats-grid">
+                <div className="progression-sector-stat">
+                  <span className="progression-stat-label">{activeLang === 'ar' ? 'المركبات المكتملة' : 'CRAFT COMPLETED'}</span>
+                  <span className="progression-stat-value">{areaCompleteModal.totalVehicles} / {areaCompleteModal.totalVehicles}</span>
+                </div>
+                <div className="progression-sector-stat">
+                  <span className="progression-stat-label">{activeLang === 'ar' ? 'القطاع التالي' : 'NEXT SECTOR'}</span>
+                  <span className="progression-stat-value">{areaCompleteModal.nextArea === 'mars' ? 'MARS // SECTOR 02' : 'MOON // SECTOR 01'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="progression-modal-actions">
+              <button
+                type="button"
+                className="progression-btn-secondary"
+                onClick={() => setAreaCompleteModal(null)}
+              >
+                <span>{activeLang === 'ar' ? 'البقاء هنا' : 'STAY & EXPLORE'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="progression-btn-primary"
+                onClick={() => {
+                  const next = areaCompleteModal.nextArea;
+                  setAreaCompleteModal(null);
+                  if (onAreaComplete) {
+                    onAreaComplete(areaCompleteModal.completedArea, next);
+                  } else if (onBackToChoice) {
+                    onBackToChoice();
+                  }
+                }}
+              >
+                <Rocket size={16} />
+                <span>
+                  {activeLang === 'ar'
+                    ? `الانتقال إلى ${areaCompleteModal.nextArea === 'mars' ? 'المريخ' : 'القمر'} ←`
+                    : `TRANSIT TO ${areaCompleteModal.nextArea === 'mars' ? 'MARS' : 'THE MOON'} →`}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Campaign Victory Modal (All 12 Spacecraft Quizzes Completed) */}
+      {campaignVictoryModal && (
+        <div className="progression-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="progression-modal-card">
+            <div className="progression-modal-header">
+              <span className="progression-modal-badge" style={{ color: '#ffd280', borderColor: 'rgba(255, 210, 128, 0.4)' }}>
+                <Sparkles size={14} />
+                <span>{activeLang === 'ar' ? '★ النصر الكامل في الحملة ★' : '★ CAMPAIGN VICTORY ★'}</span>
+              </span>
+            </div>
+
+            <h3 className="progression-modal-title">
+              {activeLang === 'ar'
+                ? 'أرشيف ناسا العميق مكتمل بالكامل'
+                : 'NASA DEEP ARCHIVE FULLY RESTORED'}
+            </h3>
+
+            <div className="progression-modal-body">
+              <p>
+                {activeLang === 'ar'
+                  ? 'لقد وثقت وأحييت ذكرى جميع الـ 12 مركبة فضاء ومسباراً وروبوت عبر القمر والمريخ. تم فك تشفير وتخليد تاريخ المستكشفين المنسيين ولكن غير المغفول عنهم!'
+                  : 'Every abandoned pioneer across Earth\'s Moon and Planet Mars has been investigated, verified, and preserved. You have unlocked unlimited free exploration across all worlds!'}
+              </p>
+
+              <div className="progression-stats-grid">
+                <div className="progression-sector-stat">
+                  <span className="progression-stat-label">{activeLang === 'ar' ? 'إجمالي المركبات' : 'TOTAL SPACECRAFTS'}</span>
+                  <span className="progression-stat-value">12 / 12</span>
+                </div>
+                <div className="progression-sector-stat">
+                  <span className="progression-stat-label">{activeLang === 'ar' ? 'القطاعات المحررة' : 'SECTORS SECURED'}</span>
+                  <span className="progression-stat-value">MOON &amp; MARS</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="progression-modal-actions">
+              <button
+                type="button"
+                className="progression-btn-secondary"
+                onClick={() => {
+                  resetStoryProgression();
+                  setCampaignVictoryModal(false);
+                  if (onBackToChoice) onBackToChoice();
+                }}
+              >
+                <RotateCcw size={16} />
+                <span>{activeLang === 'ar' ? 'إعادة تشغيل الحملة' : 'RESTART CAMPAIGN'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="progression-btn-primary"
+                onClick={() => setCampaignVictoryModal(false)}
+              >
+                <Sparkles size={16} />
+                <span>{activeLang === 'ar' ? 'الاستكشاف الحر' : 'FREE ROAM ALL WORLDS'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
