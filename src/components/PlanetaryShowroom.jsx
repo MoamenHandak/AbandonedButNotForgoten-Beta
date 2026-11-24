@@ -3605,7 +3605,7 @@ export default function PlanetaryShowroom({
             return (
               <button
                 type="button"
-                className={`showroom-inspect-nav-btn is-next ${isNextLocked ? 'is-locked' : ''}`}
+                className={`showroom-inspect-nav-btn is-next ${isHudHidden ? 'is-hud-hidden' : ''} ${isNextLocked ? 'is-locked' : ''}`}
                 onClick={handleNext}
                 aria-label={isNextLocked ? 'Next spacecraft (Locked)' : 'Next spacecraft'}
                 title={

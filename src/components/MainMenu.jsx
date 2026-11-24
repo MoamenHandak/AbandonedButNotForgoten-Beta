@@ -96,6 +96,7 @@ export default function MainMenu({
             <model-viewer
               id="moon-viewer"
               src={resolveAssetUrl('/models/moon.glb')}
+              environment-image={resolveAssetUrl('/assets/space_sun.hdr')}
               alt=""
               auto-rotate=""
               rotation-per-second="6deg"
@@ -103,7 +104,7 @@ export default function MainMenu({
               disable-pan=""
               interaction-prompt="none"
               shadow-intensity="0"
-              exposure="1.05"
+              exposure="1.0"
               loading="eager"
             />
           </span>
@@ -127,6 +128,7 @@ export default function MainMenu({
             <model-viewer
               id="mars-viewer"
               src={resolveAssetUrl('/models/lunar_rover-opt.glb')}
+              environment-image={resolveAssetUrl('/assets/space_sun.hdr')}
               alt="Apollo Lunar Roving Vehicle 3D model"
               auto-rotate=""
               rotation-per-second="18deg"
@@ -136,8 +138,9 @@ export default function MainMenu({
               disable-zoom=""
               disable-pan=""
               interaction-prompt="none"
-              shadow-intensity="1"
-              exposure="1.15"
+              shadow-intensity="1.5"
+              shadow-softness="0.4"
+              exposure="1.0"
               loading="eager"
             />
           </span>

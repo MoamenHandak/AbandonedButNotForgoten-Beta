@@ -2928,7 +2928,7 @@
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
-    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, color 0.2s ease;
+    transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1), left 0.35s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, color 0.2s ease;
     z-index: 95;
     padding: 0;
 }
@@ -2953,6 +2953,10 @@
     right: calc(clamp(340px, 26vw, 420px) + clamp(20px, 2.5vw, 40px) + clamp(20px, 2.5vw, 40px));
 }
 
+.showroom-inspect-nav-btn.is-next.is-hud-hidden {
+    right: clamp(20px, 2.5vw, 40px);
+}
+
 [dir="rtl"] .showroom-inspect-nav-btn.is-prev {
     left: auto;
     right: clamp(20px, 2.5vw, 40px);
@@ -2961,6 +2965,11 @@
 [dir="rtl"] .showroom-inspect-nav-btn.is-next {
     right: auto;
     left: calc(clamp(340px, 26vw, 420px) + clamp(20px, 2.5vw, 40px) + clamp(20px, 2.5vw, 40px));
+}
+
+[dir="rtl"] .showroom-inspect-nav-btn.is-next.is-hud-hidden {
+    right: auto;
+    left: clamp(20px, 2.5vw, 40px);
 }
 
 .showroom-inspect-nav-btn.is-locked {
