@@ -95,16 +95,20 @@ export default function MainMenu({
           <span className="nms-tile-art">
             <model-viewer
               id="moon-viewer"
-              src={resolveAssetUrl('/models/moon.glb')}
+              src={resolveAssetUrl('/models/astronaut_helmet-opt.glb')}
               environment-image={resolveAssetUrl('/assets/space_sun.hdr')}
-              alt=""
+              alt="Astronaut Helmet 3D model"
               auto-rotate=""
-              rotation-per-second="6deg"
+              rotation-per-second="10deg"
+              camera-orbit="0deg 82deg 105%"
+              camera-target="auto auto auto"
+              field-of-view="32deg"
               disable-zoom=""
               disable-pan=""
               interaction-prompt="none"
-              shadow-intensity="0"
-              exposure="1.0"
+              shadow-intensity="1.2"
+              shadow-softness="0.5"
+              exposure="1.05"
               loading="eager"
             />
           </span>
