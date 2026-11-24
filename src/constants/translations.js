@@ -209,17 +209,21 @@ export const TRANSLATIONS = {
       audioBtn: 'Audio',
       presetNote: 'Resolution, shadows & stars update live; antialiasing applies on next 3D view.',
       presets: {
+        ultra: {
+          label: 'Ultra',
+          desc: 'Cinematic cel-shading, 4096px landscape shadows across terrain & fleet, crescent Earth terminator, and dynamic atmospheric rim lighting.',
+        },
         quality: {
           label: 'Quality',
-          desc: 'Full pixel ratio cap (up to 1.5x), 2048px soft shadows, antialiasing, and full starfield.',
+          desc: 'High pixel ratio, 2048px shadows, cel-shading with hero outlines and metallic sparkle.',
         },
         balanced: {
           label: 'Balanced',
-          desc: '1.0x pixel ratio cap, 1024px soft shadows, antialiasing, and moderate starfield density.',
+          desc: '1.0x pixel ratio, 1024px shadows, cel-shading with hero outlines on inspected craft.',
         },
         performance: {
           label: 'Performance',
-          desc: '0.75x render scale, shadows disabled, lighter starfield, and antialiasing off on next 3D open.',
+          desc: 'Fast cel-shading, contact shadows, optimized for smooth frame rates on mobile.',
         },
       },
     },
@@ -522,17 +526,21 @@ export const TRANSLATIONS = {
       audioBtn: 'الصوت',
       presetNote: 'يتم تحديث الدقة والظلال والنجوم فوراً، بينما ينطبق مانع التعرج في المشهد التالي.',
       presets: {
+        ultra: {
+          label: 'فائق (Ultra)',
+          desc: 'تظليل كرتوني سينمائي كامل، ظلال تضاريس بدقة 4096 بكسل عبر المشهد والأسطول، هلال الأرض المظلل، وإضاءة حواف حيوية.',
+        },
         quality: {
           label: 'جودة فائقة',
-          desc: 'أعلى دقة عرض ممكنة (حتى 1.5x)، ظلال ناعمة بدقة 2048px، مانع تعرج وكثافة نجوم كاملة.',
+          desc: 'دقة عرض عالية، ظلال 2048px، تظليل كرتوني مع خطوط خارجية للمركبة وبريق معدني.',
         },
         balanced: {
           label: 'متوازن',
-          desc: 'دقة عرض 1.0x، ظلال ناعمة بدقة 1024px، مانع تعرج وكثافة نجوم متوسطة تناسب أغلب الأجهزة.',
+          desc: 'دقة عرض 1.0x، ظلال 1024px، تظليل كرتوني مع خطوط خارجية للمركبة النشطة.',
         },
         performance: {
           label: 'أداء عالي',
-          desc: 'مقياس عرض 0.75x، تعطيل الظلال للحصول على سلاسة قصوى ومعدل إطارات مرتفع.',
+          desc: 'تظليل كرتوني خفيف مع ظلال تلامسية، مخصص لتحقيق أعلى سلاسة على الهواتف.',
         },
       },
     },

@@ -102,10 +102,8 @@ const PIPELINE = [
     flags: [
       '--compress', 'draco',
       '--texture-compress', 'webp',
-      '--texture-size', '1024',
-      '--simplify', 'true',
-      '--simplify-ratio', '0.25',
-      '--simplify-error', '0.001',
+      '--texture-size', '2048',
+      '--simplify', 'false',
     ],
   },
   {
@@ -114,7 +112,7 @@ const PIPELINE = [
     flags: [
       '--compress', 'draco',
       '--texture-compress', 'webp',
-      '--texture-size', '1024',
+      '--texture-size', '2048',
       '--simplify', 'false',
     ],
   },

@@ -12,8 +12,9 @@
 | Category | Technology | Purpose |
 | :--- | :--- | :--- |
 | **Framework & UI** | React 18, Vite 6 | Component lifecycle, route/view lazy code splitting (`React.lazy`), fast HMR bundling |
-| **3D Graphics Engine** | Three.js (`three@0.187.0`) | Surface terrains, 3D planetary globes, orbital mechanics layer (`orbitLayer.js`), responsive camera auto-framing (`cameraAutoFit.js`), PBR materials, and shared preview canvases (`ModelPreviewCanvas`) |
-| **Asset Pipeline & Decoders** | Singleton `GLTFLoader`, `DRACOLoader` (`/draco/`), WebP textures | Draco mesh compression, WebP texture compression, deduplicated fetches, streaming progress, and bounded LRU buffer cache (`modelCache.js`) |
+| **3D Graphics & Cel-Shading Engine** | Three.js (`three@0.187.0`), Custom Toon Pipeline (`toonify.js`) | Surface terrains, seamless planetary globes, orbital mechanics layer (`orbitLayer.js`), responsive camera auto-framing (`cameraAutoFit.js`), stepped cel-shading (`MeshToonMaterial`), inverted-hull hero outlines, specular sparkle, and vehicle shadow camera auto-fitting |
+| **Graphics Quality Profiles** | Custom Presets (`Ultra`, `Quality`, `Balanced`, `Performance`) | Dynamic pixel ratio caps (up to 2.0x), 4096px/2048px/1024px PCFSoft shadows, wide terrain shadow frustum, cel-shading across ground & spacecraft, cel-shaded crescent Earth with glowing atmospheric halo, dynamic rim lighting, and live settings update (`settings.js`) |
+| **Full-Stack Preload & Asset Pipeline** | Multi-Phase Loader (`modelCache.js`), `DRACOLoader` (`/draco/`), WebP textures | Multi-phase boot sequence preloading fonts (`document.fonts.ready`), code chunks, Draco decoders, audio soundtracks, visual novel art, and 3D models with streaming progress and bounded LRU buffer cache |
 | **Audio Engine** | Web Audio API Synthesizer | 100% procedural sound synthesis: cold-gas thrusters, mechanical camera servos, Martian winds, Lunar vacuum hum, and polyphonic space ambient music |
 | **Progression Engine** | Custom LocalStorage State Machine | Persistent campaign progression (`abnf_story_progression_v1`), destination lock/unlock, sequential craft discovery, and custom event dispatches |
 | **Responsive Viewport** | Dynamic `100dvh` + `--vh` Engine | Viewport engine (`viewport.js`) handling dynamic iOS Safari toolbars, notch safe-areas (`env(safe-area-inset-*)`), and mobile collapsible bottom sheets |
@@ -26,9 +27,11 @@
 
 ```mermaid
 flowchart TD
-    A["Main Menu Splash (Instant Interactive Entry)"] --> B["Main Menu (3D Preview Tiles & Cosmic Background)"]
+    Boot["Full-Stack Boot Loader (Fonts, Code Chunks, Audio, 2D Art, Draco & 3D Assets)"] --> A["Main Menu Splash (Instant Interactive Entry)"]
+    A --> B["Main Menu (3D Preview Tiles & Cosmic Background)"]
     B --> C["Story Mode (Visual Novel Prologue & Character Dialogue)"]
     B --> D["Arcade Mode (Direct Spacecraft Archive Showroom)"]
+    B --> S["Settings Modal (Audio Volumes, Languages & Graphics Quality Presets)"]
     
     C --> E["Prologue Cutscenes: Bedroom -> Attic -> NASA Logbook Light -> Cosmic Drift"]
     E --> F["Destination Choice Screen (Sector 01 Moon vs. Sector 02 Mars)"]
@@ -36,7 +39,7 @@ flowchart TD
     D -->|All Unlocked| G
     
     G --> H{"View Mode Selection"}
-    H -->|Surface View| I["Planetary Surface Vista (PBR Soil, Terrains & Rovers/Landers)"]
+    H -->|Surface View| I["Planetary Surface Vista (Cel-Shaded Soil, Terrains & Rovers/Landers)"]
     H -->|Orbit View| J["Cinematic Orbit Overview Phase (Planet Globe & Orbital Paths)"]
     
     I --> K["360° Ground Vehicle Inspection (LRV, Falcon, Opportunity, Ingenuity, Viking, InSight)"]
@@ -116,11 +119,11 @@ The showroom supports two distinct planetary theaters: **The Moon** and **Mars**
   - Camera `far = 8000` preserving 10km lunar mountain horizons without flat planar artifacts.
   - Linear vacuum fog (`THREE.Fog(0x020409, 3500, 7500)`) maintaining crystal-clear vacuum clarity within the crater.
   - Rotating 3D Earthrise (`realistic_earth-opt.glb`) positioned at `[-65, 38, -120]` with cool blue directional earthshine.
-  - Directional sun radiance (`#fffaea`, intensity 2.45) with `THREE.PCFShadowMap` and shadow normal bias calibration.
+  - Directional sun radiance (`#fff8ea`, calibrated intensity 1.85) with `THREE.PCFSoftShadowMap`, normal bias calibration, and cool directional Earthshine fill (`#4075a6`) projecting from Earth's sky coordinates `[-65, 38, -120]`.
 - **Mars Surface (`mud_of_mars-opt.glb`)**:
   - Scaled horizontally to `140.0` (280m span) and vertically to `35.0` (elevation offset `y = 0.319`).
   - Circular perimeter taper smoothly tapering vertices beyond radius 84m down to the ground skirt (`y = -0.21`).
-  - Warm directional sun (`#ffc58e`, intensity 2.5) with wide frustum shadow coverage and dusty atmospheric fog (`#240d08`, 35m–175m).
+  - Warm directional solar amber (`#ffdfb8`, intensity 1.80) with consistent 45° sun azimuth, rich terracotta ground bounce fill, and dusty atmospheric fog (`#1e0b07`, density 0.012).
   - Spatial separation of surface fleet: Opportunity at origin `[0, 0, 0]`, Ingenuity at `[-14, 0.02, -7]`, Viking 1 at `[16, -0.08, -8]`, and InSight at `[0, 0, -22]`.
 
 ### 4.3 Orbital Mechanics & Orbit Overview Phase (`src/scene/orbitLayer.js`, `cameraAutoFit.js`)
@@ -138,6 +141,91 @@ The showroom supports two distinct planetary theaters: **The Moon** and **Mars**
   - Calculates dynamic camera distance based on the object's 3D bounding sphere and the viewport's limiting field of view (limiting vertical FOV in landscape, horizontal FOV in portrait):
     $$d = \frac{r}{\sin(\min(\theta_v, \theta_h) / 2)} \times \text{margin}$$
   - Ensures orbiters never clip, appear oversized, or get obscured by interface panels.
+
+### 4.4 Stylized Cel-Shaded (Toon) Graphics Pipeline (`src/scene/toonify.js`)
+
+To provide an artistic, retro-futuristic aesthetic while maintaining high rendering performance, the application implements a dedicated cel-shading pipeline:
+
+- **1D Ramp DataTexture (`getSharedGradientMap`)**:
+  - Uses a singleton 4-tone discrete ramp (`tones: [55, 125, 198, 255]`) mapped onto a 4x1 `DataTexture` with `THREE.NearestFilter` and `THREE.ClampToEdgeWrapping`.
+  - Disables mipmap generation (`generateMipmaps = false`) to guarantee razor-sharp, zero-blur tonal bands without fragment overhead while raising the shadow floor (55) to prevent muddy black clipping.
+- **Mesh Conversion Engine (`convertMaterialToToon`)**:
+  - Converts incoming `MeshStandardMaterial` and `MeshPhysicalMaterial` instances into `MeshToonMaterial`.
+  - Preserves original diffuse maps, normal maps, bump maps, emissive maps, transparency, and alpha tests.
+  - Automatically caches converted materials by UUID to prevent redundant shader program generation and GPU memory thrashing.
+- **Inverted-Hull Hero Spacecraft Outlines (`attachHeroOutline`)**:
+  - Outlines are applied selectively to the hero spacecraft currently in focus with atmospheric ink tinting (slate `#080c16` on Moon, warm espresso `#1a0c09` on Mars).
+  - Utilizes a shared inverted-hull `ShaderMaterial` (`side: THREE.BackSide`, `depthTest: true`, `depthWrite: true`).
+  - Extrudes vertices along normal vectors in view space with distance attenuation factor:
+    $$\text{factor} = \text{clamp}(-mvPos.z \times 0.22, 0.35, 3.2)$$
+  - Dynamically adjusts thickness based on craft scale: $t = \max(0.0018, \min(0.0045, \frac{0.0030}{\sqrt{\text{scale}}}))$.
+  - Ensures background terrain, celestial globes, and unfocused rovers do not suffer outline draw overhead.
+- **Metallic Specular & Rim Sparkle**:
+  - High-tier Quality mode injects a Fresnel-based metallic rim boost via `onBeforeCompile` on reflective spacecraft surfaces (gold insulation foil, high-gain dishes, and solar cell backing).
+- **Tight Vehicle Shadow Camera Auto-Fitting (`fitShadowCameraToVehicle`)**:
+  - Replaces broad-frustum shadow maps with a tightly framed bounding frustum focused directly on the inspected craft and its ground contact point.
+  - Automatically calibrates `camera.left`, `right`, `top`, `bottom` between 2.0m (Ingenuity) and 6.5m (Falcon LM), eliminating shadow acne and peter-panning while maximizing shadow-map texel density.
+- **Atmospheric Contact Shadows & Accurate Terrain Raycasting**:
+  - Dual-tier radial ambient occlusion disks with polygon offset (`polygonOffsetFactor: -1.0`, `polygonOffsetUnits: -2.0`) eliminating Z-fighting and hover artifacts.
+  - Soil-tinted occlusion core (terracotta on Mars, deep slate on Moon) beneath all surface vehicles.
+  - Exact real-time terrain normal/elevation raycasting for all 6 surface exploration crafts.
+
+### 4.5 User-Configurable Graphics Quality Modes (`src/constants/settings.js`)
+
+Players can choose between visual fidelity and rendering performance from the in-game Settings modal. Settings update live via the `gameSettingsChange` event bus without page reloads:
+
+| Feature / Setting | Ultra | Quality (Default) | Balanced | Performance |
+| :--- | :--- | :--- | :--- | :--- |
+| **Target Device** | High-end desktop & gaming GPUs | Desktop, high-end laptops, modern tablets | Laptops, mid-tier phones | Mobile phones, battery saving |
+| **Max Pixel Ratio (DPR)** | `2.0x` (1.75x if constrained) | Up to `2.0x` (1.5x on constrained) | Up to `1.25x` | Capped at `1.0x` (0.75x fallback) |
+| **Shadow Resolution** | `4096 x 4096` | `2048 x 2048` | `1024 x 1024` | Disabled / Contact shadow only |
+| **Shadow Map Filter** | `THREE.PCFSoftShadowMap` | `THREE.PCFSoftShadowMap` | `THREE.PCFShadowMap` | `THREE.BasicShadowMap` |
+| **Shadow Frustum Span** | `38.0m` (Wide Landscape Frustum) | `28.0m` (Wide Landscape Frustum) | `18.0m` (Balanced Area) | `8.0m` (Vehicle-Focused) |
+| **Terrain Self-Shadowing** | Enabled (cast & receive across entire scene) | Enabled (cast & receive across entire scene) | Enabled | Disabled |
+| **Terrain Cel-Shading** | Stepped Toon Ramp on all terrain meshes | Stepped Toon Ramp on all terrain meshes | Stepped Toon Ramp | Stepped Toon Ramp |
+| **Earth Backdrop Shading** | Cel-Shaded Crescent Terminator + Cyan Atmospheric Halo | Cel-Shaded Crescent Terminator + Cyan Atmospheric Halo | Cel-Shaded Terminator | Smooth Globe |
+| **Dynamic Rim Lighting** | Electric Cyan (Moon) / Sunset-Amber (Mars) | Electric Cyan (Moon) / Sunset-Amber (Mars) | Disabled | Disabled |
+| **Shadow Auto-Update** | Continuous (`autoUpdate = true`) | Continuous (`autoUpdate = true`) | On-Demand (`autoUpdate = false`) | Disabled |
+| **Hero Inverted-Hull Outlines** | Enabled on inspected craft | Enabled on inspected craft | Enabled on inspected craft | Disabled |
+| **Metallic Sparkle & Rim Shader** | Enabled on foils and metals | Enabled on foils and metals | Disabled | Disabled |
+| **Starfield Density Scale** | `1.25x` (`0.75x` if constrained) | `1.0x` (`0.5x` if constrained) | `0.7x` | `0.4x` |
+| **Contact Ground Shadow** | `1.0` scale | `1.0` scale | `0.85` scale | `0.65` scale |
+| **Device Quality Auto-Profile** | Automatically detects hardware concurrency, GPU memory tier, and mobile touch points to set safe baseline defaults |
+
+### 4.6 Seamless Planetary Globe Meshes (`public/models/moon-opt.glb`, `mars-opt.glb`)
+
+- **Equirectangular Texture Continuity**:
+  - The interactive 3D globes for the Moon and Mars feature seamless equirectangular UV mapping, completely eliminating visible tile seams, patchwork exposure differences, and polar pinch artifacts.
+- **Selective Shading Exclusion (`isGlobeModelUrl`)**:
+  - Planetary globes are explicitly filtered out from stepped cel-shading (`toonify: false`) to preserve continuous physical terminator shadowing, smooth atmospheric haze, and realistic curvature.
+- **Texture Sampling**:
+  - Mipmapped linear filtering with 4x anisotropic sampling (`texture.anisotropy = 4`) ensures crisp craters and canyons across both grazing angles and close orbital zooms.
+
+### 4.7 Normal Inversion Correction & Shading Repairs (`toonify.js`, `orbitLayer.js`)
+
+- **Diagnostic Root Cause**:
+  - In complex orbiter meshes such as the LADEE Lunar Dust & Atmosphere Explorer (`ladee-opt.glb`), 61,796 out of 61,800 vertex normals on the body solar array faces (`GPMcore-SolarFaces1` through `8`) were exported inverted inwards towards the interior. Under standard PBR materials this created slight shadowing, but under `MeshToonMaterial`'s stepped 1D ramp, negative $N \cdot L$ dot products stepped abruptly into the darkest tone floor, slicing solar quads into severe diagonal black triangles along triangular winding interpolations.
+- **Automated Vertex Normal Recomputation**:
+  - `toonify.js` and `orbitLayer.js` detect inverted normal profiles on solar panels and thin structural faces, automatically triggering `child.geometry.computeVertexNormals()` from CCW triangle winding. This immediately restored 100% of normals outward.
+  - Materials are configured with `child.material.side = THREE.FrontSide` and negative polygon offset (`polygonOffsetFactor: -1.0`, `polygonOffsetUnits: -2.0`), completely eliminating back-face illumination bleed and triangular dark artifacts while rendering smooth, pristine lavender-blue solar cell arrays.
+
+### 4.8 Uninterrupted Environment Inspection & HUD Hide System
+
+- **Inspect Viewport Goal**:
+  - Allows users to admire 360° celestial vistas, terrain craters, distant rotating Earthrise, and cel-shaded spacecraft without UI cards blocking the scene.
+- **Controls & Keyboard Shortcuts**:
+  - **Keyboard Shortcut**: Pressing `H` toggles HUD cards on and off.
+  - **Top HUD Bar**: Dedicated `Eye` / `EyeOff` button in the header actions bar.
+  - **Direct Card Minimize**: Dedicated eye toggle button in the header of `showroom-mission-panel` and `showroom-details-panel`.
+- **Floating Restore Pill**:
+  - When HUD cards are hidden (`isHudHidden = true`), a discreet frosted-glass floating pill (`.showroom-restore-ui-pill`) animates into the bottom center of the screen with an eye icon and localized text: *"Environment Inspection Mode — Tap to restore cards (H)"* (Arabic: *"معاينة البيئة نشطة — اضغط لإظهار المعلومات والاختبار (H)"*).
+  - Clicking the pill or pressing `H` instantly restores the cards with zero loss of state.
+
+### 4.9 Main Menu 3D Spacecrafts Portal (`MainMenu.jsx`)
+
+- **Interactive 3D Rover Portal**:
+  - The Spacecrafts navigation tile (`#btn-open-crafts`) on the No Man's Sky main menu renders a real-time 3D model of the Apollo Lunar Roving Vehicle (`lunar_rover-opt.glb`) using `<model-viewer>`.
+  - Calibrated camera orbit (`40deg 75deg 105%`), target elevation (`0m 0.6m 0m`), and exposure (`1.15`) frame the rover's high-gain antenna, wire wheels, and cockpit in high contrast against the cosmic nebula background.
 
 ---
 
@@ -215,6 +303,10 @@ To solve mobile browser URL bar and bottom toolbar obstruction issues (particula
 - **Sliding Details Bottom Sheet**: Opens to `70dvh` with a drag handle and internal tabs (`INFO`, `TASK`, `QUIZ`). Swipe down, backdrop tap, or `Esc` closes the sheet.
 - **Prompt Isolation**: Distinct display logic separates desktop keyboard prompts (`Space to pause`, `Esc to close`) from handheld touch hints (`Tap to pause/close`), preventing overlapping text.
 
+### 6.3 UI Visibility Synchronization (`isShowroomUiVisible`)
+- **Elimination of Loading Flashes**: During 3D scene construction and asset retrieval, all HUD interactive elements (navigation arrows, pagination tracks, bottom info panels, and orbit zoom chips) are gated behind `isShowroomUiVisible = !isLoading3D && !loadError`.
+- **Seamless Loading Overlays**: Guarantees that neither mobile nor desktop users see misplaced or unstyled HUD controls bleeding behind the loading HUD screen before terrains, orbiters, and fonts are fully operational.
+
 ---
 
 ## 7. Hybrid Soundtracked & Procedural Audio Engine (`src/audio/surfaceAudio.js`)
@@ -262,11 +354,20 @@ The rolling credits modal pays tribute to both human creators, open archives, an
 
 ## 9. 3D Asset Pipeline & Repository Structure
 
-### 9.1 Offline Optimization Pipeline (`scripts/optimize-models.mjs`)
-- Executed via `npm run optimize:models` using `@gltf-transform/cli`.
-- Untouched raw `.glb` source assets are archived intact in `models/` (never overwritten).
-- Optimized runtime derivatives in `public/models/` apply Draco mesh compression (`KHR_draco_mesh_compression`) and WebP textures (`EXT_texture_webp`) while preserving named PBR materials (`'Chassis'`, `'Wheels'`, `'Antenne'`).
-- Decoders are served locally from `public/draco/` with Web Worker concurrency control.
+### 9.1 Optimization & Full-Stack Preload Pipeline (`scripts/optimize-models.mjs`, `src/utils/modelCache.js`)
+- **Offline Optimization Pipeline**:
+  - Executed via `npm run optimize:models` using `@gltf-transform/cli`.
+  - Untouched raw `.glb` source assets are archived intact in `models/` (never overwritten).
+  - Optimized runtime derivatives in `public/models/` apply Draco mesh compression (`KHR_draco_mesh_compression`) and WebP textures (`EXT_texture_webp`) while preserving named PBR materials (`'Chassis'`, `'Wheels'`, `'Antenne'`).
+  - Decoders are served locally from `public/draco/` with Web Worker concurrency control.
+- **Seamless Equirectangular Globes**:
+  - Interactive planetary globes (`moon-opt.glb`, `mars-opt.glb`) feature seamless equirectangular texturing, eliminating grid tile seams, exposure discontinuities, and polar distortions.
+- **Runtime Preload & Concurrency Engine (`modelCache.js`)**:
+  - `preloadMainMenuAssets`: Multi-phase boot loader running on initial launch; concurrently settles web fonts (`document.fonts.ready`), code chunk prefetching, Draco decoder warm-up, core audio tracks, visual novel character poses/cutscenes, and 3D preview models while broadcasting progress percentages and localized phase labels.
+  - `preloadAllCoreAssets`: Preloads visual-novel story paintings, audio soundtracks, and primary celestial models before Story Mode exploration starts.
+  - `preloadShowroomExtras`: Non-3D essentials loader (fonts, decoders, ambient soundscapes, Luna portraits) ensuring zero pop-in on showroom entry.
+  - In-flight request deduplication via `inFlightRequests` Map preventing duplicate network fetches across components.
+  - Bounded LRU buffer cache (5MB per asset cap, 18MB total cache cap) preventing memory pressure on mobile devices.
 
 ### 9.2 File Structure & Asset Inventory
 
@@ -297,8 +398,8 @@ NASA hackton/
 │       ├── moon_surface-opt.glb      # Welded Moon crater terrain (7.37 MiB)
 │       ├── mud_of_mars-opt.glb       # Martian mud & rock regolith terrain (537 KiB)
 │       ├── realistic_earth-opt.glb   # 3D Earth backdrop globe (1.04 MiB)
-│       ├── moon-opt.glb              # Interactive Moon globe (465 KiB)
-│       └── mars-opt.glb              # Interactive Mars globe (450 KiB)
+│       ├── moon-opt.glb              # Seamless Moon globe (1.04 MiB)
+│       └── mars-opt.glb              # Seamless Mars globe (213 KiB)
 ├── scripts/
 │   ├── optimize-models.mjs           # GLTF-transform Draco + WebP pipeline
 │   └── process_character.py          # Character cutout extraction & sprite processor
@@ -327,10 +428,12 @@ NASA hackton/
 │   │   ├── settings.js               # Settings defaults & graphics quality profiles
 │   │   └── translations.js           # Complete bilingual {en, ar} dictionary
 │   ├── data/
+│   │   ├── arabicVehicles.js         # Authentic Arabic spacecraft dossiers, telemetry & task specs
 │   │   └── craftStories.js           # Archival stories, technical dossiers & quizzes
 │   ├── scene/
 │   │   ├── cameraAutoFit.js          # Responsive bounding-sphere camera framing engine
-│   │   └── orbitLayer.js             # Three.js circumplanetary orbital simulation
+│   │   ├── orbitLayer.js             # Three.js circumplanetary orbital simulation
+│   │   └── toonify.js                # Cel-shading, inverted-hull hero outlines & shadow auto-fit
 │   ├── styles/
 │   │   ├── menu.css                  # Main menu, HUD tokens, splash & modal styles
 │   │   ├── spacecraft.css            # Showroom, dossier, bottom sheet & orbit HUD styles

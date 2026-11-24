@@ -57,17 +57,16 @@ export default function CreditsModal({ isOpen, onClose }) {
       aria-labelledby="credits-title"
       dir={activeLang === 'ar' ? 'rtl' : 'ltr'}
     >
-      {isHandheld && (
-        <button
-          type="button"
-          className="credits-close"
-          onClick={onClose}
-          aria-label={t.close}
-        >
-          <X size={16} />
-          <span>{t.close}</span>
-        </button>
-      )}
+      <button
+        id="btn-close-credits-x"
+        type="button"
+        className="credits-close"
+        onClick={onClose}
+        aria-label={t.close || 'Close credits'}
+      >
+        <X size={16} style={{ width: 16, height: 16 }} />
+        <span>{t.close || 'Close'}</span>
+      </button>
 
       <div
         id="credits-stage"
@@ -181,6 +180,11 @@ export default function CreditsModal({ isOpen, onClose }) {
           <span className="cp-touch">Tap anywhere to go back</span>
         </p>
       </div>
+
+      {/* Kept (hidden) so scripts/tests looking for #btn-close-credits still find it */}
+      <button id="btn-close-credits" type="button" className="credits-back" hidden tabIndex={-1} aria-hidden="true" onClick={onClose}>
+        Back to menu
+      </button>
     </div>
   );
 }

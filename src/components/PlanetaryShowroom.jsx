@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -23,6 +23,7 @@ import {
   HelpCircle,
   Compass,
   Eye,
+  EyeOff,
   FileText,
   Lock,
   Rocket,
@@ -44,7 +45,17 @@ import {
 import { triggerConfettiBurst, triggerEdgeFlash } from '../utils/quizEffects';
 import LunaReactionToast from './LunaReactionToast';
 import {
+  toonifyModel,
+  convertMaterialToToon,
+  getSharedGradientMap,
+  fitShadowCameraToVehicle,
+  updateHeroOutline,
+  attachHeroOutline,
+  detachHeroOutline,
+} from '../scene/toonify';
+import {
   loadGLTFModel,
+  preloadShowroomExtras,
   disposeObject3D,
   isWebGLAvailable,
   prefersReducedMotion,
@@ -58,6 +69,8 @@ import {
   SETTINGS_STORAGE_KEY
 } from '../constants/settings';
 import { getCraftStory, getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
+import { getLocalizedVehicle } from '../data/arabicVehicles';
+import LoadingScreen from './LoadingScreen';
 import { getTranslations } from '../constants/translations';
 import StatusBadge from './StatusBadge';
 import ShowroomStoryPanel from './ShowroomStoryPanel';
@@ -66,9 +79,13 @@ import { calculateFitDistance, getOrbitOverviewCamera } from '../scene/cameraAut
 import { triggerHaptic, isMobileDevice } from '../utils/viewport';
 import '../styles/spacecraft.css';
 
-const MoreEquipmentModal = lazy(() => import('./MoreEquipmentModal'));
-const SourcesModal = lazy(() => import('./SourcesModal'));
-const SettingsModal = lazy(() => import('./SettingsModal'));
+const loadMoreEquipmentModal = () => import('./MoreEquipmentModal');
+const loadSourcesModal = () => import('./SourcesModal');
+const loadSettingsModal = () => import('./SettingsModal');
+
+const MoreEquipmentModal = lazy(loadMoreEquipmentModal);
+const SourcesModal = lazy(loadSourcesModal);
+const SettingsModal = lazy(loadSettingsModal);
 
 function NasaMeatballLogo({ size = 32 }) {
   return (
@@ -194,7 +211,7 @@ export const VEHICLES_DATA = [
     scale: 1.0,
     position: [0, 0, 0],
     rotation: [0, 0, 0],
-    focusCamPos: [0, 18.0, 95.0],
+    focusCamPos: [0, 32.0, 140.0],
     focusLookAt: [0, 0, 0],
     contactShadowRadius: 0,
     agency: 'NASA / International Space Network',
@@ -705,16 +722,26 @@ const SHOWROOM_BRIEFINGS = {
 };
 
 // Generates soft ambient-occlusion contact shadow disk under vehicle
-function createContactShadowMesh(radius = 1.6, opacity = 0.65) {
+// Features dual-tier occlusion falloff, polygon offset to eliminate Z-fighting, and atmospheric soil tinting
+function createContactShadowMesh(radius = 1.6, opacity = 0.65, destination = 'neutral') {
   const canvas = document.createElement('canvas');
   canvas.width = 128;
   canvas.height = 128;
   const ctx = canvas.getContext('2d');
   const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  grad.addColorStop(0, `rgba(0, 0, 0, ${opacity})`);
-  grad.addColorStop(0.35, `rgba(0, 0, 0, ${opacity * 0.7})`);
-  grad.addColorStop(0.7, `rgba(0, 0, 0, ${opacity * 0.2})`);
-  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+  // Environmental shadow tint: warm terracotta for Mars, cool lunar slate for Moon
+  const isMars = destination === 'mars';
+  const isMoon = destination === 'moon';
+  const r = isMars ? 30 : isMoon ? 8 : 10;
+  const g = isMars ? 11 : isMoon ? 11 : 12;
+  const b = isMars ? 7 : isMoon ? 18 : 16;
+
+  grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${opacity})`);
+  grad.addColorStop(0.25, `rgba(${r}, ${g}, ${b}, ${opacity * 0.85})`);
+  grad.addColorStop(0.55, `rgba(${r}, ${g}, ${b}, ${opacity * 0.45})`);
+  grad.addColorStop(0.85, `rgba(${r}, ${g}, ${b}, ${opacity * 0.12})`);
+  grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
 
@@ -723,11 +750,15 @@ function createContactShadowMesh(radius = 1.6, opacity = 0.65) {
   const mat = new THREE.MeshBasicMaterial({
     map: texture,
     transparent: true,
-    depthWrite: false
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1.0,
+    polygonOffsetUnits: -2.0,
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.y = 0.015;
+  mesh.position.y = 0.005;
+  mesh.renderOrder = 1;
   return mesh;
 }
 
@@ -757,6 +788,7 @@ export default function PlanetaryShowroom({
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [isLoading3D, setIsLoading3D] = useState(true);
   const [loadPercent, setLoadPercent] = useState(0);
+  const [loadPhaseText, setLoadPhaseText] = useState('');
   const [loadError, setLoadError] = useState(null);
   const [isHudMinimized, setIsHudMinimized] = useState(false);
 
@@ -788,6 +820,7 @@ export default function PlanetaryShowroom({
   const [isPhonePortrait, setIsPhonePortrait] = useState(false);
   const [isInfoCollapsed, setIsInfoCollapsed] = useState(false);
   const [isHeroZoomed, setIsHeroZoomed] = useState(true);
+  const [isHudHidden, setIsHudHidden] = useState(false);
 
   useEffect(() => {
     const checkViewport = () => {
@@ -835,6 +868,7 @@ export default function PlanetaryShowroom({
     loadedVehicles: {},
     currentPlanet: null,
     earthMesh: null,
+    activeSunLight: null,
     orbitLayer: null,
     loadPlanetScene: null,
     syncRenderLoop: null,
@@ -866,7 +900,11 @@ export default function PlanetaryShowroom({
   );
 
   const isArcadeMode = initialDestination === 'all';
-  const currentVehicle = filteredVehicles[currentIndex] || filteredVehicles[0];
+  const rawVehicle = filteredVehicles[currentIndex] || filteredVehicles[0];
+  const currentVehicle = useMemo(
+    () => getLocalizedVehicle(rawVehicle, activeLang),
+    [rawVehicle, activeLang]
+  );
   const isMoon = currentVehicle?.destination === 'moon';
   const isDeepSpace = currentVehicle?.destination === 'deepspace';
 
@@ -955,7 +993,7 @@ export default function PlanetaryShowroom({
           }
           if (state.controls) {
             state.controls.maxPolarAngle = Math.PI;
-            state.controls.maxDistance = 180.0;
+            state.controls.maxDistance = 450.0;
             state.controls.minDistance = 1.0;
           }
 
@@ -1016,7 +1054,34 @@ export default function PlanetaryShowroom({
           const fittedCam = baseLook.clone().add(camDir.multiplyScalar(fittedDist));
           targetCam = [fittedCam.x, fittedCam.y, fittedCam.z];
           targetLook = [baseLook.x, baseLook.y, baseLook.z];
+
+          if (state.activeSunLight) {
+            fitShadowCameraToVehicle(state.activeSunLight, targetVehicle, {
+              profile: state.activeQuality,
+              preset: state.activeQuality?.preset,
+            });
+            if (state.renderer && state.renderer.shadowMap.enabled) {
+              state.renderer.shadowMap.needsUpdate = true;
+            }
+          }
         }
+
+        const nextHeroModel = isOrbiter
+          ? state.orbitLayer?.getOrbiterObject?.(targetVehicle.id)
+          : state.loadedVehicles?.[targetVehicle.id];
+
+        const activeQuality = resolveGraphicsProfile(
+          readStoredSettings().graphicsQuality,
+          getDeviceQualityProfile()
+        );
+        const outlinesActive = activeQuality.preset !== 'performance' && !isOverview;
+        const atmosphericInk = targetVehicle.destination === 'mars' ? 0x1a0c09 : 0x080c16;
+        updateHeroOutline(state.currentHeroModel, nextHeroModel, {
+          enabled: outlinesActive,
+          boundingRadius: targetVehicle.scale || 1.0,
+          color: atmosphericInk,
+        });
+        state.currentHeroModel = nextHeroModel;
 
         if (shouldFly && !isPlanetChanging) {
           triggerCameraFly(targetCam, targetLook, 1600, cue);
@@ -1290,6 +1355,20 @@ export default function PlanetaryShowroom({
         return;
       }
 
+      if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        setIsHudHidden((prev) => !prev);
+        playServo('click');
+        return;
+      }
+
+      if (isDetailsOpen && e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCloseDetails();
+        return;
+      }
+
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
         e.preventDefault();
         e.stopPropagation();
@@ -1305,7 +1384,7 @@ export default function PlanetaryShowroom({
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isOpen, isPauseMenuOpen, showStoryModal, isDialogVisible, handleNext, handlePrev, onClose, onBackToChoice]);
+  }, [isOpen, isPauseMenuOpen, showStoryModal, isDialogVisible, isDetailsOpen, handleCloseDetails, handleNext, handlePrev, onClose, onBackToChoice]);
 
   // Initialize Three.js Scene
   useEffect(() => {
@@ -1345,8 +1424,11 @@ export default function PlanetaryShowroom({
 
     const scene = new THREE.Scene();
     threeRef.current.scene = scene;
+    if (typeof window !== 'undefined') window.__threeRef = threeRef;
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 8000);
+    camera.layers.enable(1); // Enable celestial layer for Earth backdrop without ambient light spill
+    camera.layers.enable(2); // Enable layer 2 for spacecraft rim lights
     const dest =
       initialDestination === 'mars'
         ? 'mars'
@@ -1393,23 +1475,24 @@ export default function PlanetaryShowroom({
     renderer.setPixelRatio(getEffectivePixelRatio(activeQuality));
     renderer.setSize(width, height);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = activeQuality.shadowsEnabled;
-    renderer.shadowMap.autoUpdate = activeQuality.shadowsEnabled;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.autoUpdate = Boolean(activeQuality.autoUpdateShadows ?? (activeQuality.preset === 'ultra' || activeQuality.preset === 'quality'));
+    renderer.shadowMap.type = activeQuality.preset === 'performance' ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
     threeRef.current.renderer = renderer;
+    threeRef.current.activeQuality = activeQuality;
 
-    // PMREMGenerator Environment Map for PBR metal reflections
+    // PMREMGenerator Environment Map for subtle ambient reflections on globes
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
     const envScene = new RoomEnvironment();
     const envTexture = pmremGenerator.fromScene(envScene, 0.04).texture;
     scene.environment = envTexture;
-    scene.environmentIntensity = 0.55;
+    scene.environmentIntensity = 0.04;
     envScene.dispose();
     pmremGenerator.dispose();
 
@@ -1516,7 +1599,8 @@ export default function PlanetaryShowroom({
 
       if (s.earthMesh && !prefersReducedMotion()) {
         // 0.036 rad/s matches original 0.0006/frame at 60 FPS across all refresh rates
-        s.earthMesh.rotation.y += 0.036 * dt;
+        const spinTarget = s.earthMesh.userData?.spinGroup || s.earthMesh;
+        spinTarget.rotation.y += 0.036 * dt;
       }
 
       if (s.animating) {
@@ -1534,6 +1618,9 @@ export default function PlanetaryShowroom({
           s.controls.enabled = true;
           s.controls.update();
           activeRenderFrames = 4;
+          if (s.renderer?.shadowMap.enabled) {
+            s.renderer.shadowMap.needsUpdate = true;
+          }
         }
       } else {
         s.controls.update();
@@ -1626,21 +1713,32 @@ export default function PlanetaryShowroom({
       dispatchAudioCue('surface_ambience', { planet: planetName });
       setLoadError(null);
       setIsLoading3D(true);
-      setLoadPercent(8);
+      setLoadPercent(6);
+      const isArBoot = readStoredSettings().language === 'ar';
+      setLoadPhaseText(
+        isArBoot
+          ? 'تحميل الخطوط والصوتيات وواجهة المهمة...'
+          : 'Synchronizing fonts, audio & UI modules'
+      );
 
       if (threeRef.current.orbitLayer) {
         threeRef.current.orbitLayer.dispose();
         threeRef.current.orbitLayer = null;
+      }
+      if (threeRef.current.currentHeroModel) {
+        detachHeroOutline(threeRef.current.currentHeroModel);
+        threeRef.current.currentHeroModel = null;
       }
       clearAndDisposeGroup(terrainGroup);
       clearAndDisposeGroup(vehiclesGroup);
       if (terrainGroup) terrainGroup.visible = false;
       if (vehiclesGroup) vehiclesGroup.visible = false;
       activeSunLight = null;
+      threeRef.current.activeSunLight = null;
       activeContactMeshes = [];
 
-      const registerContactShadow = (radius, opacity, x, y, z) => {
-        const contact = createContactShadowMesh(radius, opacity);
+      const registerContactShadow = (radius, opacity, x, y, z, tint = 'neutral') => {
+        const contact = createContactShadowMesh(radius, opacity, tint);
         contact.userData.baseOpacity = opacity;
         contact.position.set(x, y, z);
         contact.visible = activeQuality.contactShadowEnabled;
@@ -1652,70 +1750,118 @@ export default function PlanetaryShowroom({
         return contact;
       };
 
-      // Weighted concurrent progress tracker
+      // Weighted concurrent progress tracker (total spans 6% -> 96%, final 4% for shader compile & camera frame)
       const progressState = {};
-      const reportWeightedProgress = (key, ratio, weight, baseOffset = 8) => {
+      const reportWeightedProgress = (key, ratio, weight, baseOffset = 6) => {
         if (isDisposed || myToken !== loadToken) return;
         progressState[key] = ratio * weight;
         const total = Object.values(progressState).reduce((acc, v) => acc + v, 0);
         setLoadPercent((prev) => Math.max(prev, Math.min(96, Math.round(baseOffset + total))));
       };
 
+      // Preload ALL non-3D showroom essentials concurrently (fonts, Draco, audio, UI portraits, lazy modals)
+      const extrasPromise = Promise.allSettled([
+        preloadShowroomExtras(planetName, {
+          onProgress: (r) => reportWeightedProgress('extras', r, 10),
+        }),
+        loadMoreEquipmentModal(),
+        loadSourcesModal(),
+        loadSettingsModal(),
+      ]).then(() => {
+        reportWeightedProgress('extras', 1, 10);
+      });
+
       try {
         if (planetName === 'moon') {
+          setLoadPhaseText(
+            isArBoot
+              ? 'مزامنة تضاريس القمر والمركبات السطحية...'
+              : 'Synchronizing lunar terrain & surface craft'
+          );
           scene.background = new THREE.Color(0x020409);
           scene.fog = new THREE.Fog(0x020409, 3500, 7500);
 
-          const sunLight = new THREE.DirectionalLight(0xfffaea, 2.45);
-          sunLight.position.set(24, 15, 18);
+          // Calibrated solar directional radiance (1.85 intensity avoids clipping highlights on cel shaders)
+          const sunLight = new THREE.DirectionalLight(0xfff8ea, 1.85);
+          sunLight.position.set(22, 16, 16);
+          // Illuminates lunar surface & spacecraft on layer 0; Earth has its own celestial layer 1 sun
           sunLight.castShadow = activeQuality.shadowsEnabled;
           sunLight.shadow.mapSize.width = activeQuality.shadowSize;
           sunLight.shadow.mapSize.height = activeQuality.shadowSize;
           activeSunLight = sunLight;
-          sunLight.shadow.radius = 2.5;
-          sunLight.shadow.camera.near = 0.5;
-          sunLight.shadow.camera.far = 120;
-          sunLight.shadow.camera.left = -24;
-          sunLight.shadow.camera.right = 24;
-          sunLight.shadow.camera.top = 24;
-          sunLight.shadow.camera.bottom = -24;
-          sunLight.shadow.bias = -0.00015;
-          sunLight.shadow.normalBias = 0.02;
+          threeRef.current.activeSunLight = sunLight;
+          sunLight.shadow.radius = 2.0;
+          sunLight.shadow.camera.near = 1.0;
+          sunLight.shadow.camera.far = 140.0;
+          const initialMoonSpan = activeQuality.shadowSpan || (activeQuality.preset === 'ultra' ? 38.0 : 28.0);
+          sunLight.shadow.camera.left = -initialMoonSpan;
+          sunLight.shadow.camera.right = initialMoonSpan;
+          sunLight.shadow.camera.top = initialMoonSpan;
+          sunLight.shadow.camera.bottom = -initialMoonSpan;
+          sunLight.shadow.bias = -0.0002;
+          sunLight.shadow.normalBias = 0.045;
           terrainGroup.add(sunLight);
+          terrainGroup.add(sunLight.target);
 
-          const hemiLight = new THREE.HemisphereLight(0x587296, 0x242428, 0.42);
-          terrainGroup.add(hemiLight);
+          // Cool Earthshine fill originating from Earth's distant sky position:
+          const earthshineFill = new THREE.DirectionalLight(0x386898, 0.35);
+          earthshineFill.position.set(-275, 55, -280);
+          earthshineFill.castShadow = false;
+          terrainGroup.add(earthshineFill);
 
-          const rimLight = new THREE.DirectionalLight(0x5580aa, 0.45);
-          rimLight.position.set(-25, 12, -20);
-          terrainGroup.add(rimLight);
+          // Subtle lunar regolith bounce (silvery crater floor diffuse bounce):
+          const moonAmbient = new THREE.HemisphereLight(0x151c28, 0x242830, 0.40);
+          terrainGroup.add(moonAmbient);
 
-          const earthshine = new THREE.DirectionalLight(0x4080bf, 0.6);
-          earthshine.position.set(-65, 38, -120);
-          earthshine.target.position.set(0, 0, 0);
-          terrainGroup.add(earthshine);
-          terrainGroup.add(earthshine.target);
+          // Stylized cool cosmic rim light (accentuates silhouettes and crater ridges)
+          const moonRimLight = new THREE.DirectionalLight(0x60a5fa, 0.42);
+          moonRimLight.position.set(-22, 14, -18);
+          moonRimLight.castShadow = false;
+          terrainGroup.add(moonRimLight);
 
+          // Distant Earth in the deep black lunar sky (Apollo 8 Earthrise composition)
           const earthGroup = new THREE.Group();
-          earthGroup.position.set(-65, 38, -120);
+          earthGroup.position.set(-275, 55, -280);
           terrainGroup.add(earthGroup);
           threeRef.current.earthMesh = earthGroup;
 
-          const earthBaseGeo = new THREE.SphereGeometry(5.6, 36, 36);
+          // Dedicated celestial sun on layer 1 strictly for Earth, casting the authentic Apollo 8 crescent terminator
+          const celestialEarthSun = new THREE.DirectionalLight(0xfff8ee, 2.3);
+          celestialEarthSun.position.set(-200, 155, -280);
+          celestialEarthSun.target = earthGroup;
+          celestialEarthSun.layers.set(1);
+          terrainGroup.add(celestialEarthSun);
+          terrainGroup.add(celestialEarthSun.target);
+
+          // Dedicated spinning group so Earth rotates on its tilted axis
+          const earthSpinGroup = new THREE.Group();
+          earthSpinGroup.rotation.z = 0.41;
+          earthGroup.add(earthSpinGroup);
+          earthGroup.userData.spinGroup = earthSpinGroup;
+
+          // Fallback realistic sphere matching Apollo 8 Earthrise photo
+          const earthBaseGeo = new THREE.SphereGeometry(12.0, 48, 48);
           const earthBaseMat = new THREE.MeshStandardMaterial({
             color: 0x1f5fa8,
-            roughness: 0.5,
-            metalness: 0.05,
-            emissive: 0x09264a,
-            emissiveIntensity: 0.4
+            roughness: 0.65,
+            metalness: 0.02,
+            envMapIntensity: 0.0,
+            emissive: new THREE.Color(0x000000),
+            emissiveIntensity: 0.0,
+            fog: false,
           });
           const earthBaseMesh = new THREE.Mesh(earthBaseGeo, earthBaseMat);
-          earthGroup.add(earthBaseMesh);
+          earthBaseMesh.layers.set(1);
+          earthSpinGroup.add(earthBaseMesh);
+          earthGroup.traverse((c) => {
+            c.layers.set(1);
+          });
 
           const [earthGltf, terrainGltf, roverGltf, lmGltf] = await Promise.all([
             loadGLTFModel(EARTH_BACKDROP_URL, {
               signal,
               cacheBuffer: true,
+              toonify: false, // Continuous smooth shading matching Apollo 8 photograph
               onProgress: (r) => reportWeightedProgress('earth', r, 8)
             }).catch((err) => {
               if (err?.name === 'AbortError') throw err;
@@ -1725,6 +1871,7 @@ export default function PlanetaryShowroom({
             loadGLTFModel(MOON_TERRAIN_URL, {
               signal,
               cacheBuffer: false,
+              toonify: false, // Smooth terrain prevents stepped polygon contour banding
               onProgress: (r) => reportWeightedProgress('terrain', r, 54)
             }),
             loadGLTFModel(LUNAR_ROVER_URL, {
@@ -1749,27 +1896,46 @@ export default function PlanetaryShowroom({
 
           if (earthGltf) {
             const earthModel = earthGltf.scene;
-            earthModel.scale.setScalar(4.5);
-            earthModel.position.set(-0.35, 0, -0.45);
+            earthModel.updateMatrixWorld(true);
+            const bbox = new THREE.Box3().setFromObject(earthModel);
+            const bsphere = bbox.getBoundingSphere(new THREE.Sphere());
+            const rawRadius = bsphere.radius > 0.001 ? bsphere.radius : 1.0;
+            const scaleFactor = 12.0 / rawRadius;
+            earthModel.scale.setScalar(scaleFactor);
+            earthModel.position.set(-bsphere.center.x * scaleFactor, -bsphere.center.y * scaleFactor, -bsphere.center.z * scaleFactor);
             earthModel.traverse((c) => {
-              if (c.isMesh && c.material) {
-                c.material.roughness = 0.65;
-                c.material.metalness = 0.05;
+              c.layers.set(1); // Keep on celestial layer 1 so ambient and rim lights do not wash out night side
+              if (c.isMesh) {
+                c.castShadow = false;
+                c.receiveShadow = false;
+                if (c.material) {
+                  c.material.roughness = 0.65;
+                  c.material.metalness = 0.02;
+                  c.material.envMapIntensity = 0.0;
+                  if (c.material.emissive) {
+                    c.material.emissive.set(0x000000);
+                    c.material.emissiveIntensity = 0.0;
+                  }
+                  c.material.fog = false;
+                  c.material.needsUpdate = true;
+                }
               }
             });
-            earthGroup.remove(earthBaseMesh);
+            earthSpinGroup.remove(earthBaseMesh);
             disposeObject3D(earthBaseMesh);
-            earthGroup.add(earthModel);
+            earthSpinGroup.add(earthModel);
           }
 
           const terrain = terrainGltf.scene;
           terrain.traverse((c) => {
             if (c.isMesh) {
-              c.receiveShadow = true;
+              c.castShadow = false; // Never self-shadow: completely prevents shadow acne moiré on ground
+              c.receiveShadow = true; // Still receives full rover and lander cast shadows
               if (c.material) {
                 c.material.roughness = 0.95;
                 c.material.metalness = 0.0;
-                c.material.envMapIntensity = 0.14;
+                c.material.envMapIntensity = 0.12;
+                c.material.fog = false;
               }
             }
           });
@@ -1815,6 +1981,10 @@ export default function PlanetaryShowroom({
           });
           vehiclesGroup.add(rover);
           threeRef.current.loadedVehicles['lunar-rover'] = rover;
+          if (currentVehicleRef.current?.id === 'lunar-rover' && activeQuality.preset !== 'performance') {
+            attachHeroOutline(rover, lunar.scale);
+            threeRef.current.currentHeroModel = rover;
+          }
 
           terrain.updateMatrixWorld(true);
           rover.updateMatrixWorld(true);
@@ -1826,6 +1996,16 @@ export default function PlanetaryShowroom({
           const floorHits = floorRay.intersectObject(terrain, true);
           const surfaceY = floorHits.length > 0 ? floorHits[0].point.y : -0.028;
           rover.position.y += surfaceY - 0.01 - rBox.min.y;
+
+          // Register contact shadow firmly beneath Lunar Rover wire wheels
+          registerContactShadow(
+            lunar.contactShadowRadius || 2.4,
+            0.70,
+            rover.position.x,
+            surfaceY + 0.005,
+            rover.position.z,
+            'moon'
+          );
 
           // Stage Apollo Lunar Module (LM-10 Falcon)
           const lm = lmGltf.scene;
@@ -1847,14 +2027,10 @@ export default function PlanetaryShowroom({
           });
           vehiclesGroup.add(lm);
           threeRef.current.loadedVehicles['apollo-lunar-module'] = lm;
-
-          registerContactShadow(
-            lmData.contactShadowRadius || 3.8,
-            0.65,
-            lm.position.x,
-            lm.position.y + 0.012,
-            lm.position.z
-          );
+          if (currentVehicleRef.current?.id === 'apollo-lunar-module' && activeQuality.preset !== 'performance') {
+            attachHeroOutline(lm, lmData.scale);
+            threeRef.current.currentHeroModel = lm;
+          }
 
           lm.updateMatrixWorld(true);
           const lmBox = new THREE.Box3().setFromObject(lm);
@@ -1866,7 +2042,22 @@ export default function PlanetaryShowroom({
           const lmSurfaceY = lmFloorHits.length > 0 ? lmFloorHits[0].point.y : -0.02;
           lm.position.y += lmSurfaceY - 0.01 - lmBox.min.y;
 
-          // Initialize Moon Orbit Layer (LRO, LADEE)
+          // Ground Lunar Module contact shadow accurately on terrain surface
+          registerContactShadow(
+            lmData.contactShadowRadius || 4.2,
+            0.72,
+            lm.position.x,
+            lmSurfaceY + 0.005,
+            lm.position.z,
+            'moon'
+          );
+
+          // Initialize Moon Orbit Layer (LRO, LADEE, LLCD + Moon globe) & await full readiness
+          setLoadPhaseText(
+            isArBoot
+              ? 'تجهيز المدار القمري والأقمار الصناعية...'
+              : 'Deploying lunar globe & orbital spacecraft'
+          );
           if (threeRef.current.orbitLayer) {
             threeRef.current.orbitLayer.dispose();
             threeRef.current.orbitLayer = null;
@@ -1875,8 +2066,11 @@ export default function PlanetaryShowroom({
             scene,
             destination: 'moon',
             profile: activeQuality,
-            signal
+            signal,
+            onProgress: (r) => reportWeightedProgress('orbit', r, 16)
           });
+          await threeRef.current.orbitLayer.readyPromise;
+          if (isDisposed || signal.aborted || myToken !== loadToken) return;
           if (currentVehicleRef.current?.isOrbiter && currentVehicleRef.current?.destination === 'moon') {
             const v = currentVehicleRef.current;
             if (v.isOverviewPhase) {
@@ -1886,49 +2080,75 @@ export default function PlanetaryShowroom({
               threeRef.current.orbitLayer.select(v.id);
               threeRef.current.orbitLayer.setZoomMode(true);
             }
+          } else if (activeSunLight && currentVehicleRef.current) {
+            fitShadowCameraToVehicle(activeSunLight, currentVehicleRef.current, {
+              profile: activeQuality,
+              preset: activeQuality.preset,
+            });
+            if (renderer.shadowMap.enabled) {
+              renderer.shadowMap.needsUpdate = true;
+            }
           }
         } else if (planetName === 'mars') {
           // ================= MARS SETUP =================
+          setLoadPhaseText(
+            isArBoot
+              ? 'مزامنة تضاريس المريخ والمركبات السطحية...'
+              : 'Synchronizing Martian terrain & rovers'
+          );
           const MARS_HORIZON_COLOR = 0x1e0b07;
           const isCurrentOrbiter = Boolean(currentVehicleRef.current?.isOrbiter);
           scene.background = isCurrentOrbiter ? new THREE.Color(0x010308) : new THREE.Color(MARS_HORIZON_COLOR);
-          scene.fog = isCurrentOrbiter ? null : new THREE.FogExp2(MARS_HORIZON_COLOR, 0.014);
+          scene.fog = isCurrentOrbiter ? null : new THREE.FogExp2(MARS_HORIZON_COLOR, 0.012);
 
-          const sunLight = new THREE.DirectionalLight(0xffc58e, 2.5);
+          // Calibrated solar directional radiance (1.80 intensity with warm solar amber color)
+          const sunLight = new THREE.DirectionalLight(0xffdfb8, 1.80);
           sunLight.position.set(22, 16, 16);
           sunLight.target.position.set(0, 0, -4);
           sunLight.castShadow = activeQuality.shadowsEnabled;
           sunLight.shadow.mapSize.width = activeQuality.shadowSize;
           sunLight.shadow.mapSize.height = activeQuality.shadowSize;
           activeSunLight = sunLight;
-          sunLight.shadow.radius = 2;
-          sunLight.shadow.camera.near = 0.5;
-          sunLight.shadow.camera.far = 140;
-          sunLight.shadow.camera.left = -28;
-          sunLight.shadow.camera.right = 28;
-          sunLight.shadow.camera.top = 28;
-          sunLight.shadow.camera.bottom = -28;
-          sunLight.shadow.bias = -0.0001;
-          sunLight.shadow.normalBias = 0.02;
+          threeRef.current.activeSunLight = sunLight;
+          sunLight.shadow.radius = 2.0;
+          sunLight.shadow.camera.near = 1.0;
+          sunLight.shadow.camera.far = 140.0;
+          const initialMarsSpan = activeQuality.shadowSpan || (activeQuality.preset === 'ultra' ? 38.0 : 28.0);
+          sunLight.shadow.camera.left = -initialMarsSpan;
+          sunLight.shadow.camera.right = initialMarsSpan;
+          sunLight.shadow.camera.top = initialMarsSpan;
+          sunLight.shadow.camera.bottom = -initialMarsSpan;
+          sunLight.shadow.bias = -0.0002;
+          sunLight.shadow.normalBias = 0.045;
           terrainGroup.add(sunLight);
           terrainGroup.add(sunLight.target);
 
-          const hemiLight = new THREE.HemisphereLight(0xffbe85, 0x4a1e12, 0.85);
-          terrainGroup.add(hemiLight);
+          // Warm atmospheric sky fill + rich terracotta ground bounce:
+          const marsAtmosphere = new THREE.HemisphereLight(0xd48454, 0x5a1c0d, 0.65);
+          terrainGroup.add(marsAtmosphere);
 
-          const rimLight = new THREE.DirectionalLight(0xb06540, 0.55);
-          rimLight.position.set(-22, 10, -22);
-          terrainGroup.add(rimLight);
+          // Subtle warm bounce light from sunlit Martian soil:
+          const marsGroundBounce = new THREE.DirectionalLight(0x7d2e14, 0.32);
+          marsGroundBounce.position.set(-16, 2, -14);
+          marsGroundBounce.castShadow = false;
+          terrainGroup.add(marsGroundBounce);
+
+          // Stylized sunset-amber rim light (accentuates rover silhouettes and dune ridges)
+          const marsRimLight = new THREE.DirectionalLight(0xf97316, 0.36);
+          marsRimLight.position.set(-20, 12, -16);
+          marsRimLight.castShadow = false;
+          terrainGroup.add(marsRimLight);
 
           const skirtGeo = new THREE.CircleGeometry(600, 64);
           const skirtMat = new THREE.MeshStandardMaterial({
             color: 0x5d2212,
             roughness: 0.96,
-            metalness: 0.0
+            metalness: 0.0,
           });
           const skirtMesh = new THREE.Mesh(skirtGeo, skirtMat);
           skirtMesh.rotation.x = -Math.PI / 2;
           skirtMesh.position.y = -0.21;
+          skirtMesh.castShadow = false;
           skirtMesh.receiveShadow = true;
           terrainGroup.add(skirtMesh);
 
@@ -1954,11 +2174,12 @@ export default function PlanetaryShowroom({
 
           const duneMat = new THREE.MeshStandardMaterial({
             color: 0x5a2010,
-            roughness: 0.96,
-            metalness: 0.0
+            roughness: 0.95,
+            metalness: 0.0,
           });
           const duneMesh = new THREE.Mesh(duneGeo, duneMat);
           duneMesh.position.y = -0.04;
+          duneMesh.castShadow = false;
           duneMesh.receiveShadow = true;
           terrainGroup.add(duneMesh);
 
@@ -1966,6 +2187,7 @@ export default function PlanetaryShowroom({
             loadGLTFModel(MARS_TERRAIN_URL, {
               signal,
               cacheBuffer: true,
+              toonify: false, // Continuous smooth shading prevents stepped contour banding
               onProgress: (r) => reportWeightedProgress('terrain', r, 24)
             }),
             loadGLTFModel(MER_ROVER_URL, {
@@ -2007,9 +2229,13 @@ export default function PlanetaryShowroom({
 
           marsTerrain.traverse((c) => {
             if (c.isMesh) {
-              c.receiveShadow = true;
+              c.castShadow = false; // Never self-shadow: completely prevents shadow acne moiré on ground
+              c.receiveShadow = true; // Receives crisp rover cast shadows
               if (c.material) {
-                c.material.roughness = 0.92;
+                c.material.roughness = 0.94;
+                c.material.metalness = 0.0;
+                c.material.envMapIntensity = 0.15;
+                c.material.fog = false;
                 if (c.material.map) {
                   if (!marsDiffuse) marsDiffuse = c.material.map;
                   c.material.map.wrapS = THREE.RepeatWrapping;
@@ -2021,7 +2247,11 @@ export default function PlanetaryShowroom({
                   c.material.normalMap.wrapS = THREE.RepeatWrapping;
                   c.material.normalMap.wrapT = THREE.RepeatWrapping;
                   c.material.normalMap.repeat.set(6, 6);
+                  if (c.material.normalScale) {
+                    c.material.normalScale.set(0.25, 0.25);
+                  }
                 }
+                c.material.needsUpdate = true;
               }
 
               const pos = c.geometry.attributes.position;
@@ -2085,14 +2315,11 @@ export default function PlanetaryShowroom({
           });
           vehiclesGroup.add(oppy);
           threeRef.current.loadedVehicles['mer-opportunity'] = oppy;
+          if (currentVehicleRef.current?.id === 'mer-opportunity' && activeQuality.preset !== 'performance') {
+            attachHeroOutline(oppy, oppyData.scale);
+            threeRef.current.currentHeroModel = oppy;
+          }
 
-          registerContactShadow(
-            oppyData.contactShadowRadius || 1.8,
-            0.7,
-            oppy.position.x,
-            oppy.position.y + 0.012,
-            oppy.position.z
-          );
           oppy.updateMatrixWorld(true);
           const oppyBox = new THREE.Box3().setFromObject(oppy);
           const oppyFloorRay = new THREE.Raycaster(
@@ -2102,6 +2329,16 @@ export default function PlanetaryShowroom({
           const oppyFloorHits = oppyFloorRay.intersectObject(marsTerrain, true);
           const oppySurfaceY = oppyFloorHits.length > 0 ? oppyFloorHits[0].point.y : 0;
           oppy.position.y += oppySurfaceY - 0.01 - oppyBox.min.y;
+
+          // Ground Opportunity contact shadow firmly on Martian terrain
+          registerContactShadow(
+            oppyData.contactShadowRadius || 2.0,
+            0.70,
+            oppy.position.x,
+            oppySurfaceY + 0.005,
+            oppy.position.z,
+            'mars'
+          );
 
           // Stage Ingenuity
           const ing = ingGltf.scene;
@@ -2121,18 +2358,30 @@ export default function PlanetaryShowroom({
           });
           vehiclesGroup.add(ing);
           threeRef.current.loadedVehicles['ingenuity-helicopter'] = ing;
+          if (currentVehicleRef.current?.id === 'ingenuity-helicopter' && activeQuality.preset !== 'performance') {
+            attachHeroOutline(ing, ingData.scale);
+            threeRef.current.currentHeroModel = ing;
+          }
 
-          registerContactShadow(
-            ingData.contactShadowRadius || 0.85,
-            0.65,
-            ing.position.x,
-            ing.position.y + 0.012,
-            ing.position.z
-          );
           ing.updateMatrixWorld(true);
           const ingBox = new THREE.Box3().setFromObject(ing);
-          const targetGroundY = ingData.position[1];
-          if (ingBox.min.y < targetGroundY) ing.position.y += targetGroundY - ingBox.min.y;
+          const ingFloorRay = new THREE.Raycaster(
+            new THREE.Vector3(ing.position.x, 20, ing.position.z),
+            new THREE.Vector3(0, -1, 0)
+          );
+          const ingFloorHits = ingFloorRay.intersectObject(marsTerrain, true);
+          const ingSurfaceY = ingFloorHits.length > 0 ? ingFloorHits[0].point.y : ingData.position[1];
+          ing.position.y += ingSurfaceY - 0.008 - ingBox.min.y;
+
+          // Ground Ingenuity contact shadow accurately on Martian terrain
+          registerContactShadow(
+            ingData.contactShadowRadius || 1.0,
+            0.65,
+            ing.position.x,
+            ingSurfaceY + 0.005,
+            ing.position.z,
+            'mars'
+          );
 
           // Stage Viking 1 Lander
           const viking = vikingGltf.scene;
@@ -2179,12 +2428,12 @@ export default function PlanetaryShowroom({
                   c.material.bumpMap = vikingBumpTex;
                   c.material.bumpScale = 0.04;
                 } else if (matName.includes('blinn4') || matName.includes('initialShading')) {
-                  // White multilayer thermal insulation blankets
-                  c.material.color.setHex(0xf0ede6);
-                  c.material.metalness = 0.08;
-                  c.material.roughness = 0.65;
+                  // White multilayer thermal insulation blankets (soft stylized cream prevents clipping blowout)
+                  c.material.color.setHex(0xe4e0d6);
+                  c.material.metalness = 0.05;
+                  c.material.roughness = 0.70;
                   c.material.bumpMap = vikingBumpTex;
-                  c.material.bumpScale = 0.03;
+                  c.material.bumpScale = 0.025;
                 } else if (matName.includes('blinn8') || matName.includes('blinn11')) {
                   // Titanium & aluminum landing struts, radar and dish
                   c.material.color.setHex(0xcfd2d6);
@@ -2210,18 +2459,30 @@ export default function PlanetaryShowroom({
           });
           vehiclesGroup.add(viking);
           threeRef.current.loadedVehicles['viking-lander'] = viking;
+          if (currentVehicleRef.current?.id === 'viking-lander' && activeQuality.preset !== 'performance') {
+            attachHeroOutline(viking, vikingData.scale);
+            threeRef.current.currentHeroModel = viking;
+          }
 
-          registerContactShadow(
-            vikingData.contactShadowRadius || 1.7,
-            0.7,
-            viking.position.x,
-            viking.position.y + 0.012,
-            viking.position.z
-          );
           viking.updateMatrixWorld(true);
           const vikingBox = new THREE.Box3().setFromObject(viking);
-          const targetVikingY = vikingData.position[1];
-          if (vikingBox.min.y < targetVikingY) viking.position.y += targetVikingY - vikingBox.min.y;
+          const vikingFloorRay = new THREE.Raycaster(
+            new THREE.Vector3(viking.position.x, 20, viking.position.z),
+            new THREE.Vector3(0, -1, 0)
+          );
+          const vikingFloorHits = vikingFloorRay.intersectObject(marsTerrain, true);
+          const vikingSurfaceY = vikingFloorHits.length > 0 ? vikingFloorHits[0].point.y : vikingData.position[1];
+          viking.position.y += vikingSurfaceY - 0.012 - vikingBox.min.y;
+
+          // Ground Viking 1 contact shadow accurately on Martian terrain
+          registerContactShadow(
+            vikingData.contactShadowRadius || 2.4,
+            0.72,
+            viking.position.x,
+            vikingSurfaceY + 0.005,
+            viking.position.z,
+            'mars'
+          );
 
           // Stage InSight Lander
           const ins = insGltf.scene;
@@ -2249,14 +2510,11 @@ export default function PlanetaryShowroom({
           });
           vehiclesGroup.add(ins);
           threeRef.current.loadedVehicles['insight-lander'] = ins;
+          if (currentVehicleRef.current?.id === 'insight-lander' && activeQuality.preset !== 'performance') {
+            attachHeroOutline(ins, insData.scale);
+            threeRef.current.currentHeroModel = ins;
+          }
 
-          registerContactShadow(
-            insData.contactShadowRadius || 2.6,
-            0.7,
-            ins.position.x,
-            ins.position.y + 0.012,
-            ins.position.z
-          );
           marsTerrain.updateMatrixWorld(true);
           ins.updateMatrixWorld(true);
           const insBox = new THREE.Box3().setFromObject(ins);
@@ -2268,7 +2526,22 @@ export default function PlanetaryShowroom({
           const insSurfaceY = insFloorHits.length > 0 ? insFloorHits[0].point.y : -0.05;
           ins.position.y += insSurfaceY - 0.01 - insBox.min.y;
 
-          // Initialize Mars Orbit Layer (MGS, Odyssey, MRO, MAVEN, Phobos, Deimos)
+          // Ground InSight contact shadow accurately on Martian terrain
+          registerContactShadow(
+            insData.contactShadowRadius || 3.0,
+            0.70,
+            ins.position.x,
+            insSurfaceY + 0.005,
+            ins.position.z,
+            'mars'
+          );
+
+          // Initialize Mars Orbit Layer (MGS, Odyssey, MRO, MAVEN, Phobos, Deimos + Mars globe) & await full readiness
+          setLoadPhaseText(
+            isArBoot
+              ? 'تجهيز المدار المريخي والأقمار الصناعية...'
+              : 'Deploying Martian globe & orbital spacecraft'
+          );
           if (threeRef.current.orbitLayer) {
             threeRef.current.orbitLayer.dispose();
             threeRef.current.orbitLayer = null;
@@ -2277,8 +2550,11 @@ export default function PlanetaryShowroom({
             scene,
             destination: 'mars',
             profile: activeQuality,
-            signal
+            signal,
+            onProgress: (r) => reportWeightedProgress('orbit', r, 16)
           });
+          await threeRef.current.orbitLayer.readyPromise;
+          if (isDisposed || signal.aborted || myToken !== loadToken) return;
           if (currentVehicleRef.current?.isOrbiter && currentVehicleRef.current?.destination === 'mars') {
             const v = currentVehicleRef.current;
             if (v.isOverviewPhase) {
@@ -2288,22 +2564,31 @@ export default function PlanetaryShowroom({
               threeRef.current.orbitLayer.select(v.id);
               threeRef.current.orbitLayer.setZoomMode(true);
             }
+          } else if (activeSunLight && currentVehicleRef.current) {
+            fitShadowCameraToVehicle(activeSunLight, currentVehicleRef.current, {
+              profile: activeQuality,
+              preset: activeQuality.preset,
+            });
+            if (renderer.shadowMap.enabled) {
+              renderer.shadowMap.needsUpdate = true;
+            }
           }
         } else {
           // ================= DEEP SPACE SETUP =================
+          setLoadPhaseText(
+            isArBoot
+              ? 'تجهيز مشهد الفضاء السحيق...'
+              : 'Calibrating deep-space telemetry stage'
+          );
           scene.background = new THREE.Color(0x000205);
           scene.fog = new THREE.FogExp2(0x000205, 0.003);
 
-          const ambientLight = new THREE.AmbientLight(0x223355, 0.8);
-          terrainGroup.add(ambientLight);
-
-          const sunLight = new THREE.DirectionalLight(0xddeeff, 1.8);
+          const sunLight = new THREE.DirectionalLight(0xddeeff, 2.2);
           sunLight.position.set(40, 20, 30);
           terrainGroup.add(sunLight);
 
-          const blueRim = new THREE.DirectionalLight(0x4488ff, 0.9);
-          blueRim.position.set(-30, -10, -20);
-          terrainGroup.add(blueRim);
+          const spaceFill = new THREE.HemisphereLight(0x335588, 0x040812, 0.45);
+          terrainGroup.add(spaceFill);
 
           // Cosmic dust particles in Deep Space
           const DUST_COUNT = 600;
@@ -2361,25 +2646,41 @@ export default function PlanetaryShowroom({
           dishMesh.rotation.x = -Math.PI / 4;
           dishMesh.position.set(0, 0.6, -0.4);
           beaconGroup.add(dishMesh);
+          toonifyModel(beaconGroup);
 
           vehiclesGroup.add(beaconGroup);
           threeRef.current.loadedVehicles['deep-space-probe'] = beaconGroup;
 
-          reportWeightedProgress('deepspace', 1, 90);
+          reportWeightedProgress('deepspace', 1, 80);
         }
 
+        // Wait for non-3D showroom assets (fonts, audio, portraits, lazy modals) to finish
+        await extrasPromise;
         if (isDisposed || signal.aborted || myToken !== loadToken) return;
+
+        setLoadPhaseText(
+          isArBoot
+            ? 'معايرة الكاميرا وتجميع المظللات...'
+            : 'Compiling shaders & calibrating viewport'
+        );
+        setLoadPercent(98);
 
         threeRef.current.currentPlanet = planetName;
         if (terrainGroup) terrainGroup.visible = true;
         if (vehiclesGroup) vehiclesGroup.visible = true;
+
+        // Position camera to active vehicle, compile shaders, and paint first frame BEFORE dismissing loader
+        if (onComplete) onComplete();
+        try {
+          renderer.compile(scene, camera);
+        } catch {
+          // Non-fatal on restricted software WebGL contexts
+        }
+        renderOnce();
+
         loadingInProgress = false;
         setLoadPercent(100);
         setIsLoading3D(false);
-
-        // Position camera to active vehicle before initial frame render
-        if (onComplete) onComplete();
-        renderOnce();
         syncRenderLoop();
       } catch (err) {
         if (err?.name === 'AbortError' || isDisposed || myToken !== loadToken) return;
@@ -2417,6 +2718,7 @@ export default function PlanetaryShowroom({
       );
       const shadowsToggled = nextQuality.shadowsEnabled !== activeQuality.shadowsEnabled;
       activeQuality = nextQuality;
+      threeRef.current.activeQuality = activeQuality;
 
       if (containerRef.current) {
         const w = containerRef.current.clientWidth || window.innerWidth;
@@ -2426,7 +2728,8 @@ export default function PlanetaryShowroom({
       }
 
       renderer.shadowMap.enabled = activeQuality.shadowsEnabled;
-      renderer.shadowMap.autoUpdate = activeQuality.shadowsEnabled;
+      renderer.shadowMap.autoUpdate = Boolean(activeQuality.autoUpdateShadows ?? (activeQuality.preset === 'ultra' || activeQuality.preset === 'quality'));
+      renderer.shadowMap.type = activeQuality.preset === 'performance' ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
 
       if (activeSunLight) {
         activeSunLight.castShadow = activeQuality.shadowsEnabled;
@@ -2435,7 +2738,15 @@ export default function PlanetaryShowroom({
           activeSunLight.shadow.map?.dispose();
           activeSunLight.shadow.map = null;
         }
-        activeSunLight.shadow.needsUpdate = activeQuality.shadowsEnabled;
+        if (currentVehicleRef.current) {
+          fitShadowCameraToVehicle(activeSunLight, currentVehicleRef.current, {
+            profile: activeQuality,
+            preset: activeQuality.preset,
+          });
+        }
+      }
+      if (renderer.shadowMap.enabled) {
+        renderer.shadowMap.needsUpdate = true;
       }
 
       for (const contactMesh of activeContactMeshes) {
@@ -2447,6 +2758,15 @@ export default function PlanetaryShowroom({
       }
 
       starGeometry.setDrawRange(0, Math.max(100, Math.round(MAX_STAR_COUNT * activeQuality.starScale)));
+
+      const outlinesActive = activeQuality.preset !== 'performance';
+      if (threeRef.current.currentHeroModel) {
+        if (outlinesActive) {
+          attachHeroOutline(threeRef.current.currentHeroModel, currentVehicleRef.current?.scale || 1.0);
+        } else {
+          detachHeroOutline(threeRef.current.currentHeroModel);
+        }
+      }
 
       if (shadowsToggled) {
         scene.traverse((obj) => {
@@ -2484,9 +2804,14 @@ export default function PlanetaryShowroom({
         threeRef.current.orbitLayer.dispose();
         threeRef.current.orbitLayer = null;
       }
+      if (threeRef.current.currentHeroModel) {
+        detachHeroOutline(threeRef.current.currentHeroModel);
+        threeRef.current.currentHeroModel = null;
+      }
       clearAndDisposeGroup(terrainGroup);
       clearAndDisposeGroup(vehiclesGroup);
       activeSunLight = null;
+      threeRef.current.activeSunLight = null;
       activeContactMeshes = [];
       disposeObject3D(starField);
       scene.environment = null;
@@ -2500,6 +2825,8 @@ export default function PlanetaryShowroom({
 
   if (!isOpen) return null;
 
+  const isShowroomUiVisible = !isLoading3D && !loadError;
+
   return (
     <div
       className={`showroom-viewport ${isMobileLayout ? 'is-mobile-layout' : ''} ${isPhonePortrait ? 'is-phone-portrait' : ''}`}
@@ -2508,7 +2835,7 @@ export default function PlanetaryShowroom({
       aria-label={`Showroom: ${currentVehicle.name}`}
     >
       {/* Top Header HUD Bar — NASA Branding, Project Title, Settings & Menu buttons */}
-      {!isDialogVisible && (
+      {isShowroomUiVisible && !isDialogVisible && (
         <header className="showroom-top-bar" role="banner" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
           <div className="showroom-branding">
             <div className="showroom-branding-logo" aria-hidden="true">
@@ -2516,7 +2843,7 @@ export default function PlanetaryShowroom({
             </div>
             <span className="showroom-branding-sep" aria-hidden="true" />
             <span className="showroom-branding-title">
-              {isPhonePortrait ? currentVehicle.name : 'ABANDONED BUT NOT FORGOTTEN'}
+              {isPhonePortrait ? currentVehicle.name : (activeLang === 'ar' ? 'مهجور ولكن لا يُنسى' : 'ABANDONED BUT NOT FORGOTTEN')}
             </span>
 
             {isOrbitalView && (
@@ -2547,6 +2874,19 @@ export default function PlanetaryShowroom({
           </div>
 
           <div className="showroom-hdr-actions">
+            <button
+              type="button"
+              className={`showroom-hdr-icon-btn ${isHudHidden ? 'is-active' : ''}`}
+              onClick={() => {
+                playServo('click');
+                setIsHudHidden((prev) => !prev);
+              }}
+              aria-label={isHudHidden ? (activeLang === 'ar' ? 'إظهار البطاقات' : 'Show UI Cards') : (activeLang === 'ar' ? 'معاينة البيئة وإخفاء البطاقات' : 'Inspect Environment (Hide Cards)')}
+              title={isHudHidden ? (activeLang === 'ar' ? 'إظهار البطاقات (H)' : 'Show UI Cards (H)') : (activeLang === 'ar' ? 'معاينة البيئة دون حجب (H)' : 'Inspect Environment / Hide Cards (H)')}
+            >
+              {isHudHidden ? <Eye size={18} /> : <EyeOff size={18} />}
+            </button>
+
             <button
               type="button"
               className="showroom-hdr-icon-btn"
@@ -2581,7 +2921,7 @@ export default function PlanetaryShowroom({
         <div ref={containerRef} className="showroom-webgl-container" onClick={handleCanvasTap} />
 
         {/* Prev / Next Arrows inside 3D Stage Zone (Mobile Portrait Only) */}
-        {isPhonePortrait && !isDialogVisible && filteredVehicles.length > 1 && (
+        {isShowroomUiVisible && isPhonePortrait && !isDialogVisible && filteredVehicles.length > 1 && (
           <>
             <button
               type="button"
@@ -2618,7 +2958,7 @@ export default function PlanetaryShowroom({
         )}
 
         {/* Orbit Overview / Inspect Craft Chip */}
-        {isOrbitalView && (
+        {isShowroomUiVisible && isOrbitalView && (
           <button
             type="button"
             className="showroom-orbit-zoom-chip"
@@ -2632,7 +2972,7 @@ export default function PlanetaryShowroom({
       </div>
 
       {/* Mobile Pagination Counter Strip (portrait phone only, between stage and info panel) */}
-      {isPhonePortrait && filteredVehicles.length > 1 && (
+      {isShowroomUiVisible && isPhonePortrait && filteredVehicles.length > 1 && (
         <div
           className="showroom-mobile-pagination-strip"
           onTouchStart={handlePanelTouchStart}
@@ -2659,27 +2999,34 @@ export default function PlanetaryShowroom({
         </div>
       )}
 
-      {/* Loading HUD Screen while 3D models load */}
+      {/* Loading HUD Screen while ALL showroom assets load (fonts, audio, UI, terrain, rovers & orbiters) */}
       {isLoading3D && !loadError && (
-        <div className="showroom-3d-loader" role="status" aria-live="polite">
-          <div className="launch-loading-card">
-            <Orbit className="launch-loading-icon spin-slow" size={42} />
-            <p className="launch-loading-eyebrow">
-              {isMoon
-                ? 'LUNAR RECONNAISSANCE TELEMETRY'
-                : isDeepSpace
-                ? 'DEEP SPACE INTERSTELLAR TELEMETRY'
-                : 'MARTIAN ORBITAL SURVEY TELEMETRY'}
-            </p>
-            <h2>DEPLOYING GROUND HORIZON &amp; CRAFT</h2>
-            <div className="launch-progress-track">
-              <span style={{ width: `${loadPercent}%` }} />
-            </div>
-            <p className="launch-loading-percent">
-              {loadPercent}% <span>· Synchronizing 3D terrain &amp; rovers</span>
-            </p>
-          </div>
-        </div>
+        <LoadingScreen
+          className="showroom-3d-loader"
+          title={
+            isMoon
+              ? (activeLang === 'ar' ? 'القمر' : 'THE MOON')
+              : isDeepSpace
+              ? (activeLang === 'ar' ? 'الفضاء السحيق' : 'DEEP SPACE')
+              : (activeLang === 'ar' ? 'المريخ' : 'MARS')
+          }
+          kicker={
+            isMoon
+              ? (activeLang === 'ar' ? 'القياس عن بُعد للاستطلاع القمري' : 'LUNAR RECONNAISSANCE TELEMETRY')
+              : isDeepSpace
+              ? (activeLang === 'ar' ? 'القياس عن بُعد للفضاء السحيق' : 'DEEP SPACE INTERSTELLAR TELEMETRY')
+              : (activeLang === 'ar' ? 'القياس عن بُعد للمسح المداري للمريخ' : 'MARTIAN ORBITAL SURVEY TELEMETRY')
+          }
+          subtitle={
+            loadPhaseText ||
+            (activeLang === 'ar'
+              ? 'مزامنة الأصول والمجسمات ثلاثية الأبعاد...'
+              : 'Synchronizing 3D terrain, orbiters & audio...')
+          }
+          progress={loadPercent}
+          accent={isMoon ? '#9fd0ff' : '#ff7a4a'}
+          dir={activeLang === 'ar' ? 'rtl' : 'ltr'}
+        />
       )}
 
       {/* Graceful Error / WebGL Unavailable Fallback */}
@@ -2827,8 +3174,8 @@ export default function PlanetaryShowroom({
       )}
 
       {/* Task 3: Mission Details Panel with Info, Task, Quiz tabs */}
-      {!isDialogVisible && isDetailsOpen && (
-        <aside className={`showroom-details-panel ${isDetailsLeaving ? 'is-leaving' : ''}`} role="region" aria-label="Mission Details">
+      {isShowroomUiVisible && !isDialogVisible && isDetailsOpen && !isHudHidden && (
+        <aside className={`showroom-details-panel ${isDetailsLeaving ? 'is-leaving' : ''}`} role="region" aria-label="Mission Details" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
           {isPhonePortrait && (
             <div
               className="details-sheet-drag-handle"
@@ -2850,15 +3197,29 @@ export default function PlanetaryShowroom({
               <span className="details-subtitle">{currentVehicle.codename} • {currentVehicle.role}</span>
             </div>
 
-            <button
-              type="button"
-              className="details-close-btn"
-              onClick={handleCloseDetails}
-              aria-label="Close details"
-              title="Close details (Esc)"
-            >
-              <X size={16} aria-hidden="true" />
-            </button>
+            <div className="details-header-actions">
+              <button
+                type="button"
+                className="details-hide-btn"
+                onClick={() => {
+                  playServo('click');
+                  setIsHudHidden(true);
+                }}
+                aria-label={activeLang === 'ar' ? 'إخفاء اللوحة لمعاينة البيئة' : 'Hide panel to inspect environment'}
+                title={activeLang === 'ar' ? 'إخفاء لمعاينة البيئة (H)' : 'Hide to inspect environment (H)'}
+              >
+                <EyeOff size={16} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="details-close-btn"
+                onClick={handleCloseDetails}
+                aria-label="Close details"
+                title="Close details (Esc)"
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            </div>
           </div>
 
           {/* 3 Tabs Bar: Info, Task, Quiz (Locked behind educational read wall) */}
@@ -2942,23 +3303,23 @@ export default function PlanetaryShowroom({
 
                 <div className="details-meta-list">
                   <div className="details-meta-item">
-                    <span>AGENCY</span>
+                    <span>{activeLang === 'ar' ? 'الوكالة' : 'AGENCY'}</span>
                     <strong>{currentVehicle.agency}</strong>
                   </div>
                   <div className="details-meta-item">
-                    <span>LAUNCH</span>
+                    <span>{activeLang === 'ar' ? 'تاريخ الإطلاق' : 'LAUNCH'}</span>
                     <strong>{currentVehicle.launchDate}</strong>
                   </div>
                   <div className="details-meta-item">
-                    <span>LOCATION</span>
+                    <span>{activeLang === 'ar' ? 'الموقع' : 'LOCATION'}</span>
                     <strong>{currentVehicle.landingSite}</strong>
                   </div>
                   <div className="details-meta-item">
-                    <span>LIFESPAN</span>
+                    <span>{activeLang === 'ar' ? 'مدة العمل' : 'LIFESPAN'}</span>
                     <strong>{currentVehicle.operationalTime}</strong>
                   </div>
                   <div className="details-meta-item">
-                    <span>TRAVERSE</span>
+                    <span>{activeLang === 'ar' ? 'المسافة المقطوعة' : 'TRAVERSE'}</span>
                     <strong>{currentVehicle.distanceTraveled}</strong>
                   </div>
                 </div>
@@ -2992,7 +3353,7 @@ export default function PlanetaryShowroom({
               return (
                 <>
                   <div className="details-task-card">
-                    <h3 className="details-task-heading">HISTORICAL MISSION TASK</h3>
+                    <h3 className="details-task-heading">{activeLang === 'ar' ? 'المهمة الاستكشافية التاريخية' : 'HISTORICAL MISSION TASK'}</h3>
                     <p className="details-task-body">
                       {activeStory?.story?.question || currentVehicle.tagline}
                     </p>
@@ -3004,7 +3365,7 @@ export default function PlanetaryShowroom({
                   </div>
 
                   <div className="details-task-card">
-                    <h3 className="details-task-heading">ARCHIVE TELEMETRY LOG</h3>
+                    <h3 className="details-task-heading">{activeLang === 'ar' ? 'سجل القياسات الأرشيفي' : 'ARCHIVE TELEMETRY LOG'}</h3>
                     <p className="details-task-body">
                       {currentVehicle.lastTelemetry}
                     </p>
@@ -3012,7 +3373,7 @@ export default function PlanetaryShowroom({
 
                   {activeStory?.visitDecision && (
                     <div className="details-task-card">
-                      <h3 className="details-task-heading">HERITAGE PRESERVATION GUIDANCE</h3>
+                      <h3 className="details-task-heading">{activeLang === 'ar' ? 'إرشادات صون التراث الفضائي' : 'HERITAGE PRESERVATION GUIDANCE'}</h3>
                       <p className="details-task-body">
                         {activeStory.visitDecision.keepDistanceOutcome || activeStory.visitDecision.approachOutcome}
                       </p>
@@ -3021,7 +3382,7 @@ export default function PlanetaryShowroom({
 
                   {currentVehicle.hotspots && currentVehicle.hotspots.length > 0 && (
                     <div className="details-task-card">
-                      <h3 className="details-task-heading">KEY SCIENTIFIC INSTRUMENTS</h3>
+                      <h3 className="details-task-heading">{activeLang === 'ar' ? 'الأجهزة والمكونات العلمية الرئيسية' : 'KEY SCIENTIFIC INSTRUMENTS'}</h3>
                       <div className="details-instruments-list">
                         {currentVehicle.hotspots.map((h) => (
                           <div key={h.id} className="details-instrument-chip">
@@ -3224,7 +3585,7 @@ export default function PlanetaryShowroom({
       )}
 
       {/* Opposite Sides Navigation Chevrons (Desktop & Tablet only) */}
-      {!isPhonePortrait && !isDialogVisible && filteredVehicles.length > 1 && (
+      {isShowroomUiVisible && !isPhonePortrait && !isDialogVisible && filteredVehicles.length > 1 && (
         <>
           <button
             type="button"
@@ -3261,7 +3622,7 @@ export default function PlanetaryShowroom({
       )}
 
       {/* Pagination Dots beneath Spacecraft in 3D inspection area (Desktop & Tablet only) */}
-      {!isPhonePortrait && !isDialogVisible && filteredVehicles.length > 1 && (
+      {isShowroomUiVisible && !isPhonePortrait && !isDialogVisible && filteredVehicles.length > 1 && (
         <div className="showroom-inspect-dots-wrap" role="tablist" aria-label="Vehicle selection">
           {filteredVehicles.map((v, idx) => {
             const isAccessible = isArcadeMode || isCraftUnlocked(v.id, filteredVehicles, progression);
@@ -3291,7 +3652,7 @@ export default function PlanetaryShowroom({
       )}
 
       {/* Mission Information Panel — Right column on desktop, collapsible compact bottom panel on mobile */}
-      {!isDialogVisible && !isDetailsOpen && (
+      {isShowroomUiVisible && !isDialogVisible && !isDetailsOpen && !isHudHidden && (
         <aside
           className={`showroom-mission-panel ${isInfoCollapsed ? 'is-collapsed' : ''}`}
           role="complementary"
@@ -3307,6 +3668,18 @@ export default function PlanetaryShowroom({
                 <h2 className="mission-panel-title">{currentVehicle.name}</h2>
                 <span className="mission-panel-subtitle">{currentVehicle.role || currentVehicle.codename}</span>
               </div>
+              <button
+                type="button"
+                className="mission-hide-card-btn"
+                onClick={() => {
+                  playServo('click');
+                  setIsHudHidden(true);
+                }}
+                aria-label={activeLang === 'ar' ? 'إخفاء البطاقة لمعاينة البيئة' : 'Hide card to inspect environment'}
+                title={activeLang === 'ar' ? 'إخفاء لمعاينة البيئة (H)' : 'Hide to inspect environment (H)'}
+              >
+                <EyeOff size={15} />
+              </button>
               {isPhonePortrait && (
                 <button
                   type="button"
@@ -3376,6 +3749,26 @@ export default function PlanetaryShowroom({
             )}
           </div>
         </aside>
+      )}
+
+      {/* Floating Restore UI Pill when HUD is hidden for uninterrupted environment inspection */}
+      {isShowroomUiVisible && !isDialogVisible && isHudHidden && (
+        <button
+          type="button"
+          className="showroom-restore-ui-pill"
+          onClick={() => {
+            playServo('click');
+            setIsHudHidden(false);
+          }}
+          aria-label={activeLang === 'ar' ? 'إظهار بطاقات المعلومات والاختبار' : 'Show Mission & Quiz Cards'}
+        >
+          <Eye size={16} />
+          <span>
+            {activeLang === 'ar'
+              ? 'معاينة البيئة نشطة — اضغط لإظهار المعلومات والاختبار (H)'
+              : 'Environment Inspection Mode — Tap to restore cards (H)'}
+          </span>
+        </button>
       )}
 
       {/* Task 6: Surface <-> Orbit Dark Transition Fade Overlay */}

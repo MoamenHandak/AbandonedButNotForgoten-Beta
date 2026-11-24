@@ -69,8 +69,8 @@ export default function ModelPreviewCanvas({
     renderer.setPixelRatio(getEffectivePixelRatio(activeQuality));
     renderer.setSize(width, height, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = Number(exposure) || 1.1;
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1.0;
 
     const canvas = renderer.domElement;
     canvas.style.width = '100%';
@@ -86,17 +86,14 @@ export default function ModelPreviewCanvas({
     const camera = new THREE.PerspectiveCamera(34, width / height, 0.05, 500);
     camera.position.set(0, 0.4, 3);
 
-    // Three-point neutral lighting matching studio model-viewer framing
-    const hemi = new THREE.HemisphereLight(0xf6f8ff, 0x262030, 1.15);
+    // Streamlined stylized toon lighting: 1 directional key + 1 soft hemisphere fill
+    // Balanced intensities (1.75 key + 0.70 fill) matching showroom cel lighting
+    const hemi = new THREE.HemisphereLight(0xd8e6ff, 0x181826, 0.70);
     scene.add(hemi);
 
-    const keyLight = new THREE.DirectionalLight(0xfff5e8, 1.85);
+    const keyLight = new THREE.DirectionalLight(0xfff5e8, 1.75);
     keyLight.position.set(4, 6, 5);
     scene.add(keyLight);
-
-    const fillLight = new THREE.DirectionalLight(0x9bc8ff, 0.85);
-    fillLight.position.set(-5, 2, -4);
-    scene.add(fillLight);
 
     const pivot = new THREE.Group();
     scene.add(pivot);
@@ -261,13 +258,26 @@ export default function ModelPreviewCanvas({
       window.addEventListener('resize', resize);
     }
 
-    loadGLTFModel(src, { signal: abortController.signal, cacheBuffer: true })
+    const isGlobe = typeof src === 'string' && (src.includes('moon') || src.includes('mars') || src.includes('earth'));
+    loadGLTFModel(src, { signal: abortController.signal, cacheBuffer: true, toonify: !isGlobe })
       .then((gltf) => {
         if (isDisposed) {
           disposeObject3D(gltf.scene);
           return;
         }
         const model = gltf.scene;
+
+        if (isGlobe) {
+          model.traverse((child) => {
+            if (child.isMesh && child.material) {
+              if (child.material.map) {
+                child.material.map.anisotropy = 4;
+                child.material.map.needsUpdate = true;
+              }
+              child.material.needsUpdate = true;
+            }
+          });
+        }
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());

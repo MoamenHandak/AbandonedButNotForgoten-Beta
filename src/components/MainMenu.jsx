@@ -1,58 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Settings, Users, ShieldCheck } from 'lucide-react';
-import ModelPreviewCanvas from './ModelPreviewCanvas';
-import { prefetchGLB } from '../utils/modelCache';
+import { resolveAssetUrl } from '../utils/modelCache';
 import { useActiveLanguage } from '../data/craftStories';
 import { getTranslations } from '../constants/translations';
 
 export default function MainMenu({
   isEntered,
-  paused = false,
+  isReady = true,
   onEnter,
   onStartJourney,
   onOpenSpacecrafts,
   onOpenSettings,
   onOpenCredits,
-  onOpenSources
+  onOpenSources,
 }) {
   const activeLang = useActiveLanguage();
   const t = getTranslations(activeLang).menu;
 
-  // Stagger mounting the two menu tile WebGL canvases until after the splash->menu transition settles
-  const [tileStage, setTileStage] = useState(0);
-
-  // Space Ambient Music for Main Menu (Item 7)
+  // Space Ambient Music for Main Menu
   useEffect(() => {
+    if (!isReady) return;
     window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'menu_music' } }));
     return () => {
       window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'menu_music_stop' } }));
     };
-  }, []);
+  }, [isReady]);
 
+  // Title screen -> menu keydown and pointerdown listeners (only after loader has finished)
   useEffect(() => {
-    if (!isEntered) {
-      setTileStage(0);
-      return;
-    }
-    const t1 = setTimeout(() => setTileStage((s) => Math.max(s, 1)), 720);
-    const t2 = setTimeout(() => setTileStage(2), 900);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [isEntered]);
-
-  // Warm light menu tile models quietly once splash is painted so tile reveal is instant
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      prefetchGLB('/models/astronaut_helmet-opt.glb');
-      prefetchGLB('/models/mer_rover-opt.glb');
-    }, 250);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (isEntered) return;
+    if (isEntered || !isReady) return;
 
     function handleKey(e) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -74,7 +50,7 @@ export default function MainMenu({
       window.removeEventListener('keydown', handleKey, true);
       window.removeEventListener('pointerdown', handlePointer, true);
     };
-  }, [isEntered, onEnter]);
+  }, [isEntered, isReady, onEnter]);
 
   return (
     <>
@@ -88,20 +64,20 @@ export default function MainMenu({
           if (!isEntered) onEnter(false);
         }}
       >
-        <p className="nms-splash-kicker">{t.splashKicker}</p>
+        <p className="nms-splash-kicker">{t.splashKicker || 'A little space adventure'}</p>
         <p className="nms-splash-title" role="heading" aria-level={1}>
-          {t.splashTitle}
+          {t.splashTitle || 'ABANDONED BUT NOT FORGOTTEN'}
         </p>
         <p className="nms-splash-prompt">
-          <span className="nms-prompt-key">{t.pressKey}</span>
-          <span className="nms-prompt-touch">{t.tapToContinue}</span>
+          <span className="nms-prompt-key">{t.pressKey || 'Press any key to continue'}</span>
+          <span className="nms-prompt-touch">{t.tapToContinue || 'Tap to continue'}</span>
         </p>
-        <p className="nms-splash-foot">{t.splashFoot}</p>
+        <p className="nms-splash-foot">{t.splashFoot || 'Every machine has a story'}</p>
       </section>
 
-      {/* STEP 2: Main Navigation Menu */}
+      {/* STEP 2: Main Navigation Menu (revealed after title screen) */}
       <header className="nms-header" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
-        <h1 className="nms-title">{t.splashTitle}</h1>
+        <h1 className="nms-title">{t.splashTitle || 'ABANDONED BUT NOT FORGOTTEN'}</h1>
         <span className="nms-diamond" aria-hidden="true" />
       </header>
 
@@ -117,22 +93,24 @@ export default function MainMenu({
           }}
         >
           <span className="nms-tile-art">
-            {isEntered && tileStage >= 1 && (
-              <ModelPreviewCanvas
-                id="moon-viewer"
-                src="/models/astronaut_helmet-opt.glb"
-                alt="Astronaut Helmet"
-                autoRotate
-                rotationPerSecond={6}
-                exposure={1.05}
-                paused={!isEntered || paused}
-              />
-            )}
+            <model-viewer
+              id="moon-viewer"
+              src={resolveAssetUrl('/models/moon.glb')}
+              alt=""
+              auto-rotate=""
+              rotation-per-second="6deg"
+              disable-zoom=""
+              disable-pan=""
+              interaction-prompt="none"
+              shadow-intensity="0"
+              exposure="1.05"
+              loading="eager"
+            />
           </span>
           <span className="nms-tile-pin" aria-hidden="true" />
           <span className="nms-tile-label">
-            <strong>{t.startJourney}</strong>
-            <small>{t.startJourneyDesc}</small>
+            <strong>{t.startJourney || 'Start Journey'}</strong>
+            <small>{t.startJourneyDesc || 'Open the logbook and find the forgotten machines'}</small>
           </span>
         </button>
 
@@ -146,22 +124,27 @@ export default function MainMenu({
           }}
         >
           <span className="nms-tile-art">
-            {isEntered && tileStage >= 2 && (
-              <ModelPreviewCanvas
-                id="mars-viewer"
-                src="/models/mer_rover-opt.glb"
-                alt="Mars Exploration Rover"
-                autoRotate
-                rotationPerSecond={-6}
-                exposure={1.1}
-                paused={!isEntered || paused}
-              />
-            )}
+            <model-viewer
+              id="mars-viewer"
+              src={resolveAssetUrl('/models/lunar_rover-opt.glb')}
+              alt="Apollo Lunar Roving Vehicle 3D model"
+              auto-rotate=""
+              rotation-per-second="18deg"
+              camera-orbit="40deg 75deg 105%"
+              camera-target="0m 0.6m 0m"
+              field-of-view="35deg"
+              disable-zoom=""
+              disable-pan=""
+              interaction-prompt="none"
+              shadow-intensity="1"
+              exposure="1.15"
+              loading="eager"
+            />
           </span>
           <span className="nms-tile-pin" aria-hidden="true" />
           <span className="nms-tile-label">
-            <strong>{t.spacecrafts}</strong>
-            <small>{t.spacecraftsDesc}</small>
+            <strong>{t.spacecrafts || 'Spacecrafts'}</strong>
+            <small>{t.spacecraftsDesc || 'Inspect every rover and lander in 3D'}</small>
           </span>
         </button>
       </nav>
@@ -175,10 +158,10 @@ export default function MainMenu({
             className="nms-side-item"
             onClick={onOpenSettings}
           >
-            <Settings size={18} aria-hidden="true" />
+            <Settings size={18} style={{ width: 18, height: 18 }} aria-hidden="true" />
             <span>
-              <strong>{t.settings}</strong>
-              <small>{t.settingsDesc}</small>
+              <strong>{t.settings || 'Settings'}</strong>
+              <small>{t.settingsDesc || 'Audio and language'}</small>
             </span>
           </button>
         </li>
@@ -189,10 +172,10 @@ export default function MainMenu({
             className="nms-side-item"
             onClick={onOpenCredits}
           >
-            <Users size={18} aria-hidden="true" />
+            <Users size={18} style={{ width: 18, height: 18 }} aria-hidden="true" />
             <span>
-              <strong>{t.credits}</strong>
-              <small>{t.creditsDesc}</small>
+              <strong>{t.credits || 'Credits'}</strong>
+              <small>{t.creditsDesc || 'The crew behind the game'}</small>
             </span>
           </button>
         </li>
@@ -204,10 +187,10 @@ export default function MainMenu({
               className="nms-side-item"
               onClick={onOpenSources}
             >
-              <ShieldCheck size={18} aria-hidden="true" />
+              <ShieldCheck size={18} style={{ width: 18, height: 18 }} aria-hidden="true" />
               <span>
-                <strong>{t.sources}</strong>
-                <small>{t.sourcesDesc}</small>
+                <strong>{t.sources || 'Sources'}</strong>
+                <small>{t.sourcesDesc || 'NASA telemetry and archives'}</small>
               </span>
             </button>
           </li>
@@ -216,7 +199,7 @@ export default function MainMenu({
 
       {/* Bottom-right keyboard navigation hint */}
       <p className="nms-hint" aria-hidden="true" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
-        <span className="nms-hint-key">Enter</span> {t.navHint}
+        <span className="nms-hint-key">Enter</span> {t.navHint || 'to select and'} <span className="nms-hint-key">Tab</span> {t.navTabHint || 'to move'}
       </p>
     </>
   );

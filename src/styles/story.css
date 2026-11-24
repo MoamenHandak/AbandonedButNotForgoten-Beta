@@ -1898,39 +1898,48 @@
 }
 
 /* ==========================================================================
-   CINEMATIC "THE END" SCREEN
+   CINEMATIC "THE END" SCREEN (No Man's Sky starting screen aesthetic)
    ========================================================================== */
 .the-end-screen {
     position: fixed;
     inset: 0;
     z-index: 500;
-    background: radial-gradient(ellipse at center, rgba(16, 24, 42, 0.96) 0%, rgba(2, 4, 10, 0.99) 100%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: #07030a;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: clamp(20px, 4vw, 60px);
     cursor: pointer;
     user-select: none;
-    animation: theEndFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    overflow: hidden;
+    animation: theEndFadeIn 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes theEndFadeIn {
     from {
         opacity: 0;
-        transform: scale(0.97);
+        transform: scale(0.98);
+        filter: blur(6px);
     }
     to {
         opacity: 1;
         transform: scale(1);
+        filter: blur(0);
     }
+}
+
+.the-end-screen .cosmos-background {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .the-end-vignette {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.85) 100%);
+    z-index: 2;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(7, 3, 10, 0.55) 75%, rgba(7, 3, 10, 0.95) 100%);
     pointer-events: none;
 }
 
@@ -1941,36 +1950,22 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    max-width: 820px;
-    gap: 16px;
-    padding: 32px 24px;
-}
-
-.the-end-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    font-family: var(--font-display, 'Tajawal', sans-serif);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: #ffffff;
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
+    max-width: 860px;
+    gap: clamp(16px, 3vh, 26px);
+    padding: clamp(20px, 3vh, 36px) clamp(16px, 3vw, 32px);
 }
 
 .the-end-title {
-    margin: 4px 0 0;
-    font-family: var(--font-display, 'Orbitron', 'Space Grotesk', sans-serif);
-    font-size: clamp(48px, 9vw, 84px);
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    margin: 0;
+    font-family: var(--font-display, var(--font-ui), 'NMSGeoSans', 'Orbitron', sans-serif);
+    font-size: clamp(48px, 9vw, 92px);
+    font-weight: 500;
+    letter-spacing: 0.38em;
+    padding-left: 0.38em;
     color: #ffffff;
-    line-height: 1.1;
-    text-shadow: 0 0 35px rgba(255, 255, 255, 0.6), 0 0 70px rgba(255, 255, 255, 0.25);
+    line-height: 1.15;
+    text-shadow: none;
+    animation: nmsTitleIn 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .the-end-diamond {
@@ -1982,95 +1977,98 @@
 }
 
 .the-end-line {
-    width: 60px;
+    width: 70px;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 180, 140, 0.65), transparent);
 }
 
 .the-end-gem {
-    color: #ffffff;
+    color: #ffb890;
     font-size: 14px;
 }
 
 .the-end-subtitle {
     margin: 0;
-    font-family: var(--hud-theme-font-head, 'NMSGeoSans', sans-serif);
-    font-size: clamp(16px, 2.2vw, 22px);
+    font-family: var(--font-ui, 'NMSGeoSans', sans-serif);
+    font-size: clamp(14px, 2vw, 20px);
     font-weight: 500;
-    letter-spacing: 0.22em;
-    color: rgba(255, 255, 255, 0.88);
+    letter-spacing: 0.34em;
+    padding-left: 0.34em;
+    color: rgba(255, 255, 255, 0.9);
     text-transform: uppercase;
 }
 
 .the-end-quote {
-    margin: 8px 0;
-    font-family: var(--hud-theme-font, 'NMSFuturaProBook', sans-serif);
-    font-size: clamp(14px, 1.8vw, 18px);
+    margin: 6px 0;
+    font-family: var(--hud-theme-font, 'NMSFuturaProBook', serif, sans-serif);
+    font-size: clamp(14px, 1.7vw, 17.5px);
     font-style: italic;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.72);
+    line-height: 1.65;
+    color: rgba(255, 235, 220, 0.84);
     max-width: 680px;
-}
-
-.the-end-team-signature {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    margin: 4px 0 8px;
-    padding: 6px 18px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 6px;
-}
-
-.the-end-team-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: rgba(255, 255, 255, 0.5);
-    text-transform: uppercase;
-}
-
-.the-end-team-name {
-    font-family: var(--font-display, 'Orbitron', 'Space Grotesk', sans-serif);
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 2.5px;
-    color: #ffffff;
-    text-shadow: 0 0 14px rgba(255, 255, 255, 0.4);
-}
-
-.the-end-jump-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 12px 28px;
-    background: #ffffff;
-    color: #000000;
-    border: 1px solid #ffffff;
-    border-radius: 8px;
-    font-family: var(--font-display, 'Tajawal', sans-serif);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.2s ease;
-    margin-top: 6px;
-}
-
-.the-end-jump-btn:hover {
-    background: transparent;
-    color: #ffffff;
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
-    transform: translateY(-1px);
+    letter-spacing: 0.05em;
 }
 
 .the-end-auto-hint {
-    margin: 8px 0 0;
-    font-size: 11.5px;
-    letter-spacing: 0.8px;
+    margin: 16px 0 0;
+    font-family: var(--font-ui, 'NMSGeoSans', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.28em;
+    padding-left: 0.28em;
+    color: rgba(255, 255, 255, 0.75);
+    text-transform: uppercase;
+    animation: nmsPromptPulse 2.4s ease-in-out infinite;
+}
+
+.the-end-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    z-index: 20;
+}
+
+.the-end-progress-fill {
+    height: 100%;
+    background: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 22px rgba(255, 140, 90, 0.6);
+    transition: width 0.08s linear;
+}
+
+.the-end-foot-info {
+    position: absolute;
+    bottom: 12px;
+    right: 24px;
+    font-family: var(--font-ui, 'NMSGeoSans', sans-serif);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
     color: rgba(255, 255, 255, 0.45);
+    z-index: 20;
+    font-variant-numeric: tabular-nums;
+}
+
+/* RTL / Arabic adaptations */
+[dir="rtl"] .the-end-title {
+    letter-spacing: 0.08em;
+    padding-left: 0;
+}
+
+[dir="rtl"] .the-end-subtitle {
+    letter-spacing: 0.06em;
+    padding-left: 0;
+}
+
+[dir="rtl"] .the-end-auto-hint {
+    letter-spacing: 0.05em;
+    padding-left: 0;
+}
+
+[dir="rtl"] .the-end-foot-info {
+    right: auto;
+    left: 24px;
 }
 

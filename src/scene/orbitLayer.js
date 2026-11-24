@@ -15,26 +15,45 @@
 import * as THREE from 'three';
 import { loadGLTFModel, disposeObject3D, prefersReducedMotion } from '../utils/modelCache';
 import { getOrbitOverviewCamera as computeOrbitOverview } from './cameraAutoFit';
+import { toonifyModel, updateHeroOutline, detachHeroOutline } from './toonify';
 
-// Planetary configurations for orbital scenes (proportions: planet radius, orbit 1.6-2.0x, speed ~20-30s rev)
+// Planetary configurations for orbital scenes
+// For Moon view: The Moon is the central globe at (0, 0, 0) with lunar orbiters (LRO, LADEE) encircling it,
+// and Earth is placed far in the background in deep space.
+// For Mars view: Mars is the central globe, with Phobos & Deimos orbiting at astronomical distances.
 const PLANET_CONFIGS = {
   moon: {
-    radius: 14.0,
+    radius: 24.0, // Moon at the orbital center (diameter 48)
     modelSrc: '/models/moon-opt.glb',
-    spinSpeed: 0.012,
+    spinSpeed: 0.008,
     fallbackColor: 0x989da3,
     roughness: 0.92,
+    metalness: 0.04,
   },
   mars: {
-    radius: 26.0, // Scale Mars ~1.85x Moon, perfectly proportioned for mobile & desktop
+    radius: 26.0,
     modelSrc: '/models/mars-opt.glb',
     spinSpeed: 0.014,
     fallbackColor: 0xc45532,
     roughness: 0.85,
+    metalness: 0.04,
   },
 };
 
-// Orbit configurations for each orbiter around the central planet globe
+// Distant Earth in space visible from the Moon orbit view
+const DISTANT_EARTH_CONFIG = {
+  radius: 18.0,
+  position: [-240, -12, -130],
+  modelSrc: '/models/realistic_earth-opt.glb',
+  spinSpeed: 0.010,
+  fallbackColor: 0x1f5fa8,
+  roughness: 0.65,
+  metalness: 0.02,
+};
+
+// Orbit configurations for each orbiter
+// For Moon: LRO and LADEE orbit directly around the central Moon
+// For Mars: MGS, Odyssey, MRO, and MAVEN orbit around Mars
 const ORBIT_CONFIGS = {
   moon: [
     {
@@ -42,11 +61,11 @@ const ORBIT_CONFIGS = {
       name: 'LRO',
       label: 'LRO',
       modelSrc: '/models/lro-opt.glb',
-      orbitRadiusA: 24.0,
-      orbitRadiusB: 23.0,
+      orbitRadiusA: 40.0,
+      orbitRadiusB: 38.0,
       center: [0, 0, 0],
-      inclination: [1.45, 0.2, 0.1], // Near-polar mapping orbit
-      speed: 0.26, // ~24s revolution
+      inclination: [1.45, 0.2, 0.1], // Near-polar mapping orbit around the Moon
+      speed: 0.24, // ~26s revolution
       initialAngle: 0.85,
       ambientScale: 0.040,
       heroScale: 0.085, // ~10% Moon diameter
@@ -57,11 +76,11 @@ const ORBIT_CONFIGS = {
       name: 'LADEE',
       label: 'LADEE',
       modelSrc: '/models/ladee-opt.glb',
-      orbitRadiusA: 28.0,
-      orbitRadiusB: 26.0,
+      orbitRadiusA: 46.0,
+      orbitRadiusB: 43.5,
       center: [0, 0, 0],
-      inclination: [0.35, 0.45, 0.2],
-      speed: 0.22, // ~28s revolution
+      inclination: [0.35, 0.45, 0.2], // Equatorial/inclined orbit around the Moon
+      speed: 0.20, // ~31s revolution
       initialAngle: 2.7,
       ambientScale: 0.022,
       heroScale: 0.044, // ~10% Moon diameter
@@ -167,6 +186,7 @@ function createMartianMoonMesh(radius, seed) {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = false;
   mesh.receiveShadow = false;
+  toonifyModel(mesh);
   return mesh;
 }
 
@@ -269,15 +289,26 @@ function createOrbiterLabelSprite(name, colorHex = '#00e5ff') {
 /**
  * Initializes and manages the Orbit Layer for a destination.
  */
-export function createOrbitLayer({ scene, destination, profile, signal }) {
+export function createOrbitLayer({ scene, destination, profile, signal, onProgress }) {
   const layerGroup = new THREE.Group();
   scene.add(layerGroup);
 
   const pConfig = PLANET_CONFIGS[destination] || PLANET_CONFIGS.moon;
+  const isMoon = destination === 'moon';
   const configs = ORBIT_CONFIGS[destination] || [];
   const orbiters = [];
   const tracks = [];
   const ambientMoons = [];
+  const loadPromises = [];
+  const totalAssetLoads = (isMoon ? 2 : 1) + configs.length;
+  let completedAssetLoads = 0;
+
+  const markAssetLoaded = () => {
+    completedAssetLoads += 1;
+    if (onProgress) {
+      onProgress(Math.min(1, completedAssetLoads / Math.max(totalAssetLoads, 1)));
+    }
+  };
 
   const trailsEnabled = Boolean(profile && profile.shadowsEnabled);
   const isReducedMotion = prefersReducedMotion();
@@ -292,7 +323,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
   layerGroup.visible = false;
 
   // =========================================================================
-  // 1. CENTRAL PLANET GLOBE (The Moon or Mars)
+  // 1. CENTRAL PLANET GLOBE (Earth in Moon View, Mars in Mars View)
   // =========================================================================
   const planetGroup = new THREE.Group();
   layerGroup.add(planetGroup);
@@ -302,7 +333,10 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
   const sphereMat = new THREE.MeshStandardMaterial({
     color: pConfig.fallbackColor,
     roughness: pConfig.roughness,
-    metalness: 0.05,
+    metalness: pConfig.metalness || 0.05,
+    envMapIntensity: isMoon ? 0.05 : 0.45,
+    emissive: new THREE.Color(0x000000),
+    emissiveIntensity: 0.0,
     fog: false,
   });
   const fallbackSphere = new THREE.Mesh(sphereGeo, sphereMat);
@@ -311,7 +345,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
   planetGroup.add(fallbackSphere);
 
   let planetMesh = null;
-  loadGLTFModel(pConfig.modelSrc, { signal, cacheBuffer: true })
+  const planetLoadPromise = loadGLTFModel(pConfig.modelSrc, { signal, cacheBuffer: true, toonify: false })
     .then((gltf) => {
       if (isDisposed || (signal && signal.aborted)) {
         if (gltf) disposeObject3D(gltf.scene);
@@ -335,11 +369,22 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
           child.receiveShadow = false;
           if (child.material) {
             child.material.roughness = pConfig.roughness;
-            child.material.metalness = 0.04;
-            child.material.envMapIntensity = 0.45;
+            child.material.metalness = pConfig.metalness || 0.04;
+            child.material.envMapIntensity = isMoon ? 0.05 : 0.45;
             child.material.fog = false;
+            if (isMoon && child.material.emissive) {
+              child.material.emissive.set(0x000000);
+              child.material.emissiveIntensity = 0.0;
+            }
             if (child.material.color) {
               child.material.color.setHex(0xffffff);
+            }
+            if (child.material.map) {
+              child.material.map.anisotropy = 4;
+              child.material.map.generateMipmaps = true;
+              child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
+              child.material.map.magFilter = THREE.LinearFilter;
+              child.material.map.needsUpdate = true;
             }
             child.material.needsUpdate = true;
           }
@@ -354,24 +399,21 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
     .catch((err) => {
       if (err?.name === 'AbortError') return;
       console.warn(`Planet globe GLB load notice (${destination}):`, err);
-    });
+    })
+    .finally(markAssetLoaded);
+  loadPromises.push(planetLoadPromise);
 
   // =========================================================================
-  // 1.5 CINEMATIC ORBITAL LIGHTING (NASA Eyes on the Solar System style)
-  // Strong sunlight creates dramatic crescent terminator on the planet globe
-  // and sharp specular reflections on spacecraft gold foil and solar arrays.
+  // 1.25 DISTANT EARTH IN DEEP SPACE (When in Moon destination)
+  // Moon is at (0, 0, 0). Earth is far away in background space with consistent
+  // sunward illumination and dark night hemisphere fading into the cosmos.
   // =========================================================================
-  const orbitSunLight = new THREE.DirectionalLight(0xfffaee, 2.8);
-  orbitSunLight.position.set(75, 45, 55);
-  layerGroup.add(orbitSunLight);
-
-  const orbitRimLight = new THREE.DirectionalLight(0x4080c0, 0.75);
-  orbitRimLight.position.set(-60, -30, -50);
-  layerGroup.add(orbitRimLight);
-
-  // Soft orbital fill light to ensure the shadowed hemisphere has subtle visibility
-  const orbitAmbient = new THREE.AmbientLight(0xffffff, 0.4);
-  layerGroup.add(orbitAmbient);
+  const distantEarthGroup = new THREE.Group();
+  let distantEarthMesh = null;
+  let distantEarthFallbackMesh = null;
+  let distantEarthFallbackGeo = null;
+  let distantEarthFallbackMat = null;
+  let distantEarthSpinGroup = null;
 
   // Pre-allocated temporary vectors
   const _tmpPos = new THREE.Vector3();
@@ -394,6 +436,111 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
 
     out.set(_tmpPos.x + cx, _tmpPos.y + cy, _tmpPos.z + cz);
   }
+
+  if (isMoon) {
+    layerGroup.add(distantEarthGroup);
+    distantEarthGroup.position.set(...DISTANT_EARTH_CONFIG.position);
+
+    distantEarthSpinGroup = new THREE.Group();
+    distantEarthSpinGroup.rotation.z = 0.41; // Earth axial tilt
+    distantEarthGroup.add(distantEarthSpinGroup);
+
+    distantEarthFallbackGeo = new THREE.SphereGeometry(DISTANT_EARTH_CONFIG.radius, 48, 48);
+    distantEarthFallbackMat = new THREE.MeshStandardMaterial({
+      color: DISTANT_EARTH_CONFIG.fallbackColor,
+      roughness: DISTANT_EARTH_CONFIG.roughness,
+      metalness: DISTANT_EARTH_CONFIG.metalness,
+      envMapIntensity: 0.0,
+      emissive: new THREE.Color(0x000000),
+      emissiveIntensity: 0.0,
+      fog: false,
+    });
+    distantEarthFallbackMesh = new THREE.Mesh(distantEarthFallbackGeo, distantEarthFallbackMat);
+    distantEarthFallbackMesh.castShadow = false;
+    distantEarthFallbackMesh.receiveShadow = false;
+    distantEarthSpinGroup.add(distantEarthFallbackMesh);
+
+    // Load detailed realistic Earth GLTF model
+    const earthLoadPromise = loadGLTFModel(DISTANT_EARTH_CONFIG.modelSrc, { signal, cacheBuffer: true, toonify: false })
+      .then((gltf) => {
+        if (isDisposed || (signal && signal.aborted)) {
+          if (gltf) disposeObject3D(gltf.scene);
+          return;
+        }
+        const model = gltf.scene;
+        model.updateMatrixWorld(true);
+        const bbox = new THREE.Box3().setFromObject(model);
+        const bsphere = bbox.getBoundingSphere(new THREE.Sphere());
+        const rawRadius = bsphere.radius > 0.001 ? bsphere.radius : 1.0;
+        const scaleFactor = DISTANT_EARTH_CONFIG.radius / rawRadius;
+        model.scale.setScalar(scaleFactor);
+        model.position.set(-bsphere.center.x * scaleFactor, -bsphere.center.y * scaleFactor, -bsphere.center.z * scaleFactor);
+
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = false;
+            child.receiveShadow = false;
+            if (child.material) {
+              child.material.roughness = DISTANT_EARTH_CONFIG.roughness;
+              child.material.metalness = DISTANT_EARTH_CONFIG.metalness;
+              child.material.envMapIntensity = 0.0;
+              child.material.fog = false;
+              if (child.material.emissive) {
+                child.material.emissive.set(0x000000);
+                child.material.emissiveIntensity = 0.0;
+              }
+              if (child.material.color) {
+                child.material.color.setHex(0xffffff);
+              }
+              if (child.material.map) {
+                child.material.map.anisotropy = 4;
+                child.material.map.generateMipmaps = true;
+                child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
+                child.material.map.magFilter = THREE.LinearFilter;
+                child.material.map.needsUpdate = true;
+              }
+              child.material.needsUpdate = true;
+            }
+          }
+        });
+        distantEarthMesh = model;
+        if (distantEarthFallbackMesh) {
+          distantEarthSpinGroup.remove(distantEarthFallbackMesh);
+          distantEarthFallbackGeo.dispose();
+          distantEarthFallbackMat.dispose();
+          distantEarthFallbackMesh = null;
+        }
+        distantEarthSpinGroup.add(model);
+      })
+      .catch((err) => {
+        if (err?.name === 'AbortError') return;
+        console.warn('Distant Earth GLB notice:', err);
+      })
+      .finally(markAssetLoaded);
+    loadPromises.push(earthLoadPromise);
+  }
+
+  // =========================================================================
+  // 1.5 CINEMATIC ORBITAL LIGHTING (NASA Eyes on the Solar System style)
+  // Balanced directional sun producing identical ~40-45% day/night terminator across planets
+  // + subtle deep space ambient fill (so dark sides of planets stay deep black).
+  // =========================================================================
+  const orbitSunLight = new THREE.DirectionalLight(0xfffaee, 2.4);
+  orbitSunLight.position.set(50, 70, -25);
+  layerGroup.add(orbitSunLight);
+
+  const orbitFillLight = new THREE.HemisphereLight(
+    0x0a0e14, // Deep space cosmic ambient
+    isMoon ? 0x141820 : 0x2e140d, // Very subtle regolith planetshine
+    0.28
+  );
+  layerGroup.add(orbitFillLight);
+
+  // Stylized rim light strictly for orbiters on layer 2 (so planet night sides stay pitch black)
+  const orbitRimLight = new THREE.DirectionalLight(isMoon ? 0x60a5fa : 0xf97316, 0.35);
+  orbitRimLight.position.set(-65, -25, -45);
+  orbitRimLight.layers.set(2);
+  layerGroup.add(orbitRimLight);
 
   // =========================================================================
   // 2. ORBIT TRACKS & ROTATING ORBITERS
@@ -422,6 +569,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
 
     calculateOrbitPosition(cfg, cfg.initialAngle, orbiterState.currentPos);
     orbiterState.modelGroup.position.copy(orbiterState.currentPos);
+
     calculateOrbitPosition(cfg, cfg.initialAngle + 0.05, _tmpTangentPos);
     orbiterState.modelGroup.lookAt(_tmpTangentPos);
 
@@ -464,51 +612,64 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
 
     orbiters.push(orbiterState);
 
-    // Staggered model loading
-    setTimeout(() => {
-      if (isDisposed || (signal && signal.aborted)) return;
+    // Load orbiter model concurrently so readyPromise can await complete orbital readiness
+    const orbiterPromise = loadGLTFModel(cfg.modelSrc, {
+      signal,
+      cacheBuffer: true,
+    })
+      .then((gltf) => {
+        if (isDisposed || (signal && signal.aborted)) {
+          if (gltf) disposeObject3D(gltf.scene);
+          return;
+        }
+        const model = gltf.scene;
+        model.updateMatrixWorld(true);
+        const bbox = new THREE.Box3().setFromObject(model);
+        const center = bbox.getCenter(new THREE.Vector3());
+        model.position.sub(center);
 
-      loadGLTFModel(cfg.modelSrc, {
-        signal,
-        cacheBuffer: true,
-      })
-        .then((gltf) => {
-          if (isDisposed || (signal && signal.aborted)) {
-            if (gltf) disposeObject3D(gltf.scene);
-            return;
-          }
-          const model = gltf.scene;
-          model.updateMatrixWorld(true);
-          const bbox = new THREE.Box3().setFromObject(model);
-          const center = bbox.getCenter(new THREE.Vector3());
-          model.position.sub(center);
-
-          model.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = false;
-              child.receiveShadow = false;
-              if (child.material) {
-                child.material.fog = false;
-                child.material.envMapIntensity = 0.55;
-                if ('metalness' in child.material) {
-                  child.material.metalness = Math.min(Math.max(child.material.metalness, 0.25), 0.7);
-                }
-                if ('roughness' in child.material) {
-                  child.material.roughness = Math.min(Math.max(child.material.roughness, 0.3), 0.55);
-                }
-                child.material.needsUpdate = true;
-              }
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = false;
+            child.receiveShadow = false;
+            child.layers.enable(2); // Enable layer 2 so orbiters receive crisp rim lighting
+            if (child.geometry && child.geometry.attributes && child.geometry.attributes.normal) {
+              child.geometry.computeVertexNormals();
             }
-          });
-
-          orbiterState.loadedModel = model;
-          orbiterState.modelGroup.add(model);
-        })
-        .catch((err) => {
-          if (err?.name === 'AbortError') return;
-          console.warn(`Orbiter GLB load notice (${cfg.name}):`, err);
+            if (child.material) {
+              child.material.side = THREE.FrontSide;
+              child.material.fog = false;
+              child.material.envMapIntensity = 0.55;
+              if (/solar/i.test(child.material.name || child.name || '')) {
+                child.material.polygonOffset = true;
+                child.material.polygonOffsetFactor = -1.0;
+                child.material.polygonOffsetUnits = -2.0;
+              }
+              if ('metalness' in child.material) {
+                child.material.metalness = Math.min(Math.max(child.material.metalness, 0.25), 0.7);
+              }
+              if ('roughness' in child.material) {
+                child.material.roughness = Math.min(Math.max(child.material.roughness, 0.3), 0.55);
+              }
+              child.material.needsUpdate = true;
+            }
+          }
         });
-    }, 120 + index * 160);
+
+        orbiterState.loadedModel = model;
+        orbiterState.modelGroup.add(model);
+        if (orbiterState.isSelected && isHeroZoomed && profile?.preset !== 'performance') {
+          const outlineInk = destination === 'mars' ? 0x1a0c09 : 0x080c16;
+          updateHeroOutline(null, model, { enabled: true, boundingRadius: cfg.heroScale, color: outlineInk });
+        }
+      })
+      .catch((err) => {
+        if (err?.name === 'AbortError') return;
+        console.warn(`Orbiter GLB load notice (${cfg.name}):`, err);
+      })
+      .finally(markAssetLoaded);
+
+    loadPromises.push(orbiterPromise);
   });
 
   // =========================================================================
@@ -552,9 +713,14 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       if (isDisposed) return;
       const step = Math.min(dt, 0.1);
 
-      // Rotate central planet globe
-      if (!isPaused && !isReducedMotion && planetGroup) {
-        planetGroup.rotation.y += pConfig.spinSpeed * step;
+      // Rotate central planet globe (Moon in Moon view, Mars in Mars view)
+      if (!isPaused && !isReducedMotion && planetMesh) {
+        planetMesh.rotation.y += pConfig.spinSpeed * step;
+      }
+
+      // Rotate distant Earth in deep space
+      if (!isPaused && !isReducedMotion && distantEarthMesh) {
+        distantEarthMesh.rotation.y += DISTANT_EARTH_CONFIG.spinSpeed * step;
       }
 
       // Update Orbiters
@@ -574,7 +740,6 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         calculateOrbitPosition(o.cfg, o.angle, o.currentPos);
         o.modelGroup.position.copy(o.currentPos);
 
-        // Face tangent velocity vector
         calculateOrbitPosition(o.cfg, o.angle + 0.05, _tmpTangentPos);
         o.modelGroup.lookAt(_tmpTangentPos);
 
@@ -676,6 +841,14 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         const o = orbiters[i];
         o.isSelected = (o.cfg.id === id);
         o.targetScale = (o.isSelected && isHeroZoomed) ? (o.cfg.heroScale || 0.4) : (o.cfg.ambientScale || 0.05);
+        if (o.loadedModel) {
+          if (o.isSelected && isHeroZoomed && profile?.preset !== 'performance') {
+            const outlineInk = destination === 'mars' ? 0x1a0c09 : 0x080c16;
+            updateHeroOutline(null, o.loadedModel, { enabled: true, boundingRadius: o.cfg.heroScale, color: outlineInk });
+          } else {
+            detachHeroOutline(o.loadedModel);
+          }
+        }
       }
     },
 
@@ -685,6 +858,9 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         const o = orbiters[i];
         o.isSelected = false;
         o.targetScale = o.cfg.ambientScale || 0.05;
+        if (o.loadedModel) {
+          detachHeroOutline(o.loadedModel);
+        }
       }
     },
 
@@ -706,7 +882,8 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       const o = orbiters.find((orb) => orb.cfg.id === id);
       if (!o) return null;
       const curPos = o.currentPos.clone();
-      const norm = curPos.clone().normalize();
+      const centerPos = new THREE.Vector3(0, 0, 0);
+      const norm = curPos.clone().sub(centerPos).normalize();
       const nextPos = new THREE.Vector3();
       calculateOrbitPosition(o.cfg, o.angle + 0.05, nextPos);
       const tangent = nextPos.clone().sub(curPos).normalize();
@@ -717,8 +894,7 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
       const isNarrow = aspect < 1.0;
       const aspectMult = isNarrow ? Math.min(1.45, Math.max(1.12, 0.95 / aspect)) : 1.0;
 
-      const isMars = destination === 'mars';
-      const baseDist = isMars ? 1.75 : 1.0;
+      const baseDist = isMoon ? 1.15 : 1.75;
 
       const camPos = curPos.clone()
         .add(norm.clone().multiplyScalar(3.8 * baseDist * aspectMult))
@@ -733,12 +909,13 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
 
     /**
      * Computes Orbit Overview camera framing
-     * Shows Mars/Moon centered with the orbiter circling around the planet.
+     * Shows Moon & orbiters in Moon view (with Earth far in space),
+     * or Mars & orbiters in Mars view.
      */
     getOrbitOverviewCamera(id, isMobile = false, camOverride = null) {
       const o = orbiters.find((orb) => orb.cfg.id === id);
       const orbitRadius = o ? o.cfg.orbitRadiusA : (pConfig.radius * 1.85);
-      const inclination = o ? o.cfg.inclination : [0.4, 0.2, 0.1];
+      const inclination = o ? o.cfg.inclination : (isMoon ? [0.45, 0.25, 0.15] : [0.4, 0.2, 0.1]);
       return computeOrbitOverview({
         planetRadius: pConfig.radius,
         orbitRadius,
@@ -754,8 +931,19 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         const o = orbiters[i];
         if (o.isSelected) {
           o.targetScale = isHeroZoomed ? (o.cfg.heroScale || 0.4) : (o.cfg.ambientScale || 0.05);
+          if (o.loadedModel) {
+            if (isHeroZoomed && profile?.preset !== 'performance') {
+              const outlineInk = destination === 'mars' ? 0x1a0c09 : 0x080c16;
+              updateHeroOutline(null, o.loadedModel, { enabled: true, boundingRadius: o.cfg.heroScale, color: outlineInk });
+            } else {
+              detachHeroOutline(o.loadedModel);
+            }
+          }
         } else {
           o.targetScale = o.cfg.ambientScale || 0.05;
+          if (o.loadedModel) {
+            detachHeroOutline(o.loadedModel);
+          }
         }
       }
     },
@@ -767,6 +955,8 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
     getOrbiters() {
       return orbiters;
     },
+
+    readyPromise: Promise.allSettled(loadPromises),
 
     dispose() {
       isDisposed = true;
@@ -782,7 +972,10 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         if (o.hudMat) o.hudMat.dispose();
         if (o.trailGeo) o.trailGeo.dispose();
         if (o.trailLine && o.trailLine.material) o.trailLine.material.dispose();
-        if (o.loadedModel) disposeObject3D(o.loadedModel);
+        if (o.loadedModel) {
+          detachHeroOutline(o.loadedModel);
+          disposeObject3D(o.loadedModel);
+        }
         disposeObject3D(o.modelGroup);
       });
       ambientMoons.forEach((m) => {
@@ -791,8 +984,17 @@ export function createOrbitLayer({ scene, destination, profile, signal }) {
         disposeObject3D(m.mesh);
       });
       if (orbitSunLight) orbitSunLight.dispose();
+      if (orbitFillLight) orbitFillLight.dispose();
       if (orbitRimLight) orbitRimLight.dispose();
       if (planetMesh) disposeObject3D(planetMesh);
+      if (distantEarthMesh) disposeObject3D(distantEarthMesh);
+      if (distantEarthFallbackMesh) {
+        distantEarthFallbackGeo.dispose();
+        distantEarthFallbackMat.dispose();
+        disposeObject3D(distantEarthFallbackMesh);
+      }
+      disposeObject3D(distantEarthSpinGroup);
+      disposeObject3D(distantEarthGroup);
       disposeObject3D(fallbackSphere);
       disposeObject3D(planetGroup);
       disposeObject3D(layerGroup);

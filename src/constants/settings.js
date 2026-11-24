@@ -6,24 +6,29 @@ export const LANGUAGES = [
 ];
 
 export const GRAPHICS_PRESETS = {
+  ultra: {
+    id: 'ultra',
+    label: 'Ultra',
+    description: 'Cinematic cel-shading, 4096px landscape shadows across terrain & fleet, crescent Earth terminator, and dynamic atmospheric rim lighting.',
+  },
   quality: {
     id: 'quality',
     label: 'Quality',
-    description: 'Full pixel ratio cap (up to 1.5x), 2048px soft shadows, antialiasing, and full starfield.',
+    description: 'High pixel ratio, 2048px shadows, cel-shading with hero outlines and metallic sparkle.',
   },
   balanced: {
     id: 'balanced',
     label: 'Balanced',
-    description: '1.0x pixel ratio cap, 1024px soft shadows, antialiasing, and moderate starfield density.',
+    description: '1.0x pixel ratio, 1024px shadows, cel-shading with hero outlines on inspected craft.',
   },
   performance: {
     id: 'performance',
     label: 'Performance',
-    description: '0.75x render scale, shadows disabled, lighter starfield, and antialiasing off on next 3D open.',
+    description: 'Fast cel-shading, contact shadows, optimized for smooth frame rates on mobile.',
   },
 };
 
-export const GRAPHICS_PRESET_ORDER = ['quality', 'balanced', 'performance'];
+export const GRAPHICS_PRESET_ORDER = ['ultra', 'quality', 'balanced', 'performance'];
 
 export const DEFAULT_SETTINGS = {
   language: 'en',
@@ -90,17 +95,51 @@ export function resolveGraphicsProfile(presetKey, deviceProfile) {
     antialias: true,
   };
 
+  if (preset === 'ultra') {
+    return {
+      preset,
+      isConstrained: Boolean(base.isConstrained),
+      maxDpr: Math.min(2.0, base.isConstrained ? 1.75 : 2.0),
+      shadowSize: 4096,
+      shadowsEnabled: true,
+      shadowMapType: 'PCFSoftShadowMap',
+      wideTerrainShadows: true,
+      terrainSelfShadows: true,
+      celEarthShading: true,
+      enhancedLighting: true,
+      autoUpdateShadows: true,
+      toonMaterials: true,
+      outlinesEnabled: true,
+      sparkleEnabled: true,
+      antialias: true,
+      starScale: base.isConstrained ? 0.75 : 1.25,
+      contactShadowEnabled: true,
+      contactShadowScale: 1.0,
+      shadowSpan: 38.0,
+    };
+  }
+
   if (preset === 'performance') {
     return {
       preset,
       isConstrained: Boolean(base.isConstrained),
-      maxDpr: 0.75,
+      maxDpr: Math.min(1.0, base.maxDpr ?? 1.0),
       shadowSize: 512,
       shadowsEnabled: false,
+      shadowMapType: 'BasicShadowMap',
+      wideTerrainShadows: false,
+      terrainSelfShadows: false,
+      celEarthShading: false,
+      enhancedLighting: false,
+      autoUpdateShadows: false,
+      toonMaterials: true,
+      outlinesEnabled: false,
+      sparkleEnabled: false,
       antialias: false,
       starScale: 0.4,
       contactShadowEnabled: true,
-      contactShadowScale: 0.55,
+      contactShadowScale: 0.65,
+      shadowSpan: 8.0,
     };
   }
 
@@ -108,26 +147,46 @@ export function resolveGraphicsProfile(presetKey, deviceProfile) {
     return {
       preset,
       isConstrained: Boolean(base.isConstrained),
-      maxDpr: Math.min(1.0, base.maxDpr),
+      maxDpr: Math.min(1.25, base.maxDpr),
       shadowSize: Math.min(1024, base.shadowSize),
       shadowsEnabled: true,
+      shadowMapType: 'PCFShadowMap',
+      wideTerrainShadows: false,
+      terrainSelfShadows: true,
+      celEarthShading: true,
+      enhancedLighting: false,
+      autoUpdateShadows: false,
+      toonMaterials: true,
+      outlinesEnabled: true,
+      sparkleEnabled: false,
       antialias: base.antialias,
       starScale: 0.7,
       contactShadowEnabled: true,
       contactShadowScale: 0.85,
+      shadowSpan: 18.0,
     };
   }
 
   return {
     preset: 'quality',
     isConstrained: Boolean(base.isConstrained),
-    maxDpr: base.maxDpr,
-    shadowSize: base.shadowSize,
+    maxDpr: Math.min(2.0, base.isConstrained ? 1.5 : 2.0),
+    shadowSize: base.shadowSize || 2048,
     shadowsEnabled: true,
+    shadowMapType: 'PCFSoftShadowMap',
+    wideTerrainShadows: true,
+    terrainSelfShadows: true,
+    celEarthShading: true,
+    enhancedLighting: true,
+    autoUpdateShadows: true,
+    toonMaterials: true,
+    outlinesEnabled: true,
+    sparkleEnabled: true,
     antialias: base.antialias,
     starScale: base.isConstrained ? 0.5 : 1.0,
     contactShadowEnabled: true,
     contactShadowScale: 1.0,
+    shadowSpan: 28.0,
   };
 }
 

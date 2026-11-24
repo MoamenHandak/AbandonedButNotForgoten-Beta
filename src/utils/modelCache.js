@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { toonifyModel } from '../scene/toonify.js';
 
 const MAX_CACHED_BUFFER_BYTES = 5 * 1024 * 1024; // 5 MB per asset cap keeps large terrain out of JS heap cache
 const MAX_TOTAL_CACHE_BYTES = 18 * 1024 * 1024; // 18 MB total LRU buffer cache
@@ -132,14 +133,36 @@ function createAbortError() {
 }
 
 /**
+ * Checks whether an asset URL corresponds to a planetary globe (Moon, Mars, Earth)
+ * that requires smooth, physically plausible continuous terminator lighting rather
+ * than discrete stepped cel-shading bands.
+ */
+export function isGlobeModelUrl(url) {
+  if (typeof url !== 'string') return false;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes('moon-opt.glb') ||
+    lower.includes('mars-opt.glb') ||
+    lower.includes('realistic_earth-opt.glb') ||
+    lower.includes('moon.glb') ||
+    lower.includes('mars.glb')
+  );
+}
+
+/**
  * Fetches (with in-flight deduplication and optional byte caching) and parses a GLB/GLTF asset.
  * Clones a fresh ArrayBuffer slice prior to parse so worker transfers (e.g. Draco) never detach cached bytes.
+ * By default converts PBR materials on spacecraft/vehicles to stylized MeshToonMaterial via shared gradient ramp,
+ * while automatically keeping planetary globes smooth.
  */
-export async function loadGLTFModel(url, { signal, onProgress, cacheBuffer = true } = {}) {
+export async function loadGLTFModel(url, { signal, onProgress, cacheBuffer = true, toonify, toonOptions } = {}) {
   if (signal?.aborted) throw createAbortError();
 
   const bytes = await fetchBytesDeduplicated(url, { onProgress, cacheBuffer });
   if (signal?.aborted) throw createAbortError();
+
+  // Unless explicitly overridden, planetary globes preserve smooth continuous shading
+  const shouldToonify = toonify !== undefined ? Boolean(toonify) : !isGlobeModelUrl(url);
 
   const loader = getGLTFLoader();
   // Slice a dedicated ArrayBuffer copy so Draco worker transfer cannot detach cached Uint8Array
@@ -168,6 +191,9 @@ export async function loadGLTFModel(url, { signal, onProgress, cacheBuffer = tru
           reject(createAbortError());
           return;
         }
+        if (shouldToonify && gltf?.scene) {
+          toonifyModel(gltf.scene, toonOptions);
+        }
         resolve(gltf);
       },
       (err) => {
@@ -183,24 +209,54 @@ export function prefetchGLB(url) {
   return fetchBytesDeduplicated(url, { cacheBuffer: true }).catch(() => null);
 }
 
+const preloadedImages = new Map();
+const preloadedAudioMap = new Map();
+let dracoWarmPromise = null;
+
+/**
+ * Preloads and GPU-decodes an image asset with in-flight deduplication.
+ */
 export function preloadImage(url) {
-  return new Promise((resolve) => {
+  const resolved = resolveAssetUrl(url);
+  if (preloadedImages.has(resolved)) {
+    return preloadedImages.get(resolved);
+  }
+  const promise = new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(true);
     const img = new Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = resolveAssetUrl(url);
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      resolve(ok);
+    };
+    img.onload = () => {
+      if (typeof img.decode === 'function') {
+        img.decode().then(() => finish(true)).catch(() => finish(true));
+      } else {
+        finish(true);
+      }
+    };
+    img.onerror = () => finish(false);
+    img.src = resolved;
+    setTimeout(() => finish(true), 4000);
   });
+  preloadedImages.set(resolved, promise);
+  return promise;
 }
 
 /**
- * Preloads and warms audio buffer in the browser cache.
+ * Preloads and warms audio buffer in the browser cache with deduplication.
  * Resolves on canplaythrough / loadeddata, or graceful safety timeout.
  */
 export function preloadAudio(url) {
-  return new Promise((resolve) => {
+  const resolved = resolveAssetUrl(url);
+  if (preloadedAudioMap.has(resolved)) {
+    return preloadedAudioMap.get(resolved);
+  }
+  const promise = new Promise((resolve) => {
     if (typeof window === 'undefined') return resolve(true);
     try {
-      const resolved = resolveAssetUrl(url);
       const audio = new Audio();
       let settled = false;
 
@@ -226,55 +282,224 @@ export function preloadAudio(url) {
       resolve(true);
     }
   });
+  preloadedAudioMap.set(resolved, promise);
+  return promise;
 }
 
 /**
- * Comprehensive preloader that loads:
- * 1. Visual-novel story backgrounds and illustrations
- * 2. Luna character poses
- * 3. All audio soundtracks (menu, story, space)
- * 4. Critical 3D terrain and spacecraft models
+ * Awaits web font loading (Orbitron, Space Grotesk, Cairo, etc.) with a safe timeout
+ * so UI typography never flashes after a loading screen dismisses.
  */
-export async function preloadAllCoreAssets(onProgress) {
-  const images = [
-    '/assets/story/room_bg.jpg',
-    '/assets/story/space_bg.jpg',
-    '/assets/story/nasa_book_open.webp',
-    '/assets/story/nasa_book_open.png',
-    '/assets/story/luna/luna_reading.webp',
-    '/assets/story/luna/luna_curious.webp',
-    '/assets/story/luna/luna_wonder.webp',
-    '/assets/story/luna/luna_surprised.webp'
+export function preloadFonts(timeoutMs = 2500) {
+  if (typeof document === 'undefined' || !document.fonts?.ready) {
+    return Promise.resolve(true);
+  }
+  return Promise.race([
+    document.fonts.ready.then(() => true).catch(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(true), timeoutMs)),
+  ]);
+}
+
+/**
+ * Pre-warms the GLTFLoader singleton and caches Draco WASM/JS decoder binaries.
+ */
+export function preloadDracoDecoder() {
+  if (dracoWarmPromise) return dracoWarmPromise;
+  dracoWarmPromise = (async () => {
+    try {
+      getGLTFLoader();
+      if (typeof fetch === 'function') {
+        await Promise.allSettled([
+          fetch(resolveAssetUrl('/draco/draco_decoder.wasm')).catch(() => null),
+          fetch(resolveAssetUrl('/draco/draco_wasm_wrapper.js')).catch(() => null),
+        ]);
+      }
+    } catch {
+      // Non-fatal: GLTFLoader will fall back to on-demand loading
+    }
+    return true;
+  })();
+  return dracoWarmPromise;
+}
+
+const CORE_STORY_IMAGES = [
+  '/assets/story/room_bg.jpg',
+  '/assets/story/space_bg.jpg',
+  '/assets/story/nasa_book_open.webp',
+  '/assets/story/nasa_book_open.png',
+  '/assets/story/luna/luna_reading.webp',
+  '/assets/story/luna/luna_curious.webp',
+  '/assets/story/luna/luna_wonder.webp',
+  '/assets/story/luna/luna_surprised.webp',
+  '/assets/story/scene1_book.jpg',
+  '/assets/story/scene2_drift.jpg',
+  '/assets/story/scene3_choice_girl.jpg',
+  '/assets/story/scene4_moon.jpg',
+];
+
+const CORE_AUDIO_TRACKS = [
+  '/audio/menu_theme.mp3',
+  '/audio/story_music.mp3',
+  '/audio/space_music.mp3',
+];
+
+const MAIN_MENU_MODELS = [
+  '/models/astronaut_helmet-opt.glb',
+  '/models/mer_rover-opt.glb',
+  '/models/mars-opt.glb',
+  '/models/moon-opt.glb',
+  '/models/viking_lander-opt.glb',
+  '/models/ingenuity-opt.glb',
+  '/models/lunar_rover-opt.glb',
+];
+
+/**
+ * Full Main Menu Boot Preloader — loads EVERYTHING before revealing the Main Menu:
+ * 1. Web fonts (document.fonts.ready)
+ * 2. Lazy UI & game code chunks (passed via extraTasks)
+ * 3. Draco WASM/JS 3D decoder
+ * 4. All audio soundtracks (menu, story, space)
+ * 5. Mission illustrations, story paintings & Luna character poses (GPU-decoded)
+ * 6. All Main Menu & CosmicBackground 3D models (helmet, rovers, Moon & Mars globes)
+ */
+export async function preloadMainMenuAssets({ onProgress, onPhase, extraTasks = [], lang = 'en' } = {}) {
+  const isAr = lang === 'ar';
+  const emitPhase = (en, ar) => {
+    if (onPhase) onPhase(isAr ? ar : en);
+  };
+
+  const phases = [
+    {
+      en: 'LOADING TYPOGRAPHY & INTERFACE...',
+      ar: 'جاري تحميل الخطوط وواجهة النظام...',
+      tasks: [() => preloadFonts(), ...extraTasks],
+    },
+    {
+      en: 'SYNCHRONIZING AUDIO SOUNDTRACKS...',
+      ar: 'جاري مزامنة المقاطع الصوتية الفضائية...',
+      tasks: CORE_AUDIO_TRACKS.map((url) => () => preloadAudio(url)),
+    },
+    {
+      en: 'DECODING MISSION ARTWORK & CHARACTERS...',
+      ar: 'جاري فك تشفير رسومات المهمة والشخصيات...',
+      tasks: CORE_STORY_IMAGES.map((url) => () => preloadImage(url)),
+    },
+    {
+      en: 'LOADING 3D SPACECRAFT, GLOBES & DECODER...',
+      ar: 'جاري تحميل المركبات ثلاثية الأبعاد والكواكب...',
+      tasks: [() => preloadDracoDecoder(), ...MAIN_MENU_MODELS.map((url) => () => prefetchGLB(url))],
+    },
   ];
 
-  const audio = [
-    '/audio/menu_theme.mp3',
-    '/audio/story_music.mp3',
-    '/audio/space_music.mp3'
-  ];
+  const totalTasks = phases.reduce((sum, p) => sum + p.tasks.length, 0);
+  let completed = 0;
 
+  const tick = () => {
+    completed += 1;
+    if (onProgress) {
+      onProgress(Math.min(100, Math.round((completed / Math.max(totalTasks, 1)) * 100)));
+    }
+  };
+
+  // Run all phases concurrently while updating phase label as each category completes
+  emitPhase(phases[0].en, phases[0].ar);
+  const phasePromises = phases.map((phase) =>
+    Promise.allSettled(
+      phase.tasks.map((fn) =>
+        Promise.resolve()
+          .then(() => fn())
+          .catch(() => null)
+          .finally(() => {
+            tick();
+            // Advance displayed phase label progressively based on overall completion
+            const ratio = completed / Math.max(totalTasks, 1);
+            if (ratio < 0.25) emitPhase(phases[0].en, phases[0].ar);
+            else if (ratio < 0.48) emitPhase(phases[1].en, phases[1].ar);
+            else if (ratio < 0.78) emitPhase(phases[2].en, phases[2].ar);
+            else if (ratio < 1.0) emitPhase(phases[3].en, phases[3].ar);
+            else emitPhase('ALL SYSTEMS NOMINAL', 'جميع الأنظمة جاهزة');
+          })
+      )
+    )
+  );
+
+  await Promise.allSettled(phasePromises);
+  if (onProgress) onProgress(100);
+  emitPhase('ALL SYSTEMS NOMINAL', 'جميع الأنظمة جاهزة');
+}
+
+/**
+ * Comprehensive Story / Journey preloader that loads EVERYTHING needed for Story & Destinations:
+ * 1. Web fonts & Draco decoder
+ * 2. All visual-novel story backgrounds, illustrations, and Luna character poses
+ * 3. All audio soundtracks (menu, story, space)
+ * 4. Destination globes & initial lunar/martian spacecraft models
+ */
+export async function preloadAllCoreAssets(onProgress, { onPhase, lang = 'en' } = {}) {
+  const isAr = lang === 'ar';
   const models = [
     '/models/moon-opt.glb',
-    '/models/lunar_rover-opt.glb'
+    '/models/mars-opt.glb',
+    '/models/lunar_rover-opt.glb',
+    '/models/lunar_module-opt.glb',
   ];
 
-  const total = images.length + audio.length + models.length;
+  const allTasks = [
+    { fn: () => preloadFonts(), cat: 'fonts' },
+    { fn: () => preloadDracoDecoder(), cat: 'decoder' },
+    ...CORE_AUDIO_TRACKS.map((aud) => ({ fn: () => preloadAudio(aud), cat: 'audio' })),
+    ...CORE_STORY_IMAGES.map((img) => ({ fn: () => preloadImage(img), cat: 'images' })),
+    ...models.map((mod) => ({ fn: () => prefetchGLB(mod), cat: 'models' })),
+  ];
+
+  const total = allTasks.length;
   let done = 0;
 
   const tick = () => {
     done += 1;
-    if (onProgress) {
-      onProgress(Math.min(100, Math.round((done / total) * 100)));
+    const pct = Math.min(100, Math.round((done / total) * 100));
+    if (onProgress) onProgress(pct);
+    if (onPhase) {
+      if (pct < 30) {
+        onPhase(isAr ? 'مزامنة الخطوط والمقاطع الصوتية...' : 'SYNCHRONIZING FONTS & AUDIO TRACKS...');
+      } else if (pct < 70) {
+        onPhase(isAr ? 'تحميل رسومات السجل والشخصيات...' : 'LOADING LOGBOOK PAINTINGS & CHARACTERS...');
+      } else {
+        onPhase(isAr ? 'تجهيز مجسمات الكواكب والمركبات ثلاثية الأبعاد...' : 'PREPARING 3D GLOBES & SPACECRAFT ASSETS...');
+      }
     }
   };
 
+  await Promise.allSettled(allTasks.map((t) => Promise.resolve().then(t.fn).catch(() => null).finally(tick)));
+}
+
+/**
+ * Preloads non-3D showroom essentials (fonts, Draco decoder, ambient audio, UI portraits)
+ * so the Planetary Showroom loading screen guarantees EVERY asset is ready before reveal.
+ */
+export async function preloadShowroomExtras(planetName, { onProgress } = {}) {
   const tasks = [
-    ...images.map((img) => preloadImage(img).then(tick)),
-    ...audio.map((aud) => preloadAudio(aud).then(tick)),
-    ...models.map((mod) => prefetchGLB(mod).then(tick))
+    () => preloadFonts(),
+    () => preloadDracoDecoder(),
+    () => preloadAudio('/audio/space_music.mp3'),
+    () => preloadAudio('/audio/story_music.mp3'),
+    () => preloadImage('/assets/story/luna/luna_curious.webp'),
+    () => preloadImage('/assets/story/luna/luna_wonder.webp'),
   ];
 
-  await Promise.allSettled(tasks);
+  let done = 0;
+  const total = tasks.length;
+  await Promise.allSettled(
+    tasks.map((fn) =>
+      Promise.resolve()
+        .then(fn)
+        .catch(() => null)
+        .finally(() => {
+          done += 1;
+          if (onProgress) onProgress(done / total);
+        })
+    )
+  );
 }
 
 const MATERIAL_TEXTURE_SLOTS = [

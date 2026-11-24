@@ -19,6 +19,7 @@ import { getStoryUiCopy, useActiveLanguage } from '../data/craftStories';
 import { getTranslations } from '../constants/translations';
 import { getStoryProgression, recordInitialChoice, isAreaLocked } from '../utils/storyProgression';
 import TheEndScreen from './TheEndScreen';
+import LoadingScreen from './LoadingScreen';
 import '../styles/story.css';
 
 const loadShowroom = () => import('./PlanetaryShowroom');
@@ -26,14 +27,21 @@ const PlanetaryShowroom = lazy(loadShowroom);
 
 function ShowroomLoadingOverlay({ activeLang = 'en' }) {
   const t = getTranslations(activeLang).story;
+  const isAr = activeLang === 'ar';
   return (
-    <div className="launch-loading-screen" role="status" aria-live="polite">
-      <div className="launch-loading-card">
-        <Orbit className="launch-loading-icon spin-slow" size={42} aria-hidden="true" />
-        <p className="launch-loading-eyebrow">{t.initializing}</p>
-        <h1 className="initial-loading-title">{t.loadingShowroom}</h1>
-      </div>
-    </div>
+    <LoadingScreen
+      className="launch-loading-screen"
+      title={t.loadingShowroom || (isAr ? 'تحميل سجل المهمة' : 'LOADING LOGBOOK')}
+      kicker={t.initializing || (isAr ? 'جاري تهيئة أرشيف المهمة' : 'MISSION ARCHIVE INITIALIZING')}
+      subtitle={
+        isAr
+          ? 'جاري تجهيز الواجهة والصوتيات والنماذج ثلاثية الأبعاد...'
+          : 'Loading interface, audio & 3D planetary environment...'
+      }
+      progress={80}
+      accent="#ff9a6b"
+      dir={isAr ? 'rtl' : 'ltr'}
+    />
   );
 }
 
@@ -212,7 +220,15 @@ function StoryDialogueBox({
 
 export default function StoryGame({ onBackToMenu, onOpenCredits }) {
   // Scene states: 'prologue' -> 'choice' -> 'moon' | 'mars' | 'the_end'
-  const [currentScene, setCurrentScene] = useState('prologue');
+  const [currentScene, setCurrentScene] = useState(() => {
+    try {
+      const testScene = localStorage.getItem('abnf_test_scene');
+      if (testScene && ['prologue', 'choice', 'moon', 'mars', 'the_end'].includes(testScene)) {
+        return testScene;
+      }
+    } catch {}
+    return 'prologue';
+  });
   const [craftBrowse, setCraftBrowse] = useState(false);
   const [progression, setProgression] = useState(getStoryProgression);
 

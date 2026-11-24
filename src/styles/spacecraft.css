@@ -40,6 +40,7 @@
     z-index: 150;
     overflow: hidden;
     user-select: none;
+    background: #07030a;
     animation: showroomFadeIn 0.4s ease-out;
 }
 
@@ -86,12 +87,16 @@
 .showroom-3d-loader {
     position: absolute;
     inset: 0;
-    z-index: 100;
-    background: radial-gradient(circle at center, rgba(10, 18, 48, 0.95) 0%, rgba(3, 6, 20, 0.98) 100%);
+    z-index: 1200;
+    background:
+        radial-gradient(ellipse at 50% 120%, #c2321b 0%, #6e1a17 28%, transparent 62%),
+        radial-gradient(ellipse at 50% 40%, #2a0f1a 0%, #12060d 60%, #07030a 100%),
+        #07030a;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(8px);
+    overflow: hidden;
 }
 
 .spin-slow {
@@ -4121,4 +4126,89 @@
     border-color: #ffffff;
     background: rgba(255, 255, 255, 0.08);
 }
+
+/* ==========================================================================
+   UNINTERRUPTED ENVIRONMENT INSPECTION & HUD TOGGLE
+   Allows hiding mission and quiz cards to enjoy the cel-shaded 3D celestial views
+   ========================================================================== */
+
+.showroom-restore-ui-pill {
+    position: fixed;
+    bottom: max(28px, env(safe-area-inset-bottom, 28px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 22px;
+    background: rgba(13, 19, 32, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 9999px;
+    color: #f1f5f9;
+    font-family: var(--font-ui, system-ui, sans-serif);
+    font-size: 0.86rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: fadeInPill 0.3s ease-out;
+}
+
+@keyframes fadeInPill {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(12px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+}
+
+.showroom-restore-ui-pill:hover {
+    background: rgba(22, 34, 58, 0.96);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55), 0 0 24px rgba(159, 208, 255, 0.3);
+}
+
+.showroom-restore-ui-pill svg {
+    color: #9fd0ff;
+    flex-shrink: 0;
+}
+
+.mission-hide-card-btn,
+.details-hide-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+}
+
+.mission-hide-card-btn:hover,
+.details-hide-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+}
+
+.details-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 

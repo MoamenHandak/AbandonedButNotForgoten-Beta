@@ -72,15 +72,12 @@ export default function FloatingCraftsCanvas({ paused = false }) {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, 0.1, 200);
 
-    // Warm rim light to match the red nebula, cool fill from the other side
-    scene.add(new THREE.HemisphereLight(0xbfd6ff, 0x3a1410, 0.9));
-    const key = new THREE.DirectionalLight(0xffc9a0, 2.4);
+    // Streamlined toon lighting: 1 warm directional key + 1 soft hemisphere fill
+    // Balanced intensity (1.85 key + 0.75 fill) to prevent washed-out cel regions
+    scene.add(new THREE.HemisphereLight(0xbfd6ff, 0x2c0f0c, 0.75));
+    const key = new THREE.DirectionalLight(0xffc9a0, 1.85);
     key.position.set(-6, 5, 8);
     scene.add(key);
-
-    const rim = new THREE.DirectionalLight(0xff6a40, 1.4);
-    rim.position.set(8, -2, -6);
-    scene.add(rim);
 
     function resize() {
       if (isDisposed || contextLost) return;
@@ -240,7 +237,8 @@ export default function FloatingCraftsCanvas({ paused = false }) {
         const delay = index >= 4 ? 250 * (index - 3) : 0;
         setTimeout(() => {
           if (isDisposed) return;
-          loadGLTFModel(m.url, { signal: abortController.signal, cacheBuffer: true })
+          const isGlobe = m.url.includes('moon') || m.url.includes('mars');
+          loadGLTFModel(m.url, { signal: abortController.signal, cacheBuffer: true, toonify: !isGlobe })
             .then((gltf) => {
               if (isDisposed) {
                 disposeObject3D(gltf.scene);

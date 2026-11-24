@@ -1,14 +1,14 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { LoaderCircle } from 'lucide-react';
 import CosmicBackground from './components/CosmicBackground';
 import MainMenu from './components/MainMenu';
+import LoadingScreen from './components/LoadingScreen';
 import {
   SETTINGS_STORAGE_KEY,
   readStoredSettings,
   normalizeSettings,
 } from './constants/settings';
 import { installSurfaceAudio } from './audio/surfaceAudio';
-import { preloadImage, preloadAllCoreAssets } from './utils/modelCache';
+import { preloadMainMenuAssets, preloadAllCoreAssets } from './utils/modelCache';
 import { resetStoryProgression } from './utils/storyProgression';
 import './styles/menu.css';
 
@@ -35,6 +35,16 @@ export default function App() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadingPhase, setLoadingPhase] = useState('Opening Mission Logbook');
 
+  // Main Menu full boot loading screen state (loads fonts, code, audio, images, Draco & all 3D models)
+  const [isMenuReady, setIsMenuReady] = useState(false);
+  const [isMenuLoaderMounted, setIsMenuLoaderMounted] = useState(true);
+  const [menuLoadProgress, setMenuLoadProgress] = useState(4);
+  const [menuLoadPhase, setMenuLoadPhase] = useState(() =>
+    readStoredSettings().language === 'ar'
+      ? 'جاري تهيئة أنظمة المهمة...'
+      : 'INITIALIZING MISSION SYSTEMS...'
+  );
+
   // Title screen state (press any key to reveal menu)
   const [isTitleEntered, setIsTitleEntered] = useState(false);
 
@@ -50,12 +60,45 @@ export default function App() {
 
   useEffect(() => installSurfaceAudio(), []);
 
-  // Idle warm-up of core audio and scene backgrounds in background cache
+  // Full Main Menu boot sequence — loads fonts, JS modules, Draco decoder, audio, paintings & all 3D menu models
   useEffect(() => {
-    const timerId = setTimeout(() => {
-      preloadAllCoreAssets(() => {}).catch(() => {});
-    }, 1500);
-    return () => clearTimeout(timerId);
+    let cancelled = false;
+    let fadeTimer = null;
+    const bootLang = readStoredSettings().language || 'en';
+
+    preloadMainMenuAssets({
+      lang: bootLang,
+      extraTasks: [
+        loadStoryGame,
+        loadShowroom,
+        loadSettingsModal,
+        loadCreditsModal,
+        loadSourcesModal,
+        loadTheEndScreen,
+      ],
+      onProgress: (pct) => {
+        if (!cancelled) {
+          setMenuLoadProgress((prev) => Math.max(prev, pct));
+        }
+      },
+      onPhase: (phaseLabel) => {
+        if (!cancelled) {
+          setMenuLoadPhase(phaseLabel);
+        }
+      },
+    }).finally(() => {
+      if (cancelled) return;
+      setMenuLoadProgress(100);
+      setIsMenuReady(true);
+      fadeTimer = setTimeout(() => {
+        if (!cancelled) setIsMenuLoaderMounted(false);
+      }, 450);
+    });
+
+    return () => {
+      cancelled = true;
+      if (fadeTimer) clearTimeout(fadeTimer);
+    };
   }, []);
 
   // Load settings on initial mount and sync global audio/graphics defaults immediately
@@ -105,12 +148,14 @@ export default function App() {
     );
   };
 
-  // Launch Journey sequence — loads code bundles, visual-novel paintings, character poses, audio soundtracks, and 3D assets
+  // Launch Journey sequence — loads fonts, code bundles, visual-novel paintings, character poses, audio soundtracks, Draco decoder, and 3D assets
   const handleStartJourney = async () => {
+    const lang = settings?.language || 'en';
+    const isAr = lang === 'ar';
     setIsLaunching(true);
     setLaunchError(null);
     setLoadProgress(5);
-    setLoadingPhase(settings?.language === 'ar' ? 'جاري تهيئة سجل المهمة...' : 'INITIALIZING MISSION LOGBOOK...');
+    setLoadingPhase(isAr ? 'جاري تهيئة سجل المهمة...' : 'INITIALIZING MISSION LOGBOOK...');
 
     window.dispatchEvent(
       new CustomEvent('gameAudioCue', {
@@ -119,56 +164,65 @@ export default function App() {
     );
 
     try {
-      // Step 1: Preload code bundles in parallel
-      setLoadingPhase(settings?.language === 'ar' ? 'تحميل أرشيف القصة والواجهة...' : 'LOADING NARRATIVE ARCHIVES...');
-      await Promise.allSettled([loadStoryGame(), loadShowroom()]);
-      setLoadProgress(20);
+      // Step 1: Preload all code bundles in parallel
+      setLoadingPhase(isAr ? 'تحميل أرشيف القصة والواجهة...' : 'LOADING NARRATIVE & SHOWROOM MODULES...');
+      await Promise.allSettled([
+        loadStoryGame(),
+        loadShowroom(),
+        loadTheEndScreen(),
+        loadSourcesModal(),
+        loadSettingsModal(),
+      ]);
+      setLoadProgress(22);
 
-      // Step 2: Comprehensive preload of images, Luna poses, audio soundtracks, and initial 3D models
-      await preloadAllCoreAssets((pct) => {
-        const mapped = 20 + Math.round(pct * 0.75);
-        setLoadProgress(mapped);
-        if (pct < 35) {
-          setLoadingPhase(settings?.language === 'ar' ? 'مزامنة المقاطع الصوتية الفضائية...' : 'SYNCHRONIZING AUDIO SOUNDTRACKS...');
-        } else if (pct < 70) {
-          setLoadingPhase(settings?.language === 'ar' ? 'تخزين رسومات السجل والشخصيات...' : 'CACHING LOGBOOK PAINTINGS & CHARACTERS...');
-        } else {
-          setLoadingPhase(settings?.language === 'ar' ? 'تحميل مجسمات الفضاء ثلاثية الأبعاد...' : 'PREPARING 3D SPACECRAFT ASSETS...');
+      // Step 2: Comprehensive preload of fonts, Draco decoder, audio soundtracks, paintings, Luna poses, and 3D models
+      await preloadAllCoreAssets(
+        (pct) => {
+          const mapped = 22 + Math.round(pct * 0.74);
+          setLoadProgress(mapped);
+        },
+        {
+          lang,
+          onPhase: (phaseText) => setLoadingPhase(phaseText),
         }
-      });
+      );
 
       setLoadProgress(100);
-      setLoadingPhase(settings?.language === 'ar' ? 'فتح سجل الجد لونا...' : 'OPENING LOGBOOK...');
+      setLoadingPhase(isAr ? 'فتح سجل الجد لونا...' : 'OPENING MISSION LOGBOOK...');
       setTimeout(() => {
         setInGame(true);
         setIsLaunching(false);
-      }, 350);
+      }, 300);
     } catch (err) {
       console.error('Failed to launch story module:', err);
       setLaunchError(
-        settings?.language === 'ar'
+        isAr
           ? 'تعذر تحميل بيانات المهمة. يرجى التحقق من اتصالك والمحاولة مرة أخرى.'
           : 'Unable to load mission assets. Check your connection and retry.'
       );
     }
   };
 
-  // Keep CosmicBackground animated behind transparent Credits; pause hidden menu tiles on any modal
-  const bgPaused = Boolean((activeModal && activeModal !== 'credits') || isLaunching);
-  const menuTilesPaused = Boolean(activeModal || isLaunching);
+  const isAr = settings?.language === 'ar';
+
+  // Keep CosmicBackground animated behind transparent Credits; pause during boot loading, modals, or journey launch
+  const bgPaused = Boolean(!isMenuReady || (activeModal && activeModal !== 'credits') || isLaunching);
+  const menuTilesPaused = Boolean(!isMenuReady || activeModal || isLaunching);
 
   // Story Game View
   if (inGame) {
     return (
       <Suspense
         fallback={
-          <div className="launch-loading-screen" role="status" aria-live="polite">
-            <div className="launch-loading-card">
-              <LoaderCircle className="launch-loading-icon spin-slow" size={42} aria-hidden="true" />
-              <p className="launch-loading-eyebrow">MISSION ARCHIVE INITIALIZING</p>
-              <h1 className="initial-loading-title">LOADING LOGBOOK</h1>
-            </div>
-          </div>
+          <LoadingScreen
+            className="launch-loading-screen"
+            title={isAr ? 'تحميل سجل المهمة' : 'LOADING LOGBOOK'}
+            kicker={isAr ? 'جاري تهيئة أرشيف المهمة' : 'MISSION ARCHIVE INITIALIZING'}
+            subtitle={isAr ? 'مزامنة الرسومات والصوتيات والنماذج...' : 'Synchronizing artwork, audio & 3D assets...'}
+            progress={85}
+            accent="#ff9a6b"
+            dir={isAr ? 'rtl' : 'ltr'}
+          />
         }
       >
         <StoryGame
@@ -189,78 +243,101 @@ export default function App() {
         className={`menu-container nms-menu ${
           isTitleEntered ? 'is-entered' : 'is-title'
         } ${activeModal === 'credits' ? 'credits-open' : ''}`}
+        style={{
+          visibility:
+            isMenuReady && !isMenuLoaderMounted && (!activeModal || activeModal === 'credits')
+              ? 'visible'
+              : 'hidden',
+        }}
       >
-        {/* Forward-Flight Starfield + Floating 3D Crafts Background */}
-        <CosmicBackground isEntered={isTitleEntered} paused={bgPaused} />
+        {/* Forward-Flight Starfield + Floating 3D Crafts Background (mounts once core assets are ready) */}
+        {isMenuReady && <CosmicBackground isEntered={isTitleEntered} paused={bgPaused} />}
 
         {/* Main Menu HUD & Navigation */}
-        <MainMenu
-          isEntered={isTitleEntered}
-          paused={menuTilesPaused}
-          onEnter={(byKeyboard) => {
-            setIsTitleEntered(true);
-            if (byKeyboard) {
-              setTimeout(() => {
-                const first = document.getElementById('btn-start-journey');
-                if (first) first.focus({ preventScroll: true });
-              }, 900);
-            }
-          }}
-          onStartJourney={handleStartJourney}
-          onOpenSettings={() => setActiveModal('settings')}
-          onOpenCredits={() => setActiveModal('credits')}
-          onOpenSources={() => setActiveModal('sources')}
-          onOpenSpacecrafts={() => setActiveModal('spacecraft')}
-        />
+        {isMenuReady && (
+          <MainMenu
+            isEntered={isTitleEntered}
+            isReady={isMenuReady && !isMenuLoaderMounted}
+            paused={menuTilesPaused}
+            onEnter={(byKeyboard) => {
+              setIsTitleEntered(true);
+              if (byKeyboard) {
+                setTimeout(() => {
+                  const first = document.getElementById('btn-start-journey');
+                  if (first) first.focus({ preventScroll: true });
+                }, 900);
+              }
+            }}
+            onStartJourney={handleStartJourney}
+            onOpenSettings={() => setActiveModal('settings')}
+            onOpenCredits={() => setActiveModal('credits')}
+            onOpenSources={() => setActiveModal('sources')}
+            onOpenSpacecrafts={() => setActiveModal('spacecraft')}
+          />
+        )}
 
         {/* Cinematic Warp Curtain */}
         <div className="cinematic-curtain" aria-hidden="true" />
       </main>
 
-      {isLaunching && (
-        <div
+      {/* Main Menu Boot Loading Screen (No Man's Sky look) */}
+      {isMenuLoaderMounted && (
+        <LoadingScreen
+          id="initial-loading-screen"
+          className="initial-loading-screen"
+          title={isAr ? 'أنظمة المهمة' : 'ABANDONED BUT NOT FORGOTTEN'}
+          kicker={isAr ? 'تهيئة المحطة المدارية' : 'A little space adventure'}
+          subtitle={menuLoadPhase}
+          progress={menuLoadProgress}
+          accent="#ff9a6b"
+          isFading={isMenuReady}
+          dir={isAr ? 'rtl' : 'ltr'}
+        />
+      )}
+
+      {isLaunching && !launchError && (
+        <LoadingScreen
+          id="launch-loading-screen"
           className="launch-loading-screen"
-          role="status"
-          aria-live="polite"
-          aria-label={`Loading journey: ${loadProgress}%`}
+          title={isAr ? 'تجهيز رحلتك الفضائية' : 'PREPARING YOUR JOURNEY'}
+          kicker={isAr ? 'جاري تهيئة أرشيف المهمة' : 'MISSION ARCHIVE INITIALIZING'}
+          subtitle={loadingPhase}
+          progress={loadProgress}
+          accent="#ff9a6b"
+          dir={isAr ? 'rtl' : 'ltr'}
+        />
+      )}
+
+      {isLaunching && launchError && (
+        <div
+          id="launch-loading-screen"
+          className="launch-loading-screen"
+          role="alert"
+          aria-live="assertive"
+          dir={isAr ? 'rtl' : 'ltr'}
         >
           <div className="launch-loading-card">
-            <LoaderCircle className="launch-loading-icon spin-slow" size={42} aria-hidden="true" />
-            <p className="launch-loading-eyebrow">MISSION ARCHIVE INITIALIZING</p>
             <h1 className="initial-loading-title">
-              {launchError ? 'CONNECTION INTERRUPTED' : 'PREPARING YOUR JOURNEY'}
+              {isAr ? 'انقطع الاتصال' : 'CONNECTION INTERRUPTED'}
             </h1>
-            {!launchError ? (
-              <>
-                <div className="launch-progress-track">
-                  <span style={{ width: `${loadProgress}%` }} />
-                </div>
-                <p className="initial-loading-details" style={{ justifyContent: 'center' }}>
-                  <span>{loadProgress}% · {loadingPhase}</span>
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="initial-loading-details" style={{ justifyContent: 'center', marginBottom: 16 }}>
-                  <span>{launchError}</span>
-                </p>
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                  <button type="button" className="btn btn-primary" onClick={handleStartJourney}>
-                    Retry
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      setIsLaunching(false);
-                      setLaunchError(null);
-                    }}
-                  >
-                    Back to Menu
-                  </button>
-                </div>
-              </>
-            )}
+            <p className="initial-loading-details" style={{ justifyContent: 'center', marginBottom: 16 }}>
+              <span>{launchError}</span>
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button type="button" className="btn btn-primary" onClick={handleStartJourney}>
+                {isAr ? 'إعادة المحاولة' : 'Retry'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsLaunching(false);
+                  setLaunchError(null);
+                }}
+              >
+                {isAr ? 'العودة للقائمة' : 'Back to Menu'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -299,13 +376,15 @@ export default function App() {
       {activeModal === 'spacecraft' && (
         <Suspense
           fallback={
-            <div className="launch-loading-screen" role="status" aria-live="polite">
-              <div className="launch-loading-card">
-                <LoaderCircle className="launch-loading-icon spin-slow" size={42} aria-hidden="true" />
-                <p className="launch-loading-eyebrow">SHOWROOM MODULE INITIALIZING</p>
-                <h1 className="initial-loading-title">PREPARING 3D HANGAR</h1>
-              </div>
-            </div>
+            <LoadingScreen
+              className="launch-loading-screen"
+              title={isAr ? 'تجهيز حظيرة المركبات ثلاثية الأبعاد' : 'PREPARING 3D HANGAR'}
+              kicker={isAr ? 'جاري تهيئة وحدة العرض' : 'SHOWROOM MODULE INITIALIZING'}
+              subtitle={isAr ? 'تحميل الواجهة والصوتيات والنماذج...' : 'Loading interface, audio & 3D telemetry...'}
+              progress={70}
+              accent="#ff9a6b"
+              dir={isAr ? 'rtl' : 'ltr'}
+            />
           }
         >
           <PlanetaryShowroom
