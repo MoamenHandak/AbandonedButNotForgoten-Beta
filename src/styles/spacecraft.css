@@ -24,6 +24,12 @@
     --color-text-sub: rgba(255, 255, 255, 0.82);
     --color-text-dark: rgba(255, 255, 255, 0.58);
     --font-hud: 'NMSGeoSans', 'Tajawal', sans-serif;
+
+    /* Consistent Card & Modal Dimensions (Zero Layout Shift) */
+    --mission-card-width: clamp(340px, 26vw, 420px);
+    --mission-card-height: min(580px, calc(100vh - 100px));
+    --details-modal-width: clamp(350px, 28vw, 430px);
+    --details-modal-height: min(640px, calc(100vh - 96px));
 }
 
 /* Eliminate neon corner brackets across all HUD elements for the clean modern theme */
@@ -2226,20 +2232,25 @@
     top: calc(74px + env(safe-area-inset-top, 0px));
     right: clamp(20px, 2.5vw, 40px);
     left: auto;
-    width: clamp(340px, 26vw, 420px);
+    width: var(--details-modal-width);
+    height: var(--details-modal-height);
     max-height: calc(100vh - 96px);
     z-index: 110;
     display: flex;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.92);
+    background: rgba(0, 0, 0, 0.94);
     border: 1px solid #ffffff;
     border-radius: 12px;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
     overflow: hidden;
-    overflow-y: auto;
     animation: detailsSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+[dir="rtl"] .showroom-details-panel {
+    right: auto;
+    left: clamp(20px, 2.5vw, 40px);
 }
 
 .showroom-details-panel.is-leaving {
@@ -3051,9 +3062,10 @@
     position: fixed;
     top: calc(74px + env(safe-area-inset-top, 0px));
     right: clamp(20px, 2.5vw, 40px);
-    width: clamp(340px, 26vw, 420px);
+    width: var(--mission-card-width);
+    height: var(--mission-card-height);
     max-height: calc(100vh - 96px);
-    overflow-y: auto;
+    overflow: hidden;
     z-index: 100;
     pointer-events: auto;
     animation: missionPanelFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -3076,6 +3088,8 @@
 }
 
 .mission-panel-card {
+    height: 100%;
+    box-sizing: border-box;
     background: rgba(3, 7, 18, 0.98);
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 12px;
@@ -3085,14 +3099,81 @@
     padding: 22px 24px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
     color: #ffffff;
+    overflow: hidden;
 }
 
 .mission-panel-header {
     display: flex;
     align-items: flex-start;
     gap: 12px;
+    flex-shrink: 0;
+}
+
+.mission-panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-right: 4px;
+    margin-top: 14px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.5) rgba(255, 255, 255, 0.05);
+}
+
+[dir="rtl"] .mission-panel-body {
+    padding-right: 0;
+    padding-left: 4px;
+}
+
+.mission-panel-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.mission-panel-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+}
+
+.mission-panel-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.45);
+    border-radius: 4px;
+}
+
+.mission-panel-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 12px;
+    width: 100%;
+}
+
+.details-modal-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding: 14px 18px;
+    background: rgba(0, 0, 0, 0.88);
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    box-sizing: border-box;
+}
+
+.details-modal-footer .details-section-nav-btn {
+    width: 100%;
+    margin-top: 0;
+}
+
+.details-quiz-footer-hint {
+    font-family: var(--hud-theme-font, 'NMSFuturaProBook', sans-serif);
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.65);
+    letter-spacing: 0.5px;
+    text-align: center;
+    line-height: 1.4;
 }
 
 .mission-panel-status-dot {
@@ -3142,6 +3223,11 @@
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.85);
     margin: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mission-meta-list {

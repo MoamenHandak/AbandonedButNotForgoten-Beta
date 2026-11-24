@@ -9,14 +9,12 @@ export default function CreditsModal({ isOpen, onClose }) {
   const activeLang = useActiveLanguage();
   const t = getTranslations(activeLang).credits;
 
-  // Space Music for Credits (Item 7)
+  // Space Music for Credits (carries on Moon/Mars music if active, or plays credits theme)
   useEffect(() => {
     if (!isOpen) return;
     window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'credits_music' } }));
     return () => {
       window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'credits_music_stop' } }));
-      // Return back to menu music when closing credits
-      window.dispatchEvent(new CustomEvent('gameAudioCue', { detail: { cue: 'menu_music' } }));
     };
   }, [isOpen]);
 

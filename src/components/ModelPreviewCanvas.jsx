@@ -13,6 +13,7 @@ import {
   resolveGraphicsProfile,
   getEffectivePixelRatio,
 } from '../constants/settings';
+import { toonifyModel, attachHeroOutline } from '../scene/toonify';
 
 /**
  * Lightweight reusable Three.js preview canvas replacing <model-viewer> so all 3D
@@ -28,6 +29,9 @@ export default function ModelPreviewCanvas({
   cameraControls = false,
   exposure = 1.1,
   paused = false,
+  enableShadows = false,
+  enableOutline = true,
+  outlineColor = 0x05070c,
   className = '',
   style,
 }) {
@@ -93,6 +97,30 @@ export default function ModelPreviewCanvas({
 
     const keyLight = new THREE.DirectionalLight(0xfff5e8, 1.75);
     keyLight.position.set(4, 6, 5);
+
+    const isPerformance = activeQuality.preset === 'performance';
+    const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024));
+    const shadowMapSize = isPerformance || isMobile ? 1024 : 2048;
+
+    if (enableShadows) {
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      keyLight.castShadow = true;
+      keyLight.shadow.mapSize.width = shadowMapSize;
+      keyLight.shadow.mapSize.height = shadowMapSize;
+      keyLight.shadow.bias = -0.0003;
+      keyLight.shadow.normalBias = 0.025;
+
+      const d = 3.5;
+      keyLight.shadow.camera.left = -d;
+      keyLight.shadow.camera.right = d;
+      keyLight.shadow.camera.top = d;
+      keyLight.shadow.camera.bottom = -d;
+      keyLight.shadow.camera.near = 0.5;
+      keyLight.shadow.camera.far = 25.0;
+    }
+
     scene.add(keyLight);
 
     const pivot = new THREE.Group();
@@ -277,7 +305,19 @@ export default function ModelPreviewCanvas({
               child.material.needsUpdate = true;
             }
           });
+        } else {
+          toonifyModel(model);
         }
+
+        if (enableShadows) {
+          model.traverse((child) => {
+            if (child.isMesh && child.name !== '__hero_outline__') {
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+        }
+
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
@@ -285,14 +325,35 @@ export default function ModelPreviewCanvas({
 
         model.position.sub(center);
         pivot.add(model);
+
+        if (enableShadows) {
+          const shadowPlaneGeo = new THREE.PlaneGeometry(maxDim * 4.0, maxDim * 4.0);
+          const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.38 });
+          const shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
+          shadowPlane.rotation.x = -Math.PI / 2;
+          shadowPlane.position.y = -size.y * 0.51;
+          shadowPlane.receiveShadow = true;
+          pivot.add(shadowPlane);
+
+          const shadowBounds = Math.max(1.2, maxDim * 1.4);
+          keyLight.shadow.camera.left = -shadowBounds;
+          keyLight.shadow.camera.right = shadowBounds;
+          keyLight.shadow.camera.top = shadowBounds;
+          keyLight.shadow.camera.bottom = -shadowBounds;
+          keyLight.shadow.camera.updateProjectionMatrix();
+        }
+
+        if (enableOutline && !isGlobe) {
+          attachHeroOutline(model, maxDim, outlineColor);
+        }
+
         pivot.updateMatrixWorld(true);
 
-        // Compute true vertex-level bounding radius around the pivot origin so
-        // spheres (Moon/Mars) frame at identical visual scale without Box3 diagonal inflation.
+        // Compute true vertex-level bounding radius on the model ONLY (excluding shadow plane)
         const vTmp = new THREE.Vector3();
         let maxRadiusSq = 0;
-        pivot.traverse((child) => {
-          if (!child.isMesh || !child.geometry) return;
+        model.traverse((child) => {
+          if (!child.isMesh || !child.geometry || child.name === '__hero_outline__') return;
           const posAttr = child.geometry.attributes?.position;
           if (!posAttr) return;
           const step = posAttr.count > 12000 ? Math.ceil(posAttr.count / 12000) : 1;

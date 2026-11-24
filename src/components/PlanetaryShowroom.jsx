@@ -75,7 +75,7 @@ import { getTranslations } from '../constants/translations';
 import StatusBadge from './StatusBadge';
 import ShowroomStoryPanel from './ShowroomStoryPanel';
 import { createOrbitLayer } from '../scene/orbitLayer';
-import { calculateFitDistance, getOrbitOverviewCamera } from '../scene/cameraAutoFit';
+import { calculateFitDistance, getOrbitOverviewCamera, computeBoundingFitCamera } from '../scene/cameraAutoFit';
 import { triggerHaptic, isMobileDevice } from '../utils/viewport';
 import '../styles/spacecraft.css';
 
@@ -129,6 +129,14 @@ export const VEHICLES_DATA = [
     rotation: [0, -0.4, 0],
     focusCamPos: [2.8, 1.25, 3.4],
     focusLookAt: [0, 0.65, 0],
+    camera: {
+      position: [2.8, 1.25, 3.4],
+      target: [0, 0.65, 0],
+      distance: 4.6,
+      minDistance: 1.2,
+      maxDistance: 16.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 2.2,
     agency: 'NASA / Boeing / General Motors',
     launchDate: 'July 26, 1971',
@@ -168,8 +176,16 @@ export const VEHICLES_DATA = [
     scale: 1.0,
     position: [-18.0, 0, 10.0],
     rotation: [0, 0.45, 0],
-    focusCamPos: [-15.2, 2.2, 13.8],
-    focusLookAt: [-18.0, 1.8, 10.0],
+    focusCamPos: [-11.0, 3.8, 18.0],
+    focusLookAt: [-18.0, 3.0, 10.0],
+    camera: {
+      position: [-11.0, 3.8, 18.0],
+      target: [-18.0, 3.0, 10.0],
+      distance: 10.6,
+      minDistance: 3.5,
+      maxDistance: 38.0,
+      transitionDuration: 1800,
+    },
     contactShadowRadius: 3.8,
     agency: 'NASA / Grumman Aerospace',
     launchDate: 'July 26, 1971',
@@ -213,6 +229,14 @@ export const VEHICLES_DATA = [
     rotation: [0, 0, 0],
     focusCamPos: [0, 32.0, 140.0],
     focusLookAt: [0, 0, 0],
+    camera: {
+      position: [0, 32.0, 140.0],
+      target: [0, 0, 0],
+      distance: 143.6,
+      minDistance: 35.0,
+      maxDistance: 450.0,
+      transitionDuration: 2000,
+    },
     contactShadowRadius: 0,
     agency: 'NASA / International Space Network',
     launchDate: '1966 – Present',
@@ -250,6 +274,14 @@ export const VEHICLES_DATA = [
     rotation: [0.1, 0.4, 0],
     focusCamPos: [35.6, -23.8, 8.2],
     focusLookAt: [32.0, -22.1, 5.4],
+    camera: {
+      position: [34.0, -21.0, 6.8],
+      target: [32.0, -22.1, 5.4],
+      distance: 2.6,
+      minDistance: 0.8,
+      maxDistance: 35.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 0,
     agency: 'NASA / Goddard',
     launchDate: 'June 18, 2009',
@@ -291,6 +323,14 @@ export const VEHICLES_DATA = [
     rotation: [0.15, 0.5, 0],
     focusCamPos: [-35.8, -22.4, 34.2],
     focusLookAt: [-31.3, -21.1, 31.6],
+    camera: {
+      position: [-33.0, -20.0, 33.0],
+      target: [-31.3, -21.1, 31.6],
+      distance: 2.3,
+      minDistance: 0.6,
+      maxDistance: 30.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 0,
     agency: 'NASA / Ames',
     launchDate: 'September 7, 2013',
@@ -331,6 +371,14 @@ export const VEHICLES_DATA = [
     rotation: [0, 0.35, 0],
     focusCamPos: [2.5, 1.25, 2.9],
     focusLookAt: [0, 0.65, 0],
+    camera: {
+      position: [2.5, 1.25, 2.9],
+      target: [0, 0.65, 0],
+      distance: 4.0,
+      minDistance: 1.0,
+      maxDistance: 14.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 1.8,
     agency: 'NASA / Caltech JPL',
     launchDate: 'July 7, 2003',
@@ -370,8 +418,16 @@ export const VEHICLES_DATA = [
     scale: 0.9,
     position: [-14.0, 0.02, -7.0],
     rotation: [0, 0.8, 0],
-    focusCamPos: [-12.8, 1.03, -5.6],
-    focusLookAt: [-14.0, 0.48, -7.0],
+    focusCamPos: [-12.8, 0.85, -5.8],
+    focusLookAt: [-14.0, 0.40, -7.0],
+    camera: {
+      position: [-12.8, 0.85, -5.8],
+      target: [-14.0, 0.40, -7.0],
+      distance: 1.8,
+      minDistance: 0.5,
+      maxDistance: 8.0,
+      transitionDuration: 1500,
+    },
     contactShadowRadius: 0.85,
     agency: 'NASA / Caltech JPL',
     launchDate: 'July 30, 2020',
@@ -411,8 +467,16 @@ export const VEHICLES_DATA = [
     scale: 0.45,
     position: [16.0, -0.08, -8.0],
     rotation: [0, -0.7, 0],
-    focusCamPos: [18.2, 1.65, -5.8],
-    focusLookAt: [16.0, 0.75, -8.0],
+    focusCamPos: [20.2, 2.4, -3.8],
+    focusLookAt: [16.0, 0.85, -8.0],
+    camera: {
+      position: [20.2, 2.4, -3.8],
+      target: [16.0, 0.85, -8.0],
+      distance: 6.2,
+      minDistance: 1.8,
+      maxDistance: 22.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 2.4,
     agency: 'NASA / Langley / Martin Marietta',
     launchDate: 'August 20, 1975',
@@ -452,8 +516,16 @@ export const VEHICLES_DATA = [
     scale: 1.0,
     position: [0.0, 0, -22.0],
     rotation: [0, -0.6, 0],
-    focusCamPos: [2.2, 1.35, -20.2],
-    focusLookAt: [0.0, 0.65, -22.0],
+    focusCamPos: [4.2, 2.6, -17.5],
+    focusLookAt: [0.0, 0.85, -22.0],
+    camera: {
+      position: [4.2, 2.6, -17.5],
+      target: [0.0, 0.85, -22.0],
+      distance: 6.8,
+      minDistance: 2.0,
+      maxDistance: 25.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 2.6,
     agency: 'NASA / CNES / DLR / JPL',
     launchDate: 'May 5, 2018',
@@ -497,6 +569,14 @@ export const VEHICLES_DATA = [
     rotation: [0, 0, 0],
     focusCamPos: [0, 26.0, 125.0],
     focusLookAt: [0, 0, 0],
+    camera: {
+      position: [0, 26.0, 125.0],
+      target: [0, 0, 0],
+      distance: 127.7,
+      minDistance: 45.0,
+      maxDistance: 500.0,
+      transitionDuration: 2000,
+    },
     contactShadowRadius: 0,
     agency: 'NASA / JPL / ESA',
     launchDate: '1971 – Present',
@@ -534,6 +614,14 @@ export const VEHICLES_DATA = [
     rotation: [0.1, 0.35, 0],
     focusCamPos: [54.0, 1.3, 9.2],
     focusLookAt: [50.8, 0.5, 8.2],
+    camera: {
+      position: [52.8, 1.2, 9.4],
+      target: [50.8, 0.5, 8.2],
+      distance: 2.4,
+      minDistance: 0.8,
+      maxDistance: 35.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
     launchDate: 'November 7, 1996',
@@ -573,8 +661,16 @@ export const VEHICLES_DATA = [
     scale: 0.045,
     position: [0.4, 18.5, 53.2],
     rotation: [0.2, 0.4, 0],
-    focusCamPos: [0.7, 19.6, 56.6],
+    focusCamPos: [0.6, 19.1, 54.8],
     focusLookAt: [0.4, 18.5, 53.2],
+    camera: {
+      position: [0.6, 19.1, 54.8],
+      target: [0.4, 18.5, 53.2],
+      distance: 1.8,
+      minDistance: 0.6,
+      maxDistance: 30.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
     launchDate: 'April 7, 2001',
@@ -616,6 +712,14 @@ export const VEHICLES_DATA = [
     rotation: [0.1, 0.5, 0],
     focusCamPos: [-54.4, 43.8, -12.8],
     focusLookAt: [-51.4, 41.5, -12.1],
+    camera: {
+      position: [-53.4, 43.0, -12.6],
+      target: [-51.4, 41.5, -12.1],
+      distance: 2.4,
+      minDistance: 0.8,
+      maxDistance: 35.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 0,
     agency: 'NASA / JPL / Lockheed Martin',
     launchDate: 'August 12, 2005',
@@ -657,6 +761,14 @@ export const VEHICLES_DATA = [
     rotation: [0.15, 0.45, 0],
     focusCamPos: [11.4, -29.8, -65.2],
     focusLookAt: [10.5, -28.2, -61.8],
+    camera: {
+      position: [11.2, -29.2, -63.8],
+      target: [10.5, -28.2, -61.8],
+      distance: 2.2,
+      minDistance: 0.8,
+      maxDistance: 35.0,
+      transitionDuration: 1600,
+    },
     contactShadowRadius: 0,
     agency: 'NASA / Goddard / Lockheed Martin',
     launchDate: 'November 18, 2013',
@@ -979,8 +1091,10 @@ export default function PlanetaryShowroom({
         const isOverview = Boolean(targetVehicle.isOverviewPhase);
         setIsOrbitalView(isOrbiter);
 
-        let targetCam = targetVehicle.focusCamPos;
-        let targetLook = targetVehicle.focusLookAt;
+        const camCfg = targetVehicle.camera || {};
+        let targetCam = camCfg.position || targetVehicle.focusCamPos;
+        let targetLook = camCfg.target || targetVehicle.focusLookAt;
+        const transitionDuration = camCfg.transitionDuration || 1600;
 
         if (isOrbiter) {
           if (state.terrainGroup) state.terrainGroup.visible = false;
@@ -993,8 +1107,8 @@ export default function PlanetaryShowroom({
           }
           if (state.controls) {
             state.controls.maxPolarAngle = Math.PI;
-            state.controls.maxDistance = 450.0;
-            state.controls.minDistance = 1.0;
+            state.controls.maxDistance = camCfg.maxDistance != null ? camCfg.maxDistance : 450.0;
+            state.controls.minDistance = camCfg.minDistance != null ? camCfg.minDistance : 1.0;
           }
 
           if (isOverview) {
@@ -1035,8 +1149,8 @@ export default function PlanetaryShowroom({
           }
           if (state.controls) {
             state.controls.maxPolarAngle = Math.PI / 2 - 0.02;
-            state.controls.maxDistance = 45.0;
-            state.controls.minDistance = 1.5;
+            state.controls.maxDistance = camCfg.maxDistance != null ? camCfg.maxDistance : 45.0;
+            state.controls.minDistance = camCfg.minDistance != null ? camCfg.minDistance : 1.5;
           }
 
           const baseLook = new THREE.Vector3(...targetVehicle.focusLookAt);
@@ -1083,8 +1197,17 @@ export default function PlanetaryShowroom({
         });
         state.currentHeroModel = nextHeroModel;
 
+        if (typeof window !== 'undefined' && window.location.search.includes('debugCamera')) {
+          console.log('[CameraDebug Auto]', {
+            vehicleId: targetVehicle.id,
+            targetCam,
+            targetLook,
+            camCfg,
+          });
+        }
+
         if (shouldFly && !isPlanetChanging) {
-          triggerCameraFly(targetCam, targetLook, 1600, cue);
+          triggerCameraFly(targetCam, targetLook, transitionDuration, cue);
         } else if (state.camera && state.controls) {
           state.animating = false;
           setIsTransitioning(false);
@@ -1352,6 +1475,31 @@ export default function PlanetaryShowroom({
 
       if (isDialogVisible) {
         // Handled exclusively by MissionBriefingDialog (Enter/Space advance, Esc skips).
+        return;
+      }
+
+      if (e.key === 'c' || e.key === 'C') {
+        const s = threeRef.current;
+        if (s.camera && s.controls) {
+          const pos = [
+            parseFloat(s.camera.position.x.toFixed(2)),
+            parseFloat(s.camera.position.y.toFixed(2)),
+            parseFloat(s.camera.position.z.toFixed(2)),
+          ];
+          const tgt = [
+            parseFloat(s.controls.target.x.toFixed(2)),
+            parseFloat(s.controls.target.y.toFixed(2)),
+            parseFloat(s.controls.target.z.toFixed(2)),
+          ];
+          const dist = parseFloat(s.camera.position.distanceTo(s.controls.target).toFixed(2));
+          console.log('[CameraDebug]', {
+            vehicleId: filteredVehicles[currentIndex]?.id,
+            position: pos,
+            target: tgt,
+            distance: dist,
+            fov: s.camera.fov,
+          });
+        }
         return;
       }
 
@@ -3323,28 +3471,6 @@ export default function PlanetaryShowroom({
                     <strong>{currentVehicle.distanceTraveled}</strong>
                   </div>
                 </div>
-
-                {/* Bottom button: Proceed to Tasks (Unlocks Task section) */}
-                <button
-                  type="button"
-                  className="details-section-nav-btn is-confirm"
-                  onClick={() => {
-                    dispatchAudioCue('tab_switch');
-                    triggerHaptic('selection');
-                    setReadSectionsUnlocked((prev) => ({
-                      ...prev,
-                      [currentVehicle.id]: {
-                        ...(prev[currentVehicle.id] || {}),
-                        task: true
-                      }
-                    }));
-                    setDetailTab('task');
-                    detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
-                  <span>{activeLang === 'ar' ? 'تأكيد القراءة والانتقال إلى المهام ←' : 'CONFIRM ARCHIVE & PROCEED TO TASKS →'}</span>
-                  <ChevronRight size={16} style={{ transform: activeLang === 'ar' ? 'rotate(180deg)' : 'none' }} />
-                </button>
               </>
             )}
 
@@ -3393,29 +3519,6 @@ export default function PlanetaryShowroom({
                       </div>
                     </div>
                   )}
-
-                  {/* Bottom button: Proceed to Quiz (Unlocks Quiz section) */}
-                  <button
-                    type="button"
-                    className="details-section-nav-btn is-confirm"
-                    onClick={() => {
-                      dispatchAudioCue('tab_switch');
-                      triggerHaptic('selection');
-                      setReadSectionsUnlocked((prev) => ({
-                        ...prev,
-                        [currentVehicle.id]: {
-                          ...(prev[currentVehicle.id] || {}),
-                          task: true,
-                          quiz: true
-                        }
-                      }));
-                      setDetailTab('quiz');
-                      detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
-                    <span>{activeLang === 'ar' ? 'تأكيد المهام وبدء اختبار القياس ←' : 'CONFIRM TASKS & COMMENCE QUIZ →'}</span>
-                    <ChevronRight size={16} style={{ transform: activeLang === 'ar' ? 'rotate(180deg)' : 'none' }} />
-                  </button>
                 </>
               );
             })()}
@@ -3581,6 +3684,62 @@ export default function PlanetaryShowroom({
               );
             })()}
           </div>
+
+          {/* Pinned Modal Footer — Always at the exact same bottom position across all tabs */}
+          <div className="details-modal-footer">
+            {detailTab === 'info' && (
+              <button
+                type="button"
+                className="details-section-nav-btn is-confirm"
+                onClick={() => {
+                  dispatchAudioCue('tab_switch');
+                  triggerHaptic('selection');
+                  setReadSectionsUnlocked((prev) => ({
+                    ...prev,
+                    [currentVehicle.id]: {
+                      ...(prev[currentVehicle.id] || {}),
+                      task: true
+                    }
+                  }));
+                  setDetailTab('task');
+                  detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                <span>{activeLang === 'ar' ? 'تأكيد القراءة والانتقال إلى المهام ←' : 'CONFIRM ARCHIVE & PROCEED TO TASKS →'}</span>
+                <ChevronRight size={16} style={{ transform: activeLang === 'ar' ? 'rotate(180deg)' : 'none' }} />
+              </button>
+            )}
+
+            {detailTab === 'task' && (
+              <button
+                type="button"
+                className="details-section-nav-btn is-confirm"
+                onClick={() => {
+                  dispatchAudioCue('tab_switch');
+                  triggerHaptic('selection');
+                  setReadSectionsUnlocked((prev) => ({
+                    ...prev,
+                    [currentVehicle.id]: {
+                      ...(prev[currentVehicle.id] || {}),
+                      task: true,
+                      quiz: true
+                    }
+                  }));
+                  setDetailTab('quiz');
+                  detailsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                <span>{activeLang === 'ar' ? 'تأكيد المهام وبدء اختبار القياس ←' : 'CONFIRM TASKS & COMMENCE QUIZ →'}</span>
+                <ChevronRight size={16} style={{ transform: activeLang === 'ar' ? 'rotate(180deg)' : 'none' }} />
+              </button>
+            )}
+
+            {detailTab === 'quiz' && (
+              <div className="details-quiz-footer-hint">
+                <span>{activeLang === 'ar' ? 'اختر الإجابة الصحيحة لإكمال فحص القياس' : 'Select the verified answer to record archive clearance'}</span>
+              </div>
+            )}
+          </div>
         </aside>
       )}
 
@@ -3694,7 +3853,7 @@ export default function PlanetaryShowroom({
             </div>
 
             {!isPhonePortrait && (
-              <>
+              <div className="mission-panel-body">
                 <div className="mission-panel-divider" aria-hidden="true" />
 
                 <p className="mission-panel-desc">{currentVehicle.description}</p>
@@ -3733,19 +3892,21 @@ export default function PlanetaryShowroom({
                     <span>{currentVehicle.tagline}</span>
                   </blockquote>
                 )}
-              </>
+              </div>
             )}
 
             {(!isPhonePortrait || !isInfoCollapsed) && (
-              <button
-                type="button"
-                className="mission-view-details-btn"
-                onClick={handleOpenDetails}
-                aria-label="View Details"
-              >
-                <Search size={15} aria-hidden="true" />
-                <span>{activeLang === 'ar' ? 'عرض التفاصيل' : 'VIEW DETAILS'}</span>
-              </button>
+              <div className="mission-panel-footer">
+                <button
+                  type="button"
+                  className="mission-view-details-btn"
+                  onClick={handleOpenDetails}
+                  aria-label="View Details"
+                >
+                  <Search size={15} aria-hidden="true" />
+                  <span>{activeLang === 'ar' ? 'عرض التفاصيل' : 'VIEW DETAILS'}</span>
+                </button>
+              </div>
             )}
           </div>
         </aside>

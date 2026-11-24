@@ -3,6 +3,7 @@ import { Settings, Users, ShieldCheck } from 'lucide-react';
 import { resolveAssetUrl } from '../utils/modelCache';
 import { useActiveLanguage } from '../data/craftStories';
 import { getTranslations } from '../constants/translations';
+import ModelPreviewCanvas from './ModelPreviewCanvas';
 
 export default function MainMenu({
   isEntered,
@@ -93,23 +94,14 @@ export default function MainMenu({
           }}
         >
           <span className="nms-tile-art">
-            <model-viewer
+            <ModelPreviewCanvas
               id="moon-viewer"
               src={resolveAssetUrl('/models/astronaut_helmet-opt.glb')}
-              environment-image={resolveAssetUrl('/assets/space_sun.hdr')}
               alt="Astronaut Helmet 3D model"
-              auto-rotate=""
-              rotation-per-second="10deg"
-              camera-orbit="0deg 82deg 105%"
-              camera-target="auto auto auto"
-              field-of-view="32deg"
-              disable-zoom=""
-              disable-pan=""
-              interaction-prompt="none"
-              shadow-intensity="1.2"
-              shadow-softness="0.5"
-              exposure="1.05"
-              loading="eager"
+              autoRotate={true}
+              rotationPerSecond={10}
+              enableShadows={true}
+              enableOutline={true}
             />
           </span>
           <span className="nms-tile-pin" aria-hidden="true" />
@@ -129,29 +121,20 @@ export default function MainMenu({
           }}
         >
           <span className="nms-tile-art">
-            <model-viewer
+            <ModelPreviewCanvas
               id="mars-viewer"
-              src={resolveAssetUrl('/models/lunar_rover-opt.glb')}
-              environment-image={resolveAssetUrl('/assets/space_sun.hdr')}
-              alt="Apollo Lunar Roving Vehicle 3D model"
-              auto-rotate=""
-              rotation-per-second="18deg"
-              camera-orbit="40deg 75deg 105%"
-              camera-target="0m 0.6m 0m"
-              field-of-view="35deg"
-              disable-zoom=""
-              disable-pan=""
-              interaction-prompt="none"
-              shadow-intensity="1.5"
-              shadow-softness="0.4"
-              exposure="1.0"
-              loading="eager"
+              src={resolveAssetUrl('/models/mer_rover-opt.glb')}
+              alt="Opportunity (MER-B) Mars Rover 3D model"
+              autoRotate={true}
+              rotationPerSecond={14}
+              enableShadows={false}
+              enableOutline={true}
             />
           </span>
           <span className="nms-tile-pin" aria-hidden="true" />
           <span className="nms-tile-label">
             <strong>{t.spacecrafts || 'Spacecrafts'}</strong>
-            <small>{t.spacecraftsDesc || 'Inspect every rover and lander in 3D'}</small>
+            <small>{t.spacecraftsDesc || 'MER-B // Meridiani Planum, Mars'}</small>
           </span>
         </button>
       </nav>

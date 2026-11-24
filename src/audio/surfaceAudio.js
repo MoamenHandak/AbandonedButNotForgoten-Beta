@@ -216,7 +216,12 @@ class SurfaceAudioEngine {
     } else if (cue === 'credits_music') {
       this.startCreditsMusic();
     } else if (cue === 'credits_music_stop') {
-      this.stopMusic();
+      if (this.spaceMusicActive) {
+        // Carry on Moon/Mars music seamlessly
+      } else {
+        this.stopMusic();
+        this.startMenuMusic();
+      }
     } else if (cue === 'surface_ambience') {
       this.stopMusic();
       this.startAmbience(detail.planet);
@@ -615,6 +620,9 @@ class SurfaceAudioEngine {
    */
   startMenuMusic() {
     this.resume();
+    if (this.spaceMusicActive) {
+      return;
+    }
     this.stopSpaceMusic();
     if (this.musicType === 'menu') {
       if (this.menuAudio && this.menuAudio.paused) {
@@ -881,6 +889,17 @@ class SurfaceAudioEngine {
    */
   startCreditsMusic() {
     this.resume();
+
+    // If Moon or Mars space music is active or playing, continue it seamlessly without stopping or restarting
+    if (this.spaceMusicActive || (this.spaceAudio && !this.spaceAudio.paused)) {
+      this.spaceMusicActive = true;
+      if (this.spaceAudio && this.spaceAudio.paused) {
+        this.updateAudioTracksVolume();
+        this.spaceAudio.play().catch(() => {});
+      }
+      return;
+    }
+
     if (!this.ctx || this.musicType === 'credits') return;
     this.stopMusic();
     this.musicType = 'credits';

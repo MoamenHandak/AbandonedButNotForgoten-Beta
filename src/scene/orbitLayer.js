@@ -115,8 +115,9 @@ const ORBIT_CONFIGS = {
       inclination: [-0.42, 0.35, 0.2],
       speed: 0.22, // ~28s revolution
       initialAngle: 1.9,
-      ambientScale: 0.012,
-      heroScale: 0.025, // ~10% Mars diameter (5.4 units)
+      ambientScale: 0.020,
+      heroScale: 0.055, // ~10% Mars diameter (framing clearly on the satellite)
+      cameraDistanceMult: 0.75, // start much closer, framed clearly
       stationedPos: [0.4, 15.5, 45.0],
       color: 0x64d2ff,
     },
@@ -894,12 +895,13 @@ export function createOrbitLayer({ scene, destination, profile, signal, onProgre
       const isNarrow = aspect < 1.0;
       const aspectMult = isNarrow ? Math.min(1.45, Math.max(1.12, 0.95 / aspect)) : 1.0;
 
-      const baseDist = isMoon ? 1.15 : 1.75;
+      const customDistMult = o.cfg.cameraDistanceMult || 1.0;
+      const baseDist = (isMoon ? 1.05 : 1.35) * customDistMult;
 
       const camPos = curPos.clone()
-        .add(norm.clone().multiplyScalar(3.8 * baseDist * aspectMult))
-        .add(up.clone().multiplyScalar(1.0 * baseDist * aspectMult))
-        .sub(tangent.clone().multiplyScalar(2.8 * baseDist * aspectMult));
+        .add(norm.clone().multiplyScalar(3.2 * baseDist * aspectMult))
+        .add(up.clone().multiplyScalar(0.85 * baseDist * aspectMult))
+        .sub(tangent.clone().multiplyScalar(2.4 * baseDist * aspectMult));
 
       return {
         camPos: [camPos.x, camPos.y, camPos.z],

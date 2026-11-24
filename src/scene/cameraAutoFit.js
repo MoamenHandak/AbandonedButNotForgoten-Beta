@@ -43,6 +43,54 @@ export function calculateFitDistance(objectOrRadius, camera, margin = 1.18) {
 }
 
 /**
+ * Computes bounding-box auto-fit camera distance and position for any 3D model.
+ * Formula: distance = (maxDim / 2) / sin(limitingFov / 2) * padding
+ * where padding ~ 1.35 to 1.45 ensures 60% - 70% fill of the screen.
+ */
+export function computeBoundingFitCamera(object3D, camera, options = {}) {
+  const {
+    padding = 1.40, // 60-70% view fill
+    elevationAngle = 0.35, // ~20 degrees elevation
+    azimuthAngle = 0.65,   // ~37 degrees azimuth
+    targetOffset = new THREE.Vector3(0, 0, 0),
+  } = options;
+
+  let maxDim = 2.0;
+  let center = new THREE.Vector3(0, 0, 0);
+
+  if (object3D && object3D.isObject3D) {
+    const box = new THREE.Box3().setFromObject(object3D);
+    if (!box.isEmpty()) {
+      const size = box.getSize(new THREE.Vector3());
+      center = box.getCenter(new THREE.Vector3());
+      maxDim = Math.max(size.x, size.y, size.z, 0.5);
+    }
+  }
+
+  const { minFovHalf } = computeFovHalfAngles(camera);
+  const sinHalf = Math.sin(minFovHalf);
+  const distance = Math.max(0.8, ((maxDim / 2) / Math.max(0.001, sinHalf)) * padding);
+  const target = center.clone().add(targetOffset);
+
+  const camPos = new THREE.Vector3(
+    target.x + distance * Math.cos(elevationAngle) * Math.sin(azimuthAngle),
+    target.y + distance * Math.sin(elevationAngle),
+    target.z + distance * Math.cos(elevationAngle) * Math.cos(azimuthAngle)
+  );
+
+  const minDistance = Math.max(0.6, (maxDim / 2) * 1.15);
+  const maxDistance = Math.max(distance * 3.2, 25.0);
+
+  return {
+    position: [camPos.x, camPos.y, camPos.z],
+    target: [target.x, target.y, target.z],
+    distance,
+    minDistance,
+    maxDistance,
+  };
+}
+
+/**
  * Computes ideal Orbit Overview camera framing
  * Fits the whole planet globe + orbit ring + orbiter in the viewport
  * with the planet diameter taking up ~50-55% of the portrait viewport width.
